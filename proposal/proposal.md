@@ -1,7 +1,7 @@
 # CS-30003 · Coding Assignment 1 · Project Proposal
 
-**Team:** _[4 names, roll numbers, section]_
-**Repository:** _[URL]_
+**Team:** Sohan Mandal (2405912, CSE-14) · Sinjan Mishra (2405910, CSE-14) · Sohini Pandit (2405913, CSE-14) · Shaili Seth (2405901, CSE-14)
+**Repository:** https://github.com/sohan1611/rdt-udp
 **Project:** P3 · Reliable Data Transfer over UDP
 **Path:** A (catalogue)
 
@@ -52,10 +52,10 @@ every result.
 
 | Owner | Component |
 |---|---|
-| _[name]_ | Wire format, checksum, protocol interface, Stop-and-Wait |
-| _[name]_ | Go-Back-N, timer heap, cumulative ACKs |
-| _[name]_ | Selective Repeat, receiver buffer, RTT/RTO estimation |
-| _[name]_ | Channel emulator, experiment harness, statistics, plots |
+| Shaili Seth | Wire format, checksum, protocol interface, Stop-and-Wait |
+| Sinjan Mishra | Go-Back-N, timer heap, cumulative ACKs |
+| Sohini Pandit | Selective Repeat, receiver buffer, RTT/RTO estimation |
+| Sohan Mandal | Channel emulator, experiment harness, statistics, plots |
 
 ## 6. Risks
 

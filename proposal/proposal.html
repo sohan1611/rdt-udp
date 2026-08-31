@@ -45,7 +45,7 @@
 
 <table class="hdr">
   <tr><td class="k">Team</td><td>Sohan Mandal (2405912, CSE-14) &middot; Sinjan Mishra (2405910, CSE-14) &middot; Sohini Pandit (2405913, CSE-14) &middot; Shaili Seth (2405901, CSE-14)</td></tr>
-  <tr><td class="k">Repository</td><td>https://github.com/sohan1611/rdt-udp &nbsp;(private; access shared with instructor)</td></tr>
+  <tr><td class="k">Repository</td><td>https://github.com/sohan1611/rdt-udp &nbsp;(access shared with instructor)</td></tr>
   <tr><td class="k">Project</td><td>P3 &middot; Reliable Data Transfer over UDP</td></tr>
   <tr><td class="k">Path</td><td>A (catalogue)</td></tr>
 </table>
@@ -101,9 +101,9 @@ Mixing is permitted, and keeping analysis in Python separates the system from th
 <h2>5. Work split</h2>
 <table class="g">
   <tr><th>Component</th><th style="width:92px">Owner</th></tr>
-  <tr><td>Wire format, checksum, metadata handshake, Stop-and-Wait, sender and receiver CLIs</td><td class="o">Sinjan Mishra</td></tr>
-  <tr><td>Timer heap, Jacobson/Karels and Karn RTO estimation, Go-Back-N</td><td class="o">Sohini Pandit</td></tr>
-  <tr><td>Selective Repeat: receiver buffer, selective ACKs, sequence-space wraparound correctness</td><td class="o">Shaili Seth</td></tr>
+  <tr><td>Wire format, checksum, metadata handshake, Stop-and-Wait, sender and receiver CLIs</td><td class="o">Shaili Seth</td></tr>
+  <tr><td>Timer heap, Jacobson/Karels and Karn RTO estimation, Go-Back-N</td><td class="o">Sinjan Mishra</td></tr>
+  <tr><td>Selective Repeat: receiver buffer, selective ACKs, sequence-space wraparound correctness</td><td class="o">Sohini Pandit</td></tr>
   <tr><td>Channel emulator, capacity calibration, experiment harness, statistics, plots</td><td class="o">Sohan Mandal</td></tr>
   <tr><td>Own-module tests; pull-request review including a spoken explanation of the change; <code>AI-USE.md</code>; final report</td><td class="o">All</td></tr>
 </table>
@@ -124,13 +124,13 @@ Mixing is permitted, and keeping analysis in Python separates the system from th
 <h2>7. Weekly plan</h2>
 <table class="g">
   <tr><th style="width:70px">Week</th><th>Target</th><th style="width:92px">Owner</th></tr>
-  <tr><td class="w">1 &middot; Sep 1&ndash;7</td><td>Repository and <code>AI-USE.md</code>; packet format and checksum with unit tests; emulator v0 (loss, seeded); harness capacity calibration</td><td class="o">Sinjan, Sohan</td></tr>
-  <tr><td class="w">2 &middot; Sep 8&ndash;14</td><td>Emulator v1 (duplication, reordering, corruption, delay with jitter, JSONL trace); timer heap; Stop-and-Wait end to end with SHA-256 match</td><td class="o">Sohan, Sohini</td></tr>
-  <tr><td class="w">3 &middot; Sep 15&ndash;21</td><td>Go-Back-N: send window, cumulative ACKs, timeout retransmit; per-run statistics to CSV; first plot</td><td class="o">Sohini, Sohan</td></tr>
-  <tr><td class="w">4 &middot; Sep 22&ndash;28</td><td>Selective Repeat: per-packet timers, receiver buffer, in-order delivery; adaptive RTO across all three. Core complete</td><td class="o">Shaili, Sohini</td></tr>
-  <tr><td class="w">5 &middot; Sep 29&ndash;Oct 5</td><td>Experiments 1&ndash;3 at full seed count; methodology write-up</td><td class="o">Sohan, Shaili</td></tr>
+  <tr><td class="w">1 &middot; Sep 1&ndash;7</td><td>Repository and <code>AI-USE.md</code>; packet format and checksum with unit tests; emulator v0 (loss, seeded); harness capacity calibration</td><td class="o">Shaili, Sohan</td></tr>
+  <tr><td class="w">2 &middot; Sep 8&ndash;14</td><td>Emulator v1 (duplication, reordering, corruption, delay with jitter, JSONL trace); timer heap; Stop-and-Wait end to end with SHA-256 match</td><td class="o">Sohan, Sinjan</td></tr>
+  <tr><td class="w">3 &middot; Sep 15&ndash;21</td><td>Go-Back-N: send window, cumulative ACKs, timeout retransmit; per-run statistics to CSV; first plot</td><td class="o">Sinjan, Sohan</td></tr>
+  <tr><td class="w">4 &middot; Sep 22&ndash;28</td><td>Selective Repeat: per-packet timers, receiver buffer, in-order delivery; adaptive RTO across all three. Core complete</td><td class="o">Sohini, Sinjan</td></tr>
+  <tr><td class="w">5 &middot; Sep 29&ndash;Oct 5</td><td>Experiments 1&ndash;3 at full seed count; methodology write-up</td><td class="o">Sohan, Sohini</td></tr>
   <tr><td class="w">6 &middot; Oct 6&ndash;12</td><td>Experiment 4 with spurious-retransmission labelling; <code>tc netem</code> cross-validation; cross-teaching so each member can trace a packet through code they did not write</td><td class="o">Sohan, All</td></tr>
-  <tr><td class="w">7 &middot; Oct 13&ndash;19</td><td>Stretch attempt (SACK blocks); full report draft reviewed by all four</td><td class="o">Shaili, Sinjan</td></tr>
+  <tr><td class="w">7 &middot; Oct 13&ndash;19</td><td>Stretch attempt (SACK blocks); full report draft reviewed by all four</td><td class="o">Sohini, Shaili</td></tr>
   <tr><td class="w">8 &middot; Oct 20&ndash;26</td><td>Code freeze; final analysis write-up; repository cleanup; viva preparation and live-modification drills</td><td class="o">All</td></tr>
 </table>
 
