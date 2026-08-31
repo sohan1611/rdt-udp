@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CA1 Proposal P3</title>
+<style>
+  @page { size: A4; margin: 9mm 10mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 7.1pt; line-height: 1.24; color: #000; margin: 0;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  h1 {
+    font-size: 10pt; margin: 0 0 4px; padding-bottom: 2.5px;
+    border-bottom: 1.4px solid #000;
+  }
+  h2 {
+    font-size: 7.4pt; margin: 5.5px 0 2px; text-transform: uppercase;
+    letter-spacing: 0.45px; border-bottom: 0.6px solid #999; padding-bottom: 1.2px;
+  }
+  p { margin: 0 0 2.5px; text-align: justify; }
+  ul { margin: 0 0 2.5px; padding-left: 11px; }
+  li { margin-bottom: 1px; }
+  b { font-weight: 600; }
+
+  .hdr { width: 100%; border-collapse: collapse; margin-bottom: 1px; }
+  .hdr td { padding: 0.6px 0; vertical-align: top; }
+  .hdr td.k { width: 58px; font-weight: 600; }
+
+  table.g { width: 100%; border-collapse: collapse; margin: 1.5px 0 2.5px; }
+  table.g th {
+    text-align: left; font-size: 6.8pt; text-transform: uppercase;
+    letter-spacing: 0.3px; border-bottom: 0.8px solid #000; padding: 1.5px 3px 1.2px;
+  }
+  table.g td { padding: 1.4px 3px; border-bottom: 0.4px solid #d8d8d8; vertical-align: top; }
+  table.g td.o { white-space: nowrap; font-weight: 600; width: 92px; }
+  table.g td.w { white-space: nowrap; width: 70px; }
+  code { font-family: "Courier New", monospace; font-size: 6.7pt; }
+</style>
+</head>
+<body>
+
+<h1>CS-30003 &middot; Coding Assignment 1 &middot; Project Proposal</h1>
+
+<table class="hdr">
+  <tr><td class="k">Team</td><td>Sohan Mandal (2405912, CSE-14) &middot; Sinjan Mishra (2405910, CSE-14) &middot; Sohini Pandit (2405913, CSE-14) &middot; Shaili Seth (2405901, CSE-14)</td></tr>
+  <tr><td class="k">Repository</td><td>https://github.com/sohan1611/rdt-udp &nbsp;(private; access shared with instructor)</td></tr>
+  <tr><td class="k">Project</td><td>P3 &middot; Reliable Data Transfer over UDP</td></tr>
+  <tr><td class="k">Path</td><td>A (catalogue)</td></tr>
+</table>
+
+<h2>1. What we are building</h2>
+<p>A file-transfer system built directly on UDP datagram sockets, with the reliability, ordering and
+integrity guarantees implemented by us at the transport layer. One application interface sits above three
+interchangeable ARQ transports &mdash; Stop-and-Wait, Go-Back-N and Selective Repeat &mdash; chosen by a
+command-line flag with no change to application code. Between the endpoints we run our own channel emulator
+as a <b>separate middlebox process</b>, so the protocol contains no test-only code paths and genuinely does
+not know it is being measured. Below our layer is only UDP's unreliable datagram service; above it the
+application sees an ordered, hash-verified file.</p>
+
+<h2>2. Core deliverables</h2>
+<ul>
+  <li>20-byte hand-packed header via <code>ByteBuffer</code> (big-endian, hence already network byte order), and the 16-bit one's-complement Internet checksum of RFC 1071 written by hand.</li>
+  <li>Three swappable transports behind one interface: alternating-bit Stop-and-Wait; Go-Back-N with a sliding window, cumulative ACKs and full-window retransmit; Selective Repeat with per-packet timers, selective ACKs, receiver-side buffering of out-of-order packets and in-order delivery.</li>
+  <li>Retransmission timers on a <b>single-threaded timer heap</b> driven by one socket loop &mdash; no timer thread, therefore no race between a timeout firing and an ACK arriving; both are events on the same loop.</li>
+  <li>Adaptive RTO via Jacobson/Karels (SRTT, RTTVAR) with Karn's algorithm and exponential backoff.</li>
+  <li>Channel emulator written by us as a standalone process: configurable loss, duplication, reordering, corruption and delay with jitter, seeded with <code>java.util.Random</code>, whose algorithm is fixed by the Java specification so a seed reproduces byte-identically on any machine. Every packet consumes a fixed number of draws, so changing the loss rate does not shift the delay sequence and two cells of a sweep differ only in the variable under test.</li>
+  <li>A <b>JSONL trace of every impairment decision</b>, giving per-packet ground truth on whether a packet was genuinely lost &mdash; which lets us classify a retransmission as spurious rather than guess.</li>
+  <li>SHA-256 comparison of source against received file after every transfer; per-run statistics (goodput, wire throughput, retransmissions, timeouts, duplicate ACKs) to CSV; a harness regenerating every figure from those CSVs.</li>
+</ul>
+
+<h2>3. The claim we will test</h2>
+<p><b>Claim.</b> Under loss, Selective Repeat's goodput degrades approximately as (1&minus;p) while Go-Back-N's
+degrades approximately as (1&minus;p)<sup>W</sup>, so the gap widens with both loss rate and window size,
+while Stop-and-Wait stays bounded by MSS/RTT regardless of either. This is falsifiable because it predicts a
+functional <i>form</i>, not merely an ordering: if the measured Go-Back-N curve does not track
+(1&minus;p)<sup>W</sup>, we report that and explain why.</p>
+<p><b>Experiment.</b> <i>Independent variables</i> &mdash; loss rate (0, 0.1, 0.5, 1, 2, 5, 10, 20%), window
+size (1&ndash;128), reordering probability (0&ndash;20%), RTO policy (fixed at 1.2/1.5/2/3&times;RTT versus
+adaptive). <i>Controls</i> &mdash; same 8&nbsp;MiB file, 1400-byte payload, emulated RTT and jitter, and the
+same seed set across all three protocols; ten seeds per cell. <i>Metrics</i> &mdash; goodput and wire
+throughput reported separately so retransmission overhead is visible rather than hidden; retransmission
+count; and, using the emulator trace as ground truth, the fraction of retransmissions that were
+<i>spurious</i> because the original had in fact arrived. <i>Presentation</i> &mdash; four plots, each with
+mean and 95% confidence intervals over seeds and a written explanation of the curve's shape.
+<i>Validation</i> &mdash; we re-run the loss sweep under Linux <code>tc netem</code> and show our emulator
+reproduces the same curve, and we publish the measured harness capacity ceiling (64,000 packets/second on
+our test host) so every data point is visibly below it.</p>
+
+<h2>4. Stack and justification</h2>
+<p>Java 21 (<code>java.net</code>, <code>java.nio</code>) for the protocols and emulator; Python 3 with
+pandas and matplotlib for analysis only; Linux via WSL2. Java because the viva is assessed individually and
+most of the group is strongest in Java, so it maximises how well each of us can explain our own code, and
+because <code>ByteBuffer</code> is big-endian by default, which is already network byte order. We
+benchmarked the brief's performance warning rather than assuming it: a textbook RFC 1071 checksum runs at
+roughly 14,000 packets/second in Python but 1.68&nbsp;million in Java, against an operating point near 4,500
+&mdash; so in Java we can write the checksum exactly as the RFC specifies instead of in an optimised form.
+Mixing is permitted, and keeping analysis in Python separates the system from the measurement of it.</p>
+
+<h2>5. Work split</h2>
+<table class="g">
+  <tr><th>Component</th><th style="width:92px">Owner</th></tr>
+  <tr><td>Wire format, checksum, metadata handshake, Stop-and-Wait, sender and receiver CLIs</td><td class="o">Sinjan Mishra</td></tr>
+  <tr><td>Timer heap, Jacobson/Karels and Karn RTO estimation, Go-Back-N</td><td class="o">Sohini Pandit</td></tr>
+  <tr><td>Selective Repeat: receiver buffer, selective ACKs, sequence-space wraparound correctness</td><td class="o">Shaili Seth</td></tr>
+  <tr><td>Channel emulator, capacity calibration, experiment harness, statistics, plots</td><td class="o">Sohan Mandal</td></tr>
+  <tr><td>Own-module tests; pull-request review including a spoken explanation of the change; <code>AI-USE.md</code>; final report</td><td class="o">All</td></tr>
+</table>
+
+<h2>6. Risks</h2>
+<ul>
+  <li><b>Selective Repeat overruns its week.</b> Per-packet timers plus a receiver buffer is the hardest
+  single piece of the project. <i>Fallback:</i> ship it with one timer on the oldest unacknowledged packet
+  &mdash; still correct, still ahead of Go-Back-N &mdash; documented as a deliberate simplification, with
+  per-packet timers moved to stretch. We take this decision on 25 September, not in October.</li>
+  <li><b>JVM timing jitter contaminating the measurements.</b> JIT compilation makes the first few thousand
+  packets of a run slower than the rest, and garbage-collection pauses look exactly like network delay in a
+  latency measurement. <i>Fallback:</i> discard a warm-up transfer per JVM, pin the heap so it never
+  resizes, keep the hot path free of allocation, and log GC to confirm no collection occurred during any
+  timed run.</li>
+</ul>
+
+<h2>7. Weekly plan</h2>
+<table class="g">
+  <tr><th style="width:70px">Week</th><th>Target</th><th style="width:92px">Owner</th></tr>
+  <tr><td class="w">1 &middot; Sep 1&ndash;7</td><td>Repository and <code>AI-USE.md</code>; packet format and checksum with unit tests; emulator v0 (loss, seeded); harness capacity calibration</td><td class="o">Sinjan, Sohan</td></tr>
+  <tr><td class="w">2 &middot; Sep 8&ndash;14</td><td>Emulator v1 (duplication, reordering, corruption, delay with jitter, JSONL trace); timer heap; Stop-and-Wait end to end with SHA-256 match</td><td class="o">Sohan, Sohini</td></tr>
+  <tr><td class="w">3 &middot; Sep 15&ndash;21</td><td>Go-Back-N: send window, cumulative ACKs, timeout retransmit; per-run statistics to CSV; first plot</td><td class="o">Sohini, Sohan</td></tr>
+  <tr><td class="w">4 &middot; Sep 22&ndash;28</td><td>Selective Repeat: per-packet timers, receiver buffer, in-order delivery; adaptive RTO across all three. Core complete</td><td class="o">Shaili, Sohini</td></tr>
+  <tr><td class="w">5 &middot; Sep 29&ndash;Oct 5</td><td>Experiments 1&ndash;3 at full seed count; methodology write-up</td><td class="o">Sohan, Shaili</td></tr>
+  <tr><td class="w">6 &middot; Oct 6&ndash;12</td><td>Experiment 4 with spurious-retransmission labelling; <code>tc netem</code> cross-validation; cross-teaching so each member can trace a packet through code they did not write</td><td class="o">Sohan, All</td></tr>
+  <tr><td class="w">7 &middot; Oct 13&ndash;19</td><td>Stretch attempt (SACK blocks); full report draft reviewed by all four</td><td class="o">Shaili, Sinjan</td></tr>
+  <tr><td class="w">8 &middot; Oct 20&ndash;26</td><td>Code freeze; final analysis write-up; repository cleanup; viva preparation and live-modification drills</td><td class="o">All</td></tr>
+</table>
+
+</body>
+</html>

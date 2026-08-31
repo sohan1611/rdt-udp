@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>P3 Team Plan</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 14mm 14mm; }
+
+  :root {
+    --ink:      #16191d;
+    --muted:    #5b6470;
+    --line:     #d4d9e0;
+    --accent:   #1b4d7a;
+    --tint:     #eef3f8;
+    --warn:     #8a4b00;
+    --warn-bg:  #fdf3e6;
+    --m1: #1b6b4a; --m2: #1b4d7a; --m3: #7a2f5e; --m4: #8a5a00;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 9.4pt;
+    line-height: 1.45;
+    color: var(--ink);
+    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h1 { font-size: 19pt; margin: 0 0 2px; letter-spacing: -0.2px; }
+  h2 {
+    font-size: 12.5pt; margin: 20px 0 8px; padding-bottom: 4px;
+    border-bottom: 2px solid var(--accent); color: var(--accent);
+    break-after: avoid;
+  }
+  h3 { font-size: 10pt; margin: 14px 0 5px; break-after: avoid; }
+  p  { margin: 0 0 7px; }
+  ul { margin: 0 0 7px; padding-left: 16px; }
+  li { margin-bottom: 2px; }
+
+  .sub { color: var(--muted); font-size: 9.6pt; margin-bottom: 3px; }
+
+  .meta {
+    display: flex; gap: 20px; flex-wrap: wrap;
+    background: var(--tint); border: 1px solid var(--line);
+    border-radius: 4px; padding: 8px 12px; margin: 12px 0 4px;
+    font-size: 8.9pt;
+  }
+  .meta b { color: var(--accent); }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 8px 0 12px;
+    font-size: 8.7pt; break-inside: avoid;
+  }
+  th {
+    background: var(--accent); color: #fff; text-align: left;
+    padding: 5px 7px; font-weight: 600; font-size: 8.4pt;
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  td { padding: 5px 7px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody tr:nth-child(even) { background: #f7f9fb; }
+  td.num { text-align: center; white-space: nowrap; }
+
+  .role {
+    border: 1px solid var(--line); border-left: 4px solid var(--rc, var(--accent));
+    border-radius: 4px; padding: 10px 12px; margin-bottom: 10px;
+    break-inside: avoid;
+  }
+  .role h3 { margin: 0 0 2px; color: var(--rc); font-size: 10.5pt; }
+  .role .who {
+    font-size: 8.5pt; color: var(--muted); margin-bottom: 6px;
+    border-bottom: 1px dotted var(--line); padding-bottom: 5px;
+  }
+  .role .who .fill {
+    display: inline-block; min-width: 150px;
+    border-bottom: 1px solid var(--muted); margin-left: 4px;
+  }
+  .r1 { --rc: var(--m1); } .r2 { --rc: var(--m2); }
+  .r3 { --rc: var(--m3); } .r4 { --rc: var(--m4); }
+
+  code {
+    font-family: Consolas, "SF Mono", Menlo, monospace;
+    font-size: 8.3pt; background: #eef1f4; padding: 0.5px 3px;
+    border-radius: 2px;
+  }
+
+  .callout {
+    background: var(--warn-bg); border: 1px solid #e8c99a;
+    border-left: 4px solid var(--warn); border-radius: 4px;
+    padding: 9px 12px; margin: 10px 0; font-size: 8.8pt;
+    break-inside: avoid;
+  }
+  .callout b { color: var(--warn); }
+
+  .gate {
+    background: #eef7f1; border: 1px solid #b9dcc7;
+    border-left: 4px solid var(--m1); border-radius: 4px;
+    padding: 9px 12px; margin: 10px 0; font-size: 8.8pt;
+    break-inside: avoid;
+  }
+
+  .pill {
+    display: inline-block; padding: 1px 6px; border-radius: 9px;
+    font-size: 7.6pt; font-weight: 700; color: #fff; white-space: nowrap;
+  }
+  .p1 { background: var(--m1); } .p2 { background: var(--m2); }
+  .p3 { background: var(--m3); } .p4 { background: var(--m4); }
+  .pall { background: var(--muted); }
+
+  .page-break { break-before: page; }
+
+  footer {
+    margin-top: 18px; padding-top: 7px; border-top: 1px solid var(--line);
+    font-size: 7.8pt; color: var(--muted);
+  }
+
+  .two { display: flex; gap: 14px; }
+  .two > * { flex: 1; }
+</style>
+</head>
+<body>
+
+<h1>Reliable Data Transfer over UDP</h1>
+<div class="sub">CS-30003 · Coding Assignment 1 · Catalogue Project P3 (Path A) · Team Plan</div>
+
+<div class="meta">
+  <div><b>Duration</b> 8 weeks · Sep 1 – Oct 26, 2026</div>
+  <div><b>Marks</b> 10 (Proposal 2 · Implementation 3 · Viva 5)</div>
+  <div><b>Team</b> 4 members</div>
+  <div><b>Stack</b> Java 21 + Python (analysis) on WSL2</div>
+</div>
+
+<h2>1. What we are building, in one paragraph</h2>
+<p>
+A file-transfer system over UDP with three interchangeable ARQ transports — Stop-and-Wait,
+Go-Back-N, and Selective Repeat — behind one application interface. Alongside it we write our
+own channel emulator: a separate process that sits on the path and injects loss, duplication,
+reordering, corruption, and delay with jitter, all deterministic from a seed. The protocols are
+the system; the emulator is how we measure it. We then run four experiments and defend the
+numbers.
+</p>
+
+<h2>2. The three rules that decide our marks</h2>
+<table>
+  <thead><tr><th style="width:26%">Rule from the brief</th><th>What it means for us day to day</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>Implement the protocol, not call it</b></td>
+      <td>Sockets only. <code>DatagramSocket</code> / <code>DatagramChannel</code> and nothing above them.
+          No Netty, Aeron, KryoNet, JGroups, or any QUIC library. No TCP anywhere on the data path.</td>
+    </tr>
+    <tr>
+      <td><b>Produce evidence</b></td>
+      <td>Every claim needs a plot with error bars behind it. Ten seeds per data point, mean with
+          95% confidence intervals. A working demo alone scores badly.</td>
+    </tr>
+    <tr>
+      <td><b>Explain every line</b></td>
+      <td>The viva is <b>individual</b> and worth 5 of the 10 marks. Sir will ask you to modify your
+          code live. Code that runs but cannot be explained scores <b>zero</b>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <b>The viva is worth more than the code.</b> Half the total marks are awarded to you individually,
+  not to the group. This is why the split below gives everyone their own protocol to own, why we
+  cross-teach in Week 6, and why nobody is allowed to be "the person who only makes the graphs."
+  You will each be asked about parts of the system you did not write.
+</div>
+
+<h2>3. How the work divides — four equal roles</h2>
+<p>
+Each role owns two core components, one experiment, one section of the final report, and the
+tests for their own code. Estimated effort is deliberately balanced within a few hours.
+</p>
+
+<table>
+  <thead>
+    <tr><th style="width:20%">Role</th><th style="width:34%">Core components owned</th>
+        <th style="width:26%">Experiment owned</th><th style="width:14%">Report section</th><th class="num">Est.</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="pill p1">M1</span> <b>Framing &amp; Session</b></td>
+      <td><code>Packet</code>, metadata handshake, <code>StopAndWait</code>, sender/receiver CLIs, FIN teardown</td>
+      <td>Exp 1 — goodput vs loss rate</td>
+      <td>Wire format &amp; session</td>
+      <td class="num">46 h</td>
+    </tr>
+    <tr>
+      <td><span class="pill p2">M2</span> <b>Timers &amp; Go-Back-N</b></td>
+      <td><code>TimerWheel</code>, <code>RttEstimator</code> (Jacobson/Karels + Karn), <code>GoBackN</code></td>
+      <td>Exp 4 — RTO sensitivity</td>
+      <td>Timers, RTO, GBN</td>
+      <td class="num">48 h</td>
+    </tr>
+    <tr>
+      <td><span class="pill p3">M3</span> <b>Selective Repeat</b></td>
+      <td><code>SelectiveRepeat</code>, receiver buffer, SACK encode/decode, wraparound tests</td>
+      <td>Exp 2 — goodput vs window</td>
+      <td>Selective Repeat</td>
+      <td class="num">50 h</td>
+    </tr>
+    <tr>
+      <td><span class="pill p4">M4</span> <b>Channel &amp; Evidence</b></td>
+      <td><code>NetEm</code> emulator, JSONL trace, <code>RunStats</code>, experiment harness, plots</td>
+      <td>Exp 3 — reordering</td>
+      <td>Methodology &amp; emulator</td>
+      <td class="num">48 h</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Shared by everyone, non-negotiable</h3>
+<ul>
+  <li>Write the tests for your own module. Nobody tests your code for you.</li>
+  <li>Review one partner's pull request each week. Pairing rotates: odd weeks M1↔M2 and M3↔M4, even weeks M1↔M3 and M2↔M4.</li>
+  <li>Take your turn as weekly integration owner (rotation in §5).</li>
+  <li>Commit under your own name and email, at least three commits a week. Sir treats commit
+      history as evidence and has said a repo with three commits in the final week signals a problem.</li>
+  <li>Attend the Week 6 cross-teaching session and the Week 8 viva drills.</li>
+</ul>
+
+<div class="page-break"></div>
+<h2>4. Role detail</h2>
+
+<div class="role r1">
+  <h3><span class="pill p1">M1</span> Framing &amp; Session</h3>
+  <div class="who">Member: <span class="fill"></span> &nbsp; Roll: <span class="fill" style="min-width:90px"></span></div>
+  <ul>
+    <li><b>Rewrite <code>Packet.java</code> yourself</b> — 20-byte header, RFC 1071 checksum. A draft plus
+        13 passing tests already exist; the tests are your specification, the draft is reference only.
+        See the AI-use note in §9.</li>
+    <li>Unsigned handling: <code>seq</code>/<code>ack</code> are unsigned 32-bit on the wire and must be
+        widened with <code>Integer.toUnsignedLong</code>. This is the single most common Java bug in this project.</li>
+    <li>Metadata handshake: <code>seq=0</code> carries filename, size, SHA-256; receiver ACKs; data starts at <code>seq=1</code>.</li>
+    <li><code>StopAndWait.java</code> — the simplest protocol, and the one that proves the framing works.</li>
+    <li><code>Sender.java</code> / <code>Receiver.java</code> command-line front ends.</li>
+    <li>FIN / FINACK teardown; SHA-256 integrity comparison at the end of every transfer.</li>
+    <li><b>Experiment 1</b>: goodput versus loss rate, all three protocols at W=32.</li>
+  </ul>
+</div>
+
+<div class="role r2">
+  <h3><span class="pill p2">M2</span> Timers &amp; Go-Back-N</h3>
+  <div class="who">Member: <span class="fill"></span> &nbsp; Roll: <span class="fill" style="min-width:90px"></span></div>
+  <ul>
+    <li><code>TimerWheel.java</code> — a <code>PriorityQueue</code> of deadlines from <code>System.nanoTime()</code>,
+        driven by one selector loop. <b>Single-threaded on purpose.</b> Do not use
+        <code>ScheduledExecutorService</code> or <code>Timer</code>: they reintroduce exactly the concurrency
+        the brief warns about, and they are harder to defend at viva.</li>
+    <li><code>RttEstimator.java</code> — Jacobson/Karels SRTT and RTTVAR, with Karn's algorithm
+        (never sample RTT from a retransmitted packet) and exponential backoff.</li>
+    <li><code>GoBackN.java</code> — cumulative ACKs, one timer on the base of the window, retransmit the
+        whole window on timeout.</li>
+    <li><b>Experiment 4</b>: RTO sensitivity. Fixed RTO at 1.2/1.5/2/3× RTT versus adaptive. Use the
+        emulator trace as ground truth to label each retransmission <i>spurious</i> or <i>necessary</i> —
+        this is the experiment no other group will have.</li>
+  </ul>
+</div>
+
+<div class="role r3">
+  <h3><span class="pill p3">M3</span> Selective Repeat</h3>
+  <div class="who">Member: <span class="fill"></span> &nbsp; Roll: <span class="fill" style="min-width:90px"></span></div>
+  <ul>
+    <li><code>SelectiveRepeat.java</code> — per-packet timers, receiver buffer holding out-of-order
+        packets, in-order delivery to the application. <b>This is the hardest single module</b>, which is
+        why it is the only one you own; start reading in Week 2, not Week 4.</li>
+    <li>SACK block encoding and decoding. The <code>sackCount</code> header field is already reserved,
+        so no wire-format change is needed.</li>
+    <li>Window-bound correctness: prove Go-Back-N needs W ≤ 2<sup>k</sup>−1 and Selective Repeat needs
+        W ≤ 2<sup>k−1</sup>. Shrink the sequence space in a test, force wraparound, and demonstrate
+        that an <i>illegal</i> window actually corrupts the transfer. Most groups never test this.</li>
+    <li><b>Experiment 2</b>: goodput versus window size, GBN against SR, at 1% and 5% loss.</li>
+    <li>Week 7 stretch goal: SACK blocks in the live protocol.</li>
+  </ul>
+</div>
+
+<div class="role r4">
+  <h3><span class="pill p4">M4</span> Channel &amp; Evidence</h3>
+  <div class="who">Member: <span class="fill"></span> &nbsp; Roll: <span class="fill" style="min-width:90px"></span></div>
+  <ul>
+    <li><code>NetEm.java</code> — a UDP middlebox process: sender → emulator → receiver and back, each
+        direction impaired independently. Configurable loss, duplication, corruption, reordering,
+        and delay with jitter.</li>
+    <li>Seed with <code>java.util.Random(seed)</code>. Its algorithm is fixed by the Java specification,
+        so the same seed reproduces byte-identical runs on any machine. <b>Never</b>
+        <code>ThreadLocalRandom</code> or <code>SecureRandom</code>.</li>
+    <li>JSONL impairment trace — one line per packet decision. This is what makes M2's Experiment 4
+        possible, and it lets us replay any strange run packet by packet at the viva.</li>
+    <li><b>Week 1 capacity calibration</b>: measure the emulator's maximum sustained packets/second.
+        Every experiment must then run at under half of it, and the number goes in the report.</li>
+    <li><code>RunStats</code> → CSV, <code>run_matrix.py</code> sweep runner, <code>plots.py</code>.</li>
+    <li><code>tc netem</code> cross-validation in Week 6 — independent proof our emulator is honest.</li>
+    <li><b>Experiment 3</b>: retransmission count versus reordering probability.</li>
+  </ul>
+</div>
+
+<div class="callout">
+  <b>M4 is not the graphs person.</b> The emulator is a core component every other module depends on,
+  and the analysis pipeline is where the implementation marks for "experiments, plots, and analysis"
+  are actually earned. M4 will still be asked about Selective Repeat at the viva — which is what
+  Week 6 cross-teaching is for.
+</div>
+
+<div class="page-break"></div>
+<h2>5. Week by week</h2>
+<p>Every week ends at a <b>gate</b>: a binary, testable condition. If a gate is missed, the fallback in
+§7 fires that week, not in October.</p>
+
+<table>
+  <thead>
+    <tr><th class="num" style="width:5%">Wk</th><th style="width:12%">Dates</th>
+        <th style="width:38%">Targets</th><th style="width:30%">Gate</th>
+        <th style="width:15%">Integration owner</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="num">0</td><td>Aug 25–31</td>
+      <td>Names onto roles. Proposal finished and submitted. Repo shared with sir. JDK 21 installed
+          inside WSL2 Ubuntu. Everyone runs <code>./build.sh</code> successfully.</td>
+      <td>Proposal submitted; build green on all four machines</td>
+      <td><span class="pill p4">M4</span></td>
+    </tr>
+    <tr>
+      <td class="num">1</td><td>Sep 1–7</td>
+      <td><span class="pill p1">M1</span> rewrite <code>Packet</code>, handshake ·
+          <span class="pill p4">M4</span> emulator v0 (loss only) + calibration ·
+          <span class="pill p2">M2</span> read RFC 6298 · <span class="pill p3">M3</span> read SR chapter</td>
+      <td>8 MiB transfer, SHA-256 match at 0% loss; calibration number committed</td>
+      <td><span class="pill p1">M1</span></td>
+    </tr>
+    <tr>
+      <td class="num">2</td><td>Sep 8–14</td>
+      <td><span class="pill p4">M4</span> emulator v1: dup, corrupt, delay+jitter, reorder, JSONL trace ·
+          <span class="pill p2">M2</span> <code>TimerWheel</code> ·
+          <span class="pill p1">M1</span> Stop-and-Wait hardened + CLIs</td>
+      <td>SHA-256 match at 10% loss across 10 seeds</td>
+      <td><span class="pill p2">M2</span></td>
+    </tr>
+    <tr>
+      <td class="num">3</td><td>Sep 15–21</td>
+      <td><span class="pill p2">M2</span> <code>GoBackN</code> + <code>RttEstimator</code> ·
+          <span class="pill p4">M4</span> <code>RunStats</code> CSV + <code>run_matrix.py</code> ·
+          <span class="pill p3">M3</span> SR design + receiver buffer started</td>
+      <td>GBN integrity across 5 channel profiles × 10 seeds; first real plot exists</td>
+      <td><span class="pill p3">M3</span></td>
+    </tr>
+    <tr>
+      <td class="num">4</td><td>Sep 22–28</td>
+      <td><span class="pill p3">M3</span> <code>SelectiveRepeat</code> complete, wraparound tests ·
+          <span class="pill p2">M2</span> adaptive RTO wired into all three protocols</td>
+      <td><b>Core functionally done.</b> All three protocols pass one shared integrity suite</td>
+      <td><span class="pill p4">M4</span></td>
+    </tr>
+    <tr>
+      <td class="num">5</td><td>Sep 29–Oct 5</td>
+      <td>Experiments 1, 2, 3 at full seed count. Report methodology section drafted.</td>
+      <td>Figures 1–3 regenerated by script from committed CSVs</td>
+      <td><span class="pill p1">M1</span></td>
+    </tr>
+    <tr>
+      <td class="num">6</td><td>Oct 6–12</td>
+      <td>Experiment 4 with spurious-retransmit labelling · <code>tc netem</code> cross-validation ·
+          <b>cross-teaching session: each member teaches their module to the other three</b></td>
+      <td>Figure 4 done; every member can trace a packet end to end through code they did not write</td>
+      <td><span class="pill p2">M2</span></td>
+    </tr>
+    <tr>
+      <td class="num">7</td><td>Oct 13–19</td>
+      <td>One stretch goal only — SACK blocks (<span class="pill p3">M3</span>). Full report draft.</td>
+      <td>Report draft read and annotated by all four</td>
+      <td><span class="pill p3">M3</span></td>
+    </tr>
+    <tr>
+      <td class="num">8</td><td>Oct 20–26</td>
+      <td>Code freeze Oct 22. Final report. Viva drills against each other.</td>
+      <td><code>make all</code> reproduces every figure from a clean clone</td>
+      <td><span class="pill p4">M4</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="gate">
+  <b>Critical path.</b> Everything downstream waits on two things: M1's <code>Packet</code> in Week 1 and
+  M4's emulator in Week 2. If either slips, the whole schedule slips. These two people should pair
+  in Week 1 if needed — the other two have reading to do and can absorb the delay.
+</div>
+
+<h2>6. The claim and the four experiments</h2>
+<p><b>Our claim:</b> Selective Repeat sustains higher goodput than Go-Back-N under loss, and the gap widens
+with both loss rate and window size — Go-Back-N degrades roughly as (1−p)<sup>W</sup> where Selective
+Repeat degrades as (1−p), while Stop-and-Wait is capped at MSS/RTT regardless of loss.</p>
+<p>This is falsifiable because it predicts a <i>shape</i>, not just an ordering. If the measured curve does
+not match, we say so and explain why — that analysis earns more than a curve that happens to fit.</p>
+
+<table>
+  <thead><tr><th class="num" style="width:6%">Exp</th><th style="width:12%">Owner</th><th style="width:26%">Variable</th>
+      <th style="width:30%">Levels</th><th>Measured</th></tr></thead>
+  <tbody>
+    <tr><td class="num">1</td><td><span class="pill p1">M1</span></td><td>Loss rate p</td>
+        <td>0, 0.1, 0.5, 1, 2, 5, 10, 20 %</td><td>Goodput, all three protocols, W=32</td></tr>
+    <tr><td class="num">2</td><td><span class="pill p3">M3</span></td><td>Window size W</td>
+        <td>1, 2, 4, 8, 16, 32, 64, 128</td><td>Goodput, GBN vs SR, at p=1% and 5%</td></tr>
+    <tr><td class="num">3</td><td><span class="pill p4">M4</span></td><td>Reorder probability</td>
+        <td>0, 1, 2, 5, 10, 20 %</td><td>Retransmission count, all three</td></tr>
+    <tr><td class="num">4</td><td><span class="pill p2">M2</span></td><td>RTO policy</td>
+        <td>fixed 1.2/1.5/2/3×RTT vs adaptive</td><td>Spurious-retransmit fraction, total time</td></tr>
+  </tbody>
+</table>
+
+<p><b>Constants across every run:</b> 8 MiB file, 1400-byte payload, 10 seeds per cell, mean with 95%
+confidence intervals, all runs on one designated machine whose spec goes in the report, JVM warm-up
+transfer discarded before timing. Report goodput and wire throughput <i>separately</i> so retransmission
+overhead is visible rather than hidden.</p>
+
+<div class="page-break"></div>
+<h2>7. Risks and what we do about them</h2>
+<table>
+  <thead><tr><th style="width:26%">Risk</th><th style="width:37%">Why it happens</th><th>Fallback, and when we take it</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>Selective Repeat overruns Week 4</b></td>
+      <td>Receiver buffer plus per-packet timers is the hardest piece in the project.</td>
+      <td>Ship SR with a single timer on the oldest unacked packet. Still correct, still beats GBN.
+          Document the simplification. <b>Decide on Sep 25</b>, not in October.</td>
+    </tr>
+    <tr>
+      <td><b>JVM timing jitter pollutes results</b></td>
+      <td>JIT compilation makes the first few thousand packets slow; GC pauses look exactly like
+          network delay in a latency measurement.</td>
+      <td>Discard a warm-up transfer per JVM · pin the heap with <code>-Xms512m -Xmx512m</code> ·
+          keep the hot path allocation-free · log GC with <code>-Xlog:gc</code> and state in the report
+          that no collection occurred during timed runs.</td>
+    </tr>
+    <tr>
+      <td><b>Our submission looks like another group's</b></td>
+      <td>P3 is a popular choice, and sir has said identical-looking submissions will be treated as
+          collusion.</td>
+      <td>Three things make ours structurally different: the emulator runs as a
+          <i>separate process</i> rather than an in-process hook, it writes a <i>replayable trace</i>,
+          and Experiment 4 labels retransmissions spurious using that trace as ground truth.
+          Write our own report prose. Share no code or figures with other groups, ever.</td>
+    </tr>
+    <tr>
+      <td><b>Someone falls behind quietly</b></td>
+      <td>Eight weeks is long enough to hide a stall for a month.</td>
+      <td>Weekly gates are binary and public. The integration owner reports status every week. Raise
+          a problem in week 3, not week 7 — it is fixable in week 3.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>8. Ground rules</h2>
+<div class="two">
+<div>
+<h3>Allowed</h3>
+<ul>
+  <li><code>java.net</code>, <code>java.nio</code>, <code>java.util.concurrent</code></li>
+  <li><code>MessageDigest</code> for SHA-256</li>
+  <li>Python, pandas, matplotlib, numpy — analysis only</li>
+  <li>Testing frameworks and build tooling</li>
+</ul>
+</div>
+<div>
+<h3>Banned</h3>
+<ul>
+  <li>Netty, Aeron, KryoNet, JGroups, any QUIC library</li>
+  <li>Anything implementing reliable transport over UDP</li>
+  <li>TCP anywhere on the data path</li>
+</ul>
+</div>
+</div>
+<p><b>The rule in one line, from the brief:</b> libraries may support your work; they may not <i>be</i> your
+work. If you are unsure whether something crosses the line, ask sir before you build on it. Asking is
+free; being found out at the demo is not.</p>
+
+<h3>Git</h3>
+<ul>
+  <li>One repository, shared with sir at proposal time.</li>
+  <li>Everyone commits under their own name and email. Committing on someone else's behalf counts as
+      <b>non-contribution by the absent member</b>.</li>
+  <li>Small, frequent commits. At least three a week each.</li>
+  <li>Branch per feature, pull request reviewed by your rotation partner before merge.</li>
+</ul>
+
+<div class="callout">
+  <b>The contributor list must show exactly the four of us — nobody else.</b> Sir monitors the
+  repository as we go, and a bot in the contributor graph invites exactly the questions we do not want.
+  So: <b>do not enable Dependabot</b> (check Settings → Code security, it can be on by default), do not
+  add a <code>.github/dependabot.yml</code>, do not merge bot pull requests, and never put an AI
+  co-author trailer in a commit message. If you use an AI assistant, it is disclosed in
+  <code>AI-USE.md</code> — that is the sanctioned channel, and git metadata is not.
+</div>
+
+<h2>9. AI tools — read this carefully</h2>
+<p>AI assistants are permitted with conditions, and we maintain <code>AI-USE.md</code> in the repository
+recording what we used them for. Honest disclosure carries no penalty; undisclosed use found at the
+viva does.</p>
+<div class="two">
+<div>
+<h3>Permitted</h3>
+<ul>
+  <li>Explaining concepts</li>
+  <li>Debugging</li>
+  <li>Reviewing our code</li>
+  <li>Generating tests</li>
+  <li>Boilerplate and plotting scripts</li>
+  <li>Improving our writing</li>
+</ul>
+</div>
+<div>
+<h3>Not permitted</h3>
+<ul>
+  <li>Generating our core protocol implementation and submitting it as our work</li>
+</ul>
+</div>
+</div>
+
+<h3>Our team rule</h3>
+<p>All four of us have an AI assistant of some kind, so this is worth saying out loud rather than
+assuming: <b>you may use AI to understand your module, but you write the code.</b></p>
+<p>Two reasons, both about marks rather than principle. The viva is individual and worth 5 of the 10
+marks, and code you did not write is code you cannot modify under pressure when sir asks you to change
+it live — that scores zero however well it runs. And a chatbot asked to write Go-Back-N in Java gives
+roughly the same answer to everybody, which walks straight into the collusion rule.</p>
+
+<div class="gate">
+  <b>Enforcement, at pull request time.</b> Before approving, the reviewer asks two or three "why"
+  questions about the code. <i>Why this data structure? What happens if this ACK is lost? Why this
+  bound and not that one?</i> If the author cannot answer, it does not merge. Five minutes per PR,
+  it rehearses the viva every single week, and it catches copy-pasted code in September while there
+  is still time to fix it.
+</div>
+
+<div class="callout">
+  <b>Two open items before submission.</b> Draft versions of <code>Packet.java</code> (M1) and the
+  channel emulator (M4) in the repository were AI-generated, and both are core deliverables that must
+  be rewritten by hand. The emulator is the stricter of the two: the catalogue entry does not merely
+  permit us to write it, it requires <i>"a channel emulator <b>you write yourself</b>"</i> in those
+  words. The tests stay in both cases — generating tests is explicitly permitted, and they are what
+  tell you the rewrite is correct. Both are tracked as unticked boxes in <code>AI-USE.md</code>.
+</div>
+
+<h2>10. Viva preparation</h2>
+<p>Week 8, run these at each other until nobody hesitates. Sir has said he will ask you to modify your
+code live during the demo.</p>
+<ul>
+  <li>Explain the Internet checksum byte by byte. Why one's complement? Why end-around carry?</li>
+  <li>Why does Selective Repeat need W ≤ 2<sup>k−1</sup> when Go-Back-N only needs W ≤ 2<sup>k</sup>−1?</li>
+  <li>Why <code>Integer.toUnsignedLong</code> on the sequence field? What breaks without it?</li>
+  <li>How do you avoid a race between a timeout firing and an ACK arriving?</li>
+  <li>Walk through what happens when an ACK is lost but the data arrived.</li>
+  <li>What is Karn's algorithm protecting against? Give a concrete example.</li>
+  <li>Change the window from 32 to 8 while a transfer is running.</li>
+  <li>Add a new packet type to the protocol, right now.</li>
+</ul>
+
+<h2>11. Before we submit the proposal — ask sir</h2>
+<ul>
+  <li>The brief PDF looks truncated: it refers to "Section 6" for individual moderation and "Section 7"
+      for rules on scanning networks, but the document ends at Section 6, the proposal template. Is
+      there a fuller version?</li>
+  <li>No proposal deadline or submission method is stated anywhere in the document.</li>
+  <li>The header says team size 4 strictly, but the Path B bar describes scope as "roughly 8 weeks for
+      three people." Which applies to us?</li>
+</ul>
+
+<footer>
+  Reliable Data Transfer over UDP · CS-30003 Coding Assignment 1 · Team plan, generated 25 August 2026.
+  Full technical plan in <code>docs/PLAN.md</code>. Repository README has build instructions.
+</footer>
+
+</body>
+</html>

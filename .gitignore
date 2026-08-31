@@ -1,0 +1,16 @@
+build/
+out/
+*.class
+
+# experiment artefacts that are regenerated, not committed
+traces/
+*.jsonl
+
+# committed on purpose: results/*.csv and figures/*.png are evidence
+
+.idea/
+*.iml
+.vscode/
+__pycache__/
+.venv/
+.DS_Store
