@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>P3 Member Playbook</title>
+<style>
+  @page { size: A4; margin: 14mm 13mm 12mm 13mm; }
+  :root {
+    --ink:#15181c; --muted:#5c6570; --line:#d6dbe2; --accent:#1b4d7a; --tint:#eef3f8;
+    --warn:#8a4b00; --warnbg:#fdf4e7; --ok:#1b6b4a; --okbg:#eef7f1;
+    --m1:#1b6b4a; --m2:#1b4d7a; --m3:#7a2f5e; --m4:#8a5a00;
+  }
+  * { box-sizing:border-box; }
+  body { font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif; font-size:9pt;
+         line-height:1.42; color:var(--ink); margin:0;
+         -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  h1 { font-size:18pt; margin:0 0 2px; letter-spacing:-0.2px; }
+  h2 { font-size:12pt; margin:0 0 8px; padding:6px 10px; color:#fff;
+       background:var(--accent); border-radius:3px; break-after:avoid; }
+  h3 { font-size:10.5pt; margin:13px 0 5px; color:var(--accent); break-after:avoid;
+       border-bottom:1.5px solid var(--line); padding-bottom:3px; }
+  h4 { font-size:9.2pt; margin:9px 0 3px; break-after:avoid; }
+  p { margin:0 0 6px; }
+  ul,ol { margin:0 0 6px; padding-left:16px; }
+  li { margin-bottom:2.5px; }
+  .sub { color:var(--muted); font-size:9.4pt; margin-bottom:10px; }
+
+  table { width:100%; border-collapse:collapse; margin:6px 0 10px; font-size:8.4pt;
+          break-inside:avoid; }
+  th { background:var(--accent); color:#fff; text-align:left; padding:4px 6px;
+       font-size:8pt; text-transform:uppercase; letter-spacing:0.4px; font-weight:600; }
+  td { padding:4px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tbody tr:nth-child(even){ background:#f7f9fb; }
+  td.c { text-align:center; white-space:nowrap; }
+
+  code { font-family:Consolas,"SF Mono",Menlo,monospace; font-size:8.2pt;
+         background:#eef1f4; padding:0.5px 3px; border-radius:2px; }
+  pre { font-family:Consolas,"SF Mono",Menlo,monospace; font-size:8pt;
+        background:#f4f6f8; border:1px solid var(--line); border-left:3px solid var(--accent);
+        border-radius:3px; padding:6px 8px; margin:5px 0 7px; overflow-x:auto;
+        white-space:pre-wrap; word-break:break-word; break-inside:avoid; }
+
+  .wk { border:1px solid var(--line); border-left:4px solid var(--c,var(--accent));
+        border-radius:4px; padding:8px 11px; margin-bottom:9px; break-inside:avoid; }
+  .wk .hd { display:flex; justify-content:space-between; align-items:baseline;
+            border-bottom:1px dotted var(--line); padding-bottom:4px; margin-bottom:5px; }
+  .wk .hd b { font-size:9.8pt; color:var(--c,var(--accent)); }
+  .wk .hd span { font-size:8.2pt; color:var(--muted); }
+  .goal { font-style:italic; color:var(--muted); margin-bottom:5px; }
+
+  .done { background:var(--okbg); border:1px solid #b9dcc7; border-left:3px solid var(--ok);
+          border-radius:3px; padding:5px 8px; margin:5px 0; font-size:8.4pt; }
+  .done b { color:var(--ok); }
+  .viva { background:#f3f0f7; border:1px solid #cfc4de; border-left:3px solid #5b3f86;
+          border-radius:3px; padding:5px 8px; margin:5px 0; font-size:8.4pt; }
+  .viva b { color:#5b3f86; }
+  .callout { background:var(--warnbg); border:1px solid #e8c99a; border-left:4px solid var(--warn);
+             border-radius:3px; padding:7px 10px; margin:8px 0; font-size:8.6pt; break-inside:avoid; }
+  .callout b { color:var(--warn); }
+
+  .pill { display:inline-block; padding:1px 6px; border-radius:9px; font-size:7.4pt;
+          font-weight:700; color:#fff; white-space:nowrap; }
+  .p1{background:var(--m1)} .p2{background:var(--m2)} .p3{background:var(--m3)}
+  .p4{background:var(--m4)} .pall{background:var(--muted)}
+  .s1 h2{background:var(--m1)} .s2 h2{background:var(--m2)}
+  .s3 h2{background:var(--m3)} .s4 h2{background:var(--m4)}
+  .s1 .wk{--c:var(--m1)} .s2 .wk{--c:var(--m2)}
+  .s3 .wk{--c:var(--m3)} .s4 .wk{--c:var(--m4)}
+  .s1 h3{color:var(--m1)} .s2 h3{color:var(--m2)}
+  .s3 h3{color:var(--m3)} .s4 h3{color:var(--m4)}
+
+  .brk { break-before:page; }
+  footer { margin-top:14px; padding-top:6px; border-top:1px solid var(--line);
+           font-size:7.6pt; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<h1>P3 Member Playbook</h1>
+<div class="sub">Reliable Data Transfer over UDP &middot; CS-30003 Coding Assignment 1 &middot; Written 31 August 2026</div>
+
+<div class="callout">
+  <b>How to use this document.</b> Part 0 and Part 1 are for everyone &mdash; read them today.
+  After that, find your own name and work only from your section. Each week tells you what to do,
+  how to know you are finished, and what you must be able to say out loud about it. The last
+  column matters most: the viva is worth 5 of the 10 marks and it is assessed
+  <i>individually</i>, so finishing your code is only half of finishing your job.
+</div>
+
+<h3>Who is doing what</h3>
+<table>
+  <thead><tr><th style="width:15%">Member</th><th style="width:9%">Role</th><th>Owns</th><th style="width:22%">Experiment &amp; report section</th></tr></thead>
+  <tbody>
+    <tr><td><b>Shaili Seth</b><br><span style="font-size:7.8pt;color:#5c6570">2405901</span></td>
+        <td><span class="pill p1">M1</span></td>
+        <td>Wire format, RFC 1071 checksum, metadata handshake, Stop-and-Wait, sender/receiver CLIs, FIN teardown</td>
+        <td>Exp 1 &mdash; goodput vs loss rate<br>Report: wire format &amp; session</td></tr>
+    <tr><td><b>Sinjan Mishra</b><br><span style="font-size:7.8pt;color:#5c6570">2405910</span></td>
+        <td><span class="pill p2">M2</span></td>
+        <td>Timer heap, Jacobson/Karels RTO with Karn, Go-Back-N</td>
+        <td>Exp 4 &mdash; RTO sensitivity<br>Report: timers, RTO, GBN</td></tr>
+    <tr><td><b>Sohini Pandit</b><br><span style="font-size:7.8pt;color:#5c6570">2405913</span></td>
+        <td><span class="pill p3">M3</span></td>
+        <td>Selective Repeat, receiver buffer, selective ACKs, wraparound correctness, SACK stretch</td>
+        <td>Exp 2 &mdash; goodput vs window<br>Report: Selective Repeat</td></tr>
+    <tr><td><b>Sohan Mandal</b><br><span style="font-size:7.8pt;color:#5c6570">2405912</span></td>
+        <td><span class="pill p4">M4</span></td>
+        <td>Channel emulator, capacity calibration, experiment harness, statistics, plots, tc/netem validation</td>
+        <td>Exp 3 &mdash; reordering<br>Report: methodology &amp; emulator</td></tr>
+  </tbody>
+</table>
+
+<h3>The whole project on one page</h3>
+<table>
+  <thead><tr><th style="width:13%">Week</th><th style="width:21.75%">Shaili (M1)</th><th style="width:21.75%">Sinjan (M2)</th>
+      <th style="width:21.75%">Sohini (M3)</th><th style="width:21.75%">Sohan (M4)</th></tr></thead>
+  <tbody>
+    <tr><td><b>1</b><br>Sep 1&ndash;7</td>
+        <td><b>Rewrite <code>Packet</code></b> by hand; metadata handshake</td>
+        <td>Read RFC 6298 &amp; GBN theory; design timer heap on paper</td>
+        <td>Read SR theory; work out the window bound; design receiver buffer</td>
+        <td><b>Rewrite emulator</b> by hand; re-run calibration on WSL2</td></tr>
+    <tr><td><b>2</b><br>Sep 8&ndash;14</td>
+        <td>Stop-and-Wait; sender/receiver CLIs</td>
+        <td><b><code>TimerWheel</code></b> + tests</td>
+        <td>Receiver buffer prototype; wraparound test cases</td>
+        <td>Emulator v1 complete; JSONL trace verified</td></tr>
+    <tr><td><b>3</b><br>Sep 15&ndash;21</td>
+        <td>FIN/FINACK teardown; harden S&amp;W</td>
+        <td><b><code>GoBackN</code></b> + <code>RttEstimator</code></td>
+        <td><code>SelectiveRepeat</code> core: send/receive windows</td>
+        <td><code>RunStats</code> CSV + <code>run_matrix.py</code>; first plot</td></tr>
+    <tr><td><b>4</b><br>Sep 22&ndash;28</td>
+        <td>Support; integrity suite across all three</td>
+        <td>Wire adaptive RTO into all three protocols</td>
+        <td><b>Finish SR</b> + wraparound tests. <b>Core complete</b></td>
+        <td>Support; prepare experiment configs</td></tr>
+    <tr><td><b>5</b><br>Sep 29&ndash;Oct 5</td>
+        <td><b>Experiment 1</b>; methodology write-up</td>
+        <td>Support experiments; start report section</td>
+        <td><b>Experiment 2</b></td>
+        <td><b>Experiment 3</b>; <code>plots.py</code>; run the full matrix</td></tr>
+    <tr><td><b>6</b><br>Oct 6&ndash;12</td>
+        <td>Cross-teaching; report section</td>
+        <td><b>Experiment 4</b> with spurious labelling</td>
+        <td>Cross-teaching; report section</td>
+        <td><code>tc netem</code> cross-validation; cross-teaching</td></tr>
+    <tr><td><b>7</b><br>Oct 13&ndash;19</td>
+        <td>Report review</td>
+        <td>Report section done</td>
+        <td><b>Stretch: SACK blocks</b></td>
+        <td>Final figures; report assembly</td></tr>
+    <tr><td><b>8</b><br>Oct 20&ndash;26</td>
+        <td colspan="4" style="text-align:center"><b>Code freeze 22 Oct &middot; final report &middot; viva drills &mdash; everyone</b></td></tr>
+  </tbody>
+</table>
+
+<div class="brk"></div>
+<h2>Part 0 &middot; Setup &mdash; everyone, before 1 September</h2>
+
+<p>Do this today or tomorrow. Nobody can start their week 1 without it, and the whole schedule
+assumes it is already done.</p>
+
+<h4>1. Install the tools</h4>
+<p>On Windows, install <b>JDK 21</b> (Adoptium Temurin) and <b>Git</b>. Then install a JDK inside
+WSL2 as well, because the experiments must run on Linux:</p>
+<pre>wsl --install -d Ubuntu          # only if you do not already have WSL2
+wsl -d Ubuntu
+sudo apt update &amp;&amp; sudo apt install -y openjdk-21-jdk make python3-pip
+java -version                     # must print 21.x</pre>
+
+<h4>2. Clone the repository</h4>
+<pre>git clone https://github.com/sohan1611/rdt-udp.git
+cd rdt-udp</pre>
+
+<h4>3. Set your git identity &mdash; this is the step people get wrong</h4>
+<p>Run this <b>inside the repo folder</b>, using the email address on your own GitHub account:</p>
+<pre>git config user.name  "Your Full Name"
+git config user.email "your-github-email@example.com"
+git log -1 --format='%an &lt;%ae&gt;'     # check it took effect after your first commit</pre>
+<div class="callout">
+  <b>If this email is not on your GitHub account, you will not appear as a contributor.</b> Your
+  commits show a grey avatar with no profile link, and as far as the contributor graph is
+  concerned you did nothing. Sir treats commit history as evidence in individual moderation, so
+  this is worth thirty seconds of care. Find your address at
+  <code>github.com/settings/emails</code>; if you would rather not publish a personal one, GitHub
+  gives you a private <code>...@users.noreply.github.com</code> address on that same page that
+  links correctly.
+</div>
+
+<h4>4. Check the build works</h4>
+<pre>./build.sh          # or: make test</pre>
+<p>You should see three suites and <b>33 tests, 0 failed</b>. If not, say so in the group chat
+before 1 September rather than discovering it mid-week.</p>
+
+<h4>5. Read these, in this order</h4>
+<ul>
+  <li><code>README.md</code> &mdash; what the project is and how to run it (10 minutes)</li>
+  <li><code>docs/PLAN.md</code> sections 1&ndash;4 &mdash; the design decisions we are committed to (30 minutes)</li>
+  <li><code>AI-USE.md</code> &mdash; the rules on AI, and the two open rewrite items</li>
+  <li>Your own section of this document</li>
+</ul>
+
+<h2>Part 1 &middot; Rules everyone follows</h2>
+
+<h4>Branches and pull requests</h4>
+<p>Never commit straight to <code>main</code>. Branch per task, named
+<code>m1/packet-rewrite</code>, <code>m2/timer-wheel</code>, <code>m3/receiver-buffer</code>,
+<code>m4/emulator-rewrite</code> and so on.</p>
+<pre>git checkout main &amp;&amp; git pull
+git checkout -b m2/timer-wheel
+# ... work, commit as you go ...
+git push -u origin m2/timer-wheel
+# then open the PR on GitHub</pre>
+
+<h4>Review pairing (rotates weekly)</h4>
+<table>
+  <thead><tr><th style="width:22%">Weeks</th><th>Pairs</th></tr></thead>
+  <tbody>
+    <tr><td>Odd (1,3,5,7)</td><td>Shaili &harr; Sinjan &nbsp;&middot;&nbsp; Sohini &harr; Sohan</td></tr>
+    <tr><td>Even (2,4,6,8)</td><td>Shaili &harr; Sohini &nbsp;&middot;&nbsp; Sinjan &harr; Sohan</td></tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <b>The explanation check &mdash; do not skip this.</b> Before approving any pull request, the
+  reviewer asks the author two or three <i>why</i> questions about the code. <i>Why this data
+  structure? What happens if this ACK is lost? Why this bound and not that one?</i> If the author
+  cannot answer, the PR does not merge. It costs five minutes, it rehearses the viva every single
+  week, and it catches copy-pasted code in September when there is still time to fix it rather
+  than in the viva room when there is not.
+</div>
+
+<h4>Commits</h4>
+<ul>
+  <li>At least <b>three commits a week each</b>, small and frequent. A history of three commits in
+      the final week is called out in the brief as a warning sign.</li>
+  <li>Commit under your own name and email. Never commit on someone else's behalf &mdash; the
+      brief counts that as non-contribution by the absent member.</li>
+  <li><b>No <code>Co-Authored-By</code> lines. No bot pull requests. Dependabot stays off.</b>
+      The contributor list must show exactly our four names.</li>
+</ul>
+
+<h4>AI use</h4>
+<p>Permitted: explaining concepts, debugging, reviewing your code, generating tests, boilerplate,
+plotting scripts, improving your writing. <b>Not permitted: generating the core protocol
+implementation and submitting it as your work.</b> Log anything material in
+<code>AI-USE.md</code> the same day &mdash; honest disclosure carries no penalty, undisclosed use
+found at the viva does.</p>
+<p>A chatbot asked to write Go-Back-N in Java gives everyone the same answer, and the brief treats
+identical-looking submissions across groups as collusion. Another group in our year is doing P3
+too. Write your own code.</p>
+
+<h4>Banned libraries</h4>
+<p>No Netty, Aeron, KryoNet, JGroups, or any QUIC library. No TCP anywhere on the data path.
+<code>java.net.DatagramSocket</code> and the JDK standard library only. Python with
+pandas/matplotlib is fine, but for analysis only.</p>
+
+<div class="brk"></div>
+<div class="s1">
+<h2>Shaili Seth &middot; M1 &middot; Framing and Session</h2>
+<p>You own the envelope every packet travels in, and the simplest of the three protocols. Your
+week 1 is the critical path: nobody can test anything until <code>Packet</code> is merged.</p>
+
+<div class="wk">
+  <div class="hd"><b>Week 1 &middot; Sep 1&ndash;7</b><span>Rewrite Packet.java by hand &middot; BLOCKS EVERYONE</span></div>
+  <div class="goal">Goal: a wire format you wrote yourself that passes all 13 existing tests.</div>
+  <ol>
+    <li>Read <code>docs/PLAN.md</code> section 4.1 and study the 20-byte header diagram until you
+        can draw it from memory.</li>
+    <li>Read <b>RFC 1071</b>, section 1. It is about one page and describes the checksum.</li>
+    <li><code>git checkout -b m1/packet-rewrite</code></li>
+    <li>Open <code>src/main/java/rdt/Packet.java</code>. Read it once to see the shape, then
+        <b>delete the bodies</b> of <code>encode()</code>, <code>decode()</code> and
+        <code>checksum()</code> and write them yourself from the header diagram. If you cannot
+        write them without looking, you do not understand them yet &mdash; that is the signal to
+        go back to the diagram, not to copy.</li>
+    <li>Three traps that will cost you a day each if you miss them:
+      <ul>
+        <li><code>seq</code> and <code>ack</code> are <b>unsigned</b> 32-bit on the wire. A Java
+            <code>int</code> is signed. Read them with
+            <code>Integer.toUnsignedLong(buf.getInt())</code> into a <code>long</code>.</li>
+        <li>The 16-bit fields need <code>Short.toUnsignedInt(buf.getShort())</code>.</li>
+        <li>The checksum is computed with its own field set to <b>zero</b>, then written into that
+            field. Verifying works the same way in reverse.</li>
+      </ul></li>
+    <li>Run <code>./build.sh</code> until <code>PacketTest</code> reports 13 of 13.</li>
+    <li>Add the <b>metadata handshake</b>: a <code>seq=0</code> DATA packet whose payload carries
+        the filename, the file size and the SHA-256 hash. The receiver parses it and replies with
+        ACK 0. Real data then starts at <code>seq=1</code>.</li>
+    <li>Open the PR. Sinjan reviews and asks you three <i>why</i> questions.</li>
+    <li>Tick your box in <code>AI-USE.md</code>, sign it and date it.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> <code>./build.sh</code> prints
+    <code>PacketTest: 13 run, 0 failed</code>, the PR is merged into <code>main</code>, and the
+    <code>AI-USE.md</code> box for <code>Packet.java</code> is ticked.</div>
+  <div class="viva"><b>Be able to explain:</b> why the checksum uses one's complement rather than a
+    plain sum &middot; what end-around carry does and why it matters &middot; why a single-bit flip
+    is <i>always</i> detected &middot; what visibly breaks if you forget
+    <code>Integer.toUnsignedLong</code> &middot; why the checksum field must be zeroed first.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Week 2 &middot; Sep 8&ndash;14</b><span>Stop-and-Wait and the CLIs</span></div>
+  <div class="goal">Goal: an 8 MiB file crosses the emulated network and the hash matches.</div>
+  <ol>
+    <li>Write <code>StopAndWait.java</code> against the <code>ArqProtocol</code> interface.
+        Sender: send one packet, start a timer, wait for its ACK, retransmit on timeout, then move
+        on. Receiver: verify the checksum, ACK, deliver in order, silently discard duplicates.</li>
+    <li>Use <b>alternating-bit</b> sequencing (0, 1, 0, 1&hellip;) and be ready to explain why one
+        bit is enough here but not for Go-Back-N.</li>
+    <li>Write <code>app/Sender.java</code> and <code>app/Receiver.java</code>: take a file, a host,
+        a port and a <code>--protocol</code> flag.</li>
+    <li>Test against Sohan's emulator, first at 0% loss, then at 10%:</li>
+  </ol>
+  <pre>java -cp build/classes emulator.NetEm --listen 9000 --to 127.0.0.1:9001 \
+     --seed 1 --both loss=0.10,delay=20,jitter=5 &amp;
+java -cp build/classes app.Receiver --port 9001 --out received.bin &amp;
+java -cp build/classes app.Sender --file test8m.bin --to 127.0.0.1:9000 --protocol stopwait
+sha256sum test8m.bin received.bin      # the two hashes must match</pre>
+  <div class="done"><b>Done when:</b> the SHA-256 of the sent and received file match at 0% loss
+    and again at 10% loss, across 10 different seeds.</div>
+  <div class="viva"><b>Be able to explain:</b> what happens when an ACK is lost but the data
+    arrived &middot; why the receiver must discard duplicates rather than deliver them &middot; why
+    Stop-and-Wait throughput is capped at MSS/RTT no matter how fast the link is.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Week 3 &middot; Sep 15&ndash;21</b><span>Teardown and hardening</span></div>
+  <ol>
+    <li>Add <b>FIN / FINACK</b> teardown so a transfer ends cleanly instead of the receiver
+        guessing from silence.</li>
+    <li>Add the SHA-256 integrity check at the end of every transfer, comparing against the hash
+        from the week 1 handshake.</li>
+    <li>Help Sinjan integrate Go-Back-N against your packet layer &mdash; expect one or two
+        interface issues to surface here, and fix them now rather than in week 5.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> a transfer ends with an explicit FIN exchange and prints a
+    hash-match line, with no fixed sleep or timeout hack anywhere in the shutdown path.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Week 4 &middot; Sep 22&ndash;28</b><span>Shared integrity suite</span></div>
+  <ol>
+    <li>Build one integrity test that runs <b>all three</b> protocols over several channel profiles
+        and several seeds, asserting a hash match every time.</li>
+    <li>This is the suite the week 4 gate is judged on, so it needs to be running before Sohini
+        finishes Selective Repeat, not after.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> the suite runs 3 protocols &times; 5 channel profiles
+    &times; 10 seeds and every transfer matches.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Weeks 5&ndash;8</b><span>Experiment 1, report, viva</span></div>
+  <ol>
+    <li><b>Week 5:</b> run Experiment 1 &mdash; goodput against loss rate for all three protocols
+        at window 32, ten seeds per point. Write the methodology section with Sohan.</li>
+    <li><b>Week 6:</b> teach your module to the other three in the cross-teaching session, and
+        learn theirs. Draft your report section on the wire format and session layer.</li>
+    <li><b>Week 7:</b> review the full report draft; check every figure caption says what the
+        reader should notice.</li>
+    <li><b>Week 8:</b> viva drills. Code freeze 22 October.</li>
+  </ol>
+</div>
+</div>
+
+<div class="brk"></div>
+<div class="s2">
+<h2>Sinjan Mishra &middot; M2 &middot; Timers and Go-Back-N</h2>
+<p>You own everything to do with time: when to give up waiting, how long to wait, and what to
+resend. The hardest idea in your module is Karn's algorithm, and it is worth understanding
+properly because it is a favourite viva question.</p>
+
+<div class="wk">
+  <div class="hd"><b>Week 1 &middot; Sep 1&ndash;7</b><span>Reading and design &mdash; no code yet</span></div>
+  <div class="goal">Goal: understand what you are building before Packet.java lands.</div>
+  <ol>
+    <li>You are blocked on Shaili this week, so use it to read rather than to wait.</li>
+    <li>Read <b>RFC 6298</b> (computing TCP's retransmission timer) &mdash; it is short and it is
+        exactly the Jacobson/Karels algorithm you will implement.</li>
+    <li>Read the Go-Back-N section of Kurose &amp; Ross, chapter 3.</li>
+    <li>Write a one-page design note in <code>docs/</code> covering: what a timer heap is, why we
+        use a single thread rather than a timer per packet, and how the socket receive timeout gets
+        derived from the earliest deadline. Commit it &mdash; it counts as a commit, and it becomes
+        part of your report section.</li>
+    <li>Review Shaili's <code>Packet</code> PR and ask three <i>why</i> questions.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> the design note is committed and you can explain, without
+    notes, why we avoid <code>ScheduledExecutorService</code> here.</div>
+  <div class="viva"><b>Be able to explain:</b> what SRTT and RTTVAR are &middot; why RTO is
+    <i>SRTT + 4&times;RTTVAR</i> and not just SRTT.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Week 2 &middot; Sep 8&ndash;14</b><span>TimerWheel</span></div>
+  <ol>
+    <li>Write <code>TimerWheel.java</code>: a <code>PriorityQueue</code> of deadlines taken from
+        <code>System.nanoTime()</code>, with operations to schedule, cancel, and ask for the
+        earliest deadline.</li>
+    <li>It must be <b>single-threaded</b>. The socket loop asks the heap how long until the next
+        timer, and blocks in <code>receive</code> for exactly that long. A timeout and an arriving
+        ACK are then both just events on one loop, and there is no race between them.</li>
+    <li>Do <b>not</b> use <code>ScheduledExecutorService</code> or <code>java.util.Timer</code>.
+        They work, but they reintroduce exactly the concurrency the brief warns about and they are
+        much harder to defend.</li>
+    <li>Write tests: ordering under many insertions, cancelling a timer that already fired,
+        two timers with identical deadlines.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> your timer tests pass and the heap correctly reports the
+    earliest deadline after a randomised sequence of schedules and cancels.</div>
+  <div class="viva"><b>Be able to explain:</b> how you avoid a race between a timeout firing and an
+    ACK arriving &mdash; the answer is that there is no race, and you should be able to say exactly
+    why.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Week 3 &middot; Sep 15&ndash;21</b><span>Go-Back-N and the RTT estimator</span></div>
+  <ol>
+    <li>Write <code>GoBackN.java</code>: a sliding send window of N packets, cumulative ACKs, one
+        timer on the <b>base</b> of the window. On timeout, retransmit the base and everything
+        after it.</li>
+    <li>Write <code>RttEstimator.java</code> implementing Jacobson/Karels:
+        <code>SRTT = (1-&alpha;)&middot;SRTT + &alpha;&middot;R</code> with &alpha; = 1/8,
+        <code>RTTVAR = (1-&beta;)&middot;RTTVAR + &beta;&middot;|SRTT-R|</code> with &beta; = 1/4,
+        and <code>RTO = SRTT + 4&middot;RTTVAR</code>, clamped to a sensible minimum.</li>
+    <li>Add <b>Karn's algorithm</b>: never take an RTT sample from a packet that was retransmitted.
+        When an ACK arrives for a packet sent twice, you cannot tell which copy it answers, so
+        using it would corrupt the estimate. On timeout, double the RTO instead (exponential
+        backoff) and resume sampling only after a clean, un-retransmitted exchange.</li>
+    <li>Test the estimator against values you compute by hand on paper. This is the fastest way to
+        catch an &alpha;/&beta; mix-up.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> Go-Back-N passes the integrity suite across 5 channel
+    profiles &times; 10 seeds, and the estimator matches your hand-worked numbers.</div>
+  <div class="viva"><b>Be able to explain:</b> what Karn's algorithm protects against, with a
+    concrete example &middot; why GBN retransmits the whole window &middot; why GBN needs
+    W &le; 2<sup>k</sup>&minus;1 sequence numbers.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Week 4 &middot; Sep 22&ndash;28</b><span>Adaptive RTO everywhere</span></div>
+  <ol>
+    <li>Wire <code>RttEstimator</code> into all three protocols, so Stop-and-Wait and Selective
+        Repeat use adaptive RTO too.</li>
+    <li>Add a switch for a <b>fixed</b> RTO, so week 6 can compare fixed against adaptive. Support
+        multipliers of 1.2, 1.5, 2 and 3 times the base RTT.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> every protocol runs with either
+    <code>--rto adaptive</code> or <code>--rto fixed:1.5</code>.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Weeks 5&ndash;8</b><span>Experiment 4, report, viva</span></div>
+  <ol>
+    <li><b>Week 5:</b> support the experiment runs; start drafting your report section.</li>
+    <li><b>Week 6:</b> run <b>Experiment 4</b> &mdash; RTO sensitivity. Use Sohan's JSONL trace as
+        ground truth to label each retransmission <i>spurious</i> (the original did arrive) or
+        <i>necessary</i>. This is the experiment no other group will have; make the most of it.</li>
+    <li><b>Week 7:</b> finish your report section on timers, RTO and Go-Back-N.</li>
+    <li><b>Week 8:</b> viva drills. Code freeze 22 October.</li>
+  </ol>
+</div>
+</div>
+
+<div class="brk"></div>
+<div class="s3">
+<h2>Sohini Pandit &middot; M3 &middot; Selective Repeat</h2>
+<p>You own the hardest module in the project. That is why it is the only one you own, and why your
+reading starts in week 1 even though your code does not land until week 4. Do not leave the
+thinking until the build week.</p>
+
+<div class="wk">
+  <div class="hd"><b>Week 1 &middot; Sep 1&ndash;7</b><span>Theory and the window bound</span></div>
+  <div class="goal">Goal: know exactly why Selective Repeat is harder than Go-Back-N.</div>
+  <ol>
+    <li>Read the Selective Repeat section of Kurose &amp; Ross, chapter 3, including the worked
+        example where sender and receiver windows disagree.</li>
+    <li>Work out on paper why Selective Repeat needs <b>W &le; 2<sup>k&minus;1</sup></b> while
+        Go-Back-N only needs W &le; 2<sup>k</sup>&minus;1. Draw the failure case: a small sequence
+        space, a full window, all ACKs lost, and a retransmission that the receiver mistakes for
+        new data.</li>
+    <li>Write that explanation up as a short design note in <code>docs/</code> and commit it. It
+        becomes the opening of your report section, and it is the single most likely thing you will
+        be asked at the viva.</li>
+    <li>Review Sohan's emulator PR and ask three <i>why</i> questions.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> the design note is committed and you can draw the
+    window-overlap failure case on a whiteboard from memory.</div>
+  <div class="viva"><b>Be able to explain:</b> the window bound, with the concrete failure case
+    &mdash; not just the formula.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Week 2 &middot; Sep 8&ndash;14</b><span>Receiver buffer prototype</span></div>
+  <ol>
+    <li>Build the <b>receiver buffer</b> on its own, before wiring it to any network code: a
+        structure that accepts packets in any order, holds the out-of-order ones, and releases a
+        contiguous run in order as soon as the gap fills.</li>
+    <li>Test it as a pure data structure &mdash; feed it sequences like 1, 3, 4, 2 and assert it
+        emits 1, then nothing, then nothing, then 2, 3, 4 together.</li>
+    <li>Write the sequence-space wraparound test cases now, while the ideas are fresh. Make the
+        sequence space size configurable so a test can force a wrap with a tiny space.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> the buffer passes out-of-order, duplicate, and
+    wraparound tests as a standalone unit, with no sockets involved.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Week 3 &middot; Sep 15&ndash;21</b><span>SelectiveRepeat core</span></div>
+  <ol>
+    <li>Write <code>SelectiveRepeat.java</code>: a sender window where <b>each unacknowledged
+        packet has its own timer</b>, and a receiver that buffers out-of-order arrivals and
+        acknowledges each packet individually.</li>
+    <li>On timeout, retransmit <b>only</b> that packet &mdash; this is the whole point of the
+        protocol, and the reason it beats Go-Back-N under loss.</li>
+    <li>Encode selective ACKs using the <code>sackCount</code> field already reserved in the
+        header, so no wire-format change is needed.</li>
+    <li>Use Sinjan's <code>TimerWheel</code> rather than writing your own timing.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> a file transfers correctly at 10% loss and you can see in
+    the logs that only the lost packets were resent, not whole windows.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Week 4 &middot; Sep 22&ndash;28</b><span>Finish &mdash; this is the project gate</span></div>
+  <ol>
+    <li>Run the wraparound tests you wrote in week 2 and make them pass.</li>
+    <li>Prove the window bound experimentally: with a small sequence space, show that a
+        <b>legal</b> window transfers correctly and an <b>illegal</b> one corrupts the file. Most
+        groups never test this; it is strong evidence and strong viva material.</li>
+    <li>Pass Shaili's shared integrity suite alongside the other two protocols.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> all three protocols pass one shared integrity suite. This is
+    the <b>Core complete</b> milestone for the whole project.</div>
+  <div class="callout"><b>Fallback, decided 25 September &mdash; not in October.</b> If Selective
+    Repeat is not passing integrity tests by 25 September, ship it with a <b>single timer on the
+    oldest unacknowledged packet</b> instead of one timer per packet. It is still correct and still
+    beats Go-Back-N; per-packet timers move to the stretch list and the simplification gets
+    documented in the report. Taking this decision on time is not failure &mdash; leaving it until
+    October is.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Weeks 5&ndash;8</b><span>Experiment 2, stretch, report, viva</span></div>
+  <ol>
+    <li><b>Week 5:</b> run <b>Experiment 2</b> &mdash; goodput against window size (1 to 128) for
+        Go-Back-N and Selective Repeat, at 1% and 5% loss. This is the experiment that shows the
+        gap widening, which is the core of our claim.</li>
+    <li><b>Week 6:</b> cross-teaching &mdash; teach Selective Repeat to the other three. Draft your
+        report section.</li>
+    <li><b>Week 7:</b> stretch goal &mdash; SACK blocks in the live protocol. Attempt this
+        <i>only</i> once Core is solid.</li>
+    <li><b>Week 8:</b> viva drills. Code freeze 22 October.</li>
+  </ol>
+</div>
+</div>
+
+<div class="brk"></div>
+<div class="s4">
+<h2>Sohan Mandal &middot; M4 &middot; Channel and Evidence</h2>
+<p>You own two things: the fake bad network everyone tests against, and all the measurement that
+turns working code into marks. Your weeks 1&ndash;2 unblock everybody, and your weeks 5&ndash;6
+produce most of the report.</p>
+
+<div class="wk">
+  <div class="hd"><b>Week 1 &middot; Sep 1&ndash;7</b><span>Rewrite the emulator by hand</span></div>
+  <div class="goal">Goal: an emulator you wrote yourself that passes all 20 existing tests.</div>
+  <ol>
+    <li>The catalogue entry does not merely permit us to write the emulator, it requires it, in
+        these words: <i>"a channel emulator <b>you write yourself</b>."</i> The current draft is
+        AI-written, so it must be replaced by hand. The 20 tests stay &mdash; generating tests is
+        permitted, and they are what tell you the rewrite is correct.</li>
+    <li>Rewrite in this order, easiest first:
+      <ol style="margin-top:2px">
+        <li><code>ChannelConfig.java</code> &mdash; the config parser. Trivial, gets you moving.</li>
+        <li><code>TraceLog.java</code> &mdash; the JSONL writer. Small and self-contained.</li>
+        <li><code>Channel.java</code> &mdash; the impairment model. The real one.</li>
+        <li><code>NetEm.java</code> &mdash; the socket loop and release queue.</li>
+      </ol></li>
+    <li>Three design decisions to understand before you rewrite, because you will defend them:
+      <ul>
+        <li><b>Separate process, not an in-process hook.</b> The protocol then has no test-only
+            branches and genuinely does not know it is being tested.</li>
+        <li><b><code>java.util.Random(seed)</code>.</b> Its algorithm is fixed by the Java
+            specification, so a seed reproduces byte-identically on any machine. Never
+            <code>ThreadLocalRandom</code> or <code>SecureRandom</code> &mdash; neither guarantees
+            that.</li>
+        <li><b>A fixed number of random draws per packet</b>, needed or not. This means changing
+            the loss rate does not shift the delay sequence, so two cells of a sweep sharing a seed
+            differ only in the variable under test. It measurably lowers variance between
+            neighbouring points on a curve.</li>
+      </ul></li>
+    <li>Re-run the capacity calibration <b>inside WSL2</b> and commit that number, replacing the
+        Windows one. The experiments run on Linux, so that is the host whose ceiling matters.</li>
+    <li>Tick your box in <code>AI-USE.md</code>, sign and date it.</li>
+  </ol>
+  <pre>./build.sh                                          # 20 emulator tests must pass
+java -Xms512m -Xmx512m -cp build/classes emulator.Calibrate
+git add results/calibration.csv</pre>
+  <div class="done"><b>Done when:</b> <code>ChannelTest</code> and <code>NetEmSmokeTest</code> pass
+    with your own code, <code>results/calibration.csv</code> holds a WSL2 measurement, and the
+    <code>AI-USE.md</code> box is ticked.</div>
+  <div class="viva"><b>Be able to explain:</b> why the emulator is a separate process &middot; why
+    <code>java.util.Random</code> and not the alternatives &middot; what the fixed draw count buys
+    you &middot; why we publish a capacity ceiling at all.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Week 2 &middot; Sep 8&ndash;14</b><span>Emulator v1 complete</span></div>
+  <ol>
+    <li>Confirm all five impairments work together: loss, duplication, corruption, reordering, and
+        delay with jitter.</li>
+    <li>Verify the JSONL trace is complete and parseable after a hard kill &mdash; it flushes every
+        256 records, so a killed run loses at most that many lines.</li>
+    <li>Give Shaili a working emulator to test Stop-and-Wait against. She is blocked on you this
+        week.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> a 100,000-packet run reports measured loss, duplication and
+    corruption rates within tolerance of what was configured, and the trace parses with zero
+    malformed lines.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Week 3 &middot; Sep 15&ndash;21</b><span>The evidence pipeline</span></div>
+  <ol>
+    <li>Write <code>RunStats.java</code>: per-run counters &mdash; goodput, wire throughput,
+        retransmissions, timeouts, duplicate ACKs &mdash; emitted as one CSV row.</li>
+    <li>Write <code>analysis/run_matrix.py</code>: reads a config, runs the sweep across
+        parameters and seeds, and collects rows into <code>results/*.csv</code>.</li>
+    <li>Produce the <b>first real plot</b> from committed CSV data, even if it only has two
+        protocols on it. Getting the pipeline end-to-end early is worth more than getting it
+        pretty.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> one command runs a sweep and a second command turns the
+    resulting CSV into a PNG, with no manual steps in between.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Week 4 &middot; Sep 22&ndash;28</b><span>Prepare and support</span></div>
+  <ol>
+    <li>Lock the experiment configurations in <code>analysis/configs/</code> so runs are
+        reproducible: 8 MiB file, 1400-byte payload, 10 seeds per cell.</li>
+    <li>Check every planned operating point sits below <b>half</b> the calibrated ceiling.</li>
+    <li>Help Sohini get Selective Repeat over the line &mdash; week 4 is the project gate and she
+        carries the hardest module.</li>
+  </ol>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Week 5 &middot; Sep 29&ndash;Oct 5</b><span>Run the matrix</span></div>
+  <ol>
+    <li>Run Experiments 1, 2 and 3 at full seed count. Expect this to take hours, so start it
+        early in the week, not on the Friday.</li>
+    <li>Write <code>analysis/plots.py</code>: every figure generated by script from committed CSVs.
+        No hand-made plots anywhere in the report.</li>
+    <li>Report mean with <b>95% confidence intervals</b> over seeds on every point.</li>
+    <li>Run <b>Experiment 3</b> yourself &mdash; retransmission count against reordering
+        probability.</li>
+  </ol>
+  <div class="done"><b>Done when:</b> figures 1&ndash;3 regenerate from committed CSVs by running
+    one command.</div>
+</div>
+
+<div class="wk">
+  <div class="hd"><b>Weeks 6&ndash;8</b><span>Validation, report, viva</span></div>
+  <ol>
+    <li><b>Week 6:</b> the <code>tc netem</code> cross-validation. Re-run the loss sweep using
+        Linux's own emulator instead of ours and show the goodput curves agree within confidence
+        intervals. Report any divergence honestly and explain it &mdash; netem's loss model is not
+        identical to ours, and knowing that is the point. This pre-empts the sharpest question
+        available at the viva.</li>
+    <li><b>Week 6:</b> run the cross-teaching session. You must be able to explain Selective Repeat
+        even though Sohini wrote it.</li>
+    <li><b>Week 7:</b> final figures; assemble the report from everyone's sections.</li>
+    <li><b>Week 8:</b> confirm <code>make all</code> reproduces every figure from a clean clone.
+        Viva drills. Code freeze 22 October.</li>
+  </ol>
+</div>
+</div>
+
+<div class="brk"></div>
+<h2>Part 6 &middot; Shared checkpoints</h2>
+<p>Every week ends at a gate: a yes-or-no condition, checked in the group chat on the Sunday. If a
+gate is missed, say so that day. A problem raised in week 3 is fixable; the same problem raised in
+week 7 is not.</p>
+
+<table>
+  <thead><tr><th style="width:11%">Week</th><th style="width:15%">Integration owner</th><th>Gate &mdash; must be true by Sunday night</th></tr></thead>
+  <tbody>
+    <tr><td><b>1</b> Sep 7</td><td>Shaili</td><td><code>Packet</code> rewritten and merged; emulator rewritten; calibration committed from WSL2; everyone's build green</td></tr>
+    <tr><td><b>2</b> Sep 14</td><td>Sinjan</td><td>8 MiB file transfers with a SHA-256 match at 10% loss across 10 seeds</td></tr>
+    <tr><td><b>3</b> Sep 21</td><td>Sohini</td><td>Go-Back-N passes integrity across 5 channel profiles &times; 10 seeds; first plot exists</td></tr>
+    <tr><td><b>4</b> Sep 28</td><td>Sohan</td><td><b>Core complete</b> &mdash; all three protocols pass one shared integrity suite</td></tr>
+    <tr><td><b>5</b> Oct 5</td><td>Shaili</td><td>Figures 1&ndash;3 regenerated by script from committed CSVs</td></tr>
+    <tr><td><b>6</b> Oct 12</td><td>Sinjan</td><td>Figure 4 done; netem validation done; every member can trace a packet through code they did not write</td></tr>
+    <tr><td><b>7</b> Oct 19</td><td>Sohini</td><td>Full report draft read and annotated by all four</td></tr>
+    <tr><td><b>8</b> Oct 26</td><td>Sohan</td><td><code>make all</code> reproduces every figure from a clean clone</td></tr>
+  </tbody>
+</table>
+
+<h2>Part 7 &middot; Viva preparation</h2>
+<p>Five of the ten marks are awarded to you individually. Sir has said he will ask you to modify
+your code live during the demo. In week 8, run these at each other until nobody hesitates &mdash;
+and note that several of them are about code you did not write.</p>
+
+<table>
+  <thead><tr><th style="width:22%">Topic</th><th>Question</th></tr></thead>
+  <tbody>
+    <tr><td>Checksum</td><td>Explain the Internet checksum byte by byte. Why one's complement? Why end-around carry? Why is a single-bit flip always caught?</td></tr>
+    <tr><td>Unsigned fields</td><td>Why <code>Integer.toUnsignedLong</code> on the sequence field? Show me what breaks without it.</td></tr>
+    <tr><td>Windows</td><td>Why does Selective Repeat need W &le; 2<sup>k&minus;1</sup> when Go-Back-N only needs W &le; 2<sup>k</sup>&minus;1? Draw the failure case.</td></tr>
+    <tr><td>Timers</td><td>How do you avoid a race between a timeout firing and an ACK arriving?</td></tr>
+    <tr><td>Karn</td><td>What is Karn's algorithm protecting against? Give a concrete example.</td></tr>
+    <tr><td>Loss</td><td>Walk me through what happens when an ACK is lost but the data arrived.</td></tr>
+    <tr><td>Reproducibility</td><td>How do you know two runs with the same seed are identical? Why <code>java.util.Random</code>?</td></tr>
+    <tr><td>Measurement</td><td>How do you know your goodput curve reflects the protocol and not your machine running out of CPU?</td></tr>
+    <tr><td>Live change</td><td>Change the window from 32 to 8 while a transfer is running. Add a new packet type, now.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <b>Three questions still to ask sir.</b> The brief we have refers to a "Section 6" on individual
+  moderation and a "Section 7" on scanning networks, but the document ends at Section 6, the
+  proposal template &mdash; so ask whether there is a fuller version. It also states no proposal
+  deadline and no submission method anywhere. Ask this week: five minutes in the lab is cheaper
+  than a rejected week.
+</div>
+
+<footer>
+  P3 Member Playbook &middot; generated 31 August 2026 &middot; source
+  <code>docs/member-playbook.html</code> in the project repository &middot; regenerate after any
+  change to roles or schedule.
+</footer>
+
+</body>
+</html>

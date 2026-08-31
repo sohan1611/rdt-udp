@@ -63,7 +63,7 @@ _No entries yet._
 
 ## M4 — Channel & Evidence · _[name]_
 
-### 2026-08-25 — Project planning and role split
+### 2026-08-31 — Project planning and role split
 **What:** Claude extracted the assignment PDF, compared the eight catalogue projects
 against our constraints, and drafted the project plan and team plan (schedule, work
 split, experiment design, risk register).
@@ -72,7 +72,7 @@ split, experiment design, risk register).
 decisions. We supplied the constraint that most of the group is stronger in Java, which
 is what changed the language recommendation.
 
-### 2026-08-25 — Language benchmark
+### 2026-08-31 — Language benchmark
 **What:** Claude benchmarked the RFC 1071 checksum and UDP send/receive in Python and
 Java to test the brief's warning that Python bottlenecks high-throughput work. A naive
 Python byte-loop checksum caps at ~14k packets/second; the same textbook loop in Java
