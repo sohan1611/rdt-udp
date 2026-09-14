@@ -46,7 +46,7 @@ third-party runtime dependencies** — only the JDK standard library.
 
 - [x] `Packet` — 20-byte header, RFC 1071 checksum, 13 tests passing
 - [x] `NetEm` — channel emulator, 20 tests passing (14 model + 6 end-to-end)
-- [x] `Calibrate` — capacity calibration (Week 1 gate for M4)
+- [x] `Calibrate` — capacity calibration (Sprint A gate for M4)
 - [ ] `StopAndWait`
 - [ ] `GoBackN`
 - [ ] `SelectiveRepeat`

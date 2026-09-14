@@ -218,7 +218,7 @@ tests for their own code. Estimated effort is deliberately balanced within a few
 <ul>
   <li>Write the tests for your own module. Nobody tests your code for you.</li>
   <li>Review one partner's pull request each week. Pairing rotates: odd weeks M1↔M2 and M3↔M4, even weeks M1↔M3 and M2↔M4.</li>
-  <li>Take your turn as weekly integration owner (rotation in §5).</li>
+  <li>Post a three-line check-in in the group chat every night during the sprint.</li>
   <li>Commit under your own name and email, at least three commits a week. Sir treats commit
       history as evidence and has said a repo with three commits in the final week signals a problem.</li>
   <li>Attend the Week 6 cross-teaching session and the Week 8 viva drills.</li>
@@ -268,7 +268,7 @@ tests for their own code. Estimated effort is deliberately balanced within a few
   <ul>
     <li><code>SelectiveRepeat.java</code> — per-packet timers, receiver buffer holding out-of-order
         packets, in-order delivery to the application. <b>This is the hardest single module</b>, which is
-        why it is the only one you own; start reading in Week 2, not Week 4.</li>
+        why it is the only one you own; start reading on 14 September, not when the build starts on 19 September.</li>
     <li>SACK block encoding and decoding. The <code>sackCount</code> header field is already reserved,
         so no wire-format change is needed.</li>
     <li>Window-bound correctness: prove Go-Back-N needs W ≤ 2<sup>k</sup>−1 and Selective Repeat needs
@@ -291,7 +291,7 @@ tests for their own code. Estimated effort is deliberately balanced within a few
         <code>ThreadLocalRandom</code> or <code>SecureRandom</code>.</li>
     <li>JSONL impairment trace — one line per packet decision. This is what makes M2's Experiment 4
         possible, and it lets us replay any strange run packet by packet at the viva.</li>
-    <li><b>Week 1 capacity calibration</b>: measure the emulator's maximum sustained packets/second.
+    <li><b>Sprint A capacity calibration</b> (Friday 18 September): measure the emulator's maximum sustained packets/second.
         Every experiment must then run at under half of it, and the number goes in the report.</li>
     <li><code>RunStats</code> → CSV, <code>run_matrix.py</code> sweep runner, <code>plots.py</code>.</li>
     <li><code>tc netem</code> cross-validation in Week 6 — independent proof our emulator is honest.</li>
@@ -307,87 +307,72 @@ tests for their own code. Estimated effort is deliberately balanced within a few
 </div>
 
 <div class="page-break"></div>
-<h2>5. Week by week</h2>
-<p>Every week ends at a <b>gate</b>: a binary, testable condition. If a gate is missed, the fallback in
-§7 fires that week, not in October.</p>
+<h2>5. Schedule (revised 14 September)</h2>
+<p>Mid-semester exams took 1&ndash;14 September for every student, so no work happened in the original
+weeks 1 and 2. We recover it with a <b>two-week sprint, 14&ndash;27 September</b>, covering original weeks
+1&ndash;5. The week after is a buffer for the long experiment runs, and from <b>6 October</b> the original
+dates resume unchanged. Every period ends at a <b>gate</b>: a binary, testable condition. The full
+day-by-day plan for each member is in <code>docs/member-playbook.html</code>.</p>
 
 <table>
   <thead>
-    <tr><th class="num" style="width:5%">Wk</th><th style="width:12%">Dates</th>
-        <th style="width:38%">Targets</th><th style="width:30%">Gate</th>
-        <th style="width:15%">Integration owner</th></tr>
+    <tr><th style="width:15%">When</th><th style="width:40%">Targets</th>
+        <th style="width:30%">Gates</th><th style="width:15%">Covers</th></tr>
   </thead>
   <tbody>
     <tr>
-      <td class="num">0</td><td>Aug 25–31</td>
-      <td>Names onto roles. Proposal finished and submitted. Repo shared with sir. JDK 21 installed
-          inside WSL2 Ubuntu. Everyone runs <code>./build.sh</code> successfully.</td>
-      <td>Proposal submitted; build green on all four machines</td>
-      <td><span class="pill p4">M4</span></td>
+      <td><b>Sprint A</b><br>Sep 14&ndash;20</td>
+      <td><span class="pill p1">M1</span> rewrite <code>Packet</code>, handshake, Stop-and-Wait, CLIs &middot;
+          <span class="pill p4">M4</span> rewrite emulator, WSL2 calibration, <code>RunStats</code> &middot;
+          <span class="pill p2">M2</span> <code>TimerWheel</code>, <code>RttEstimator</code> &middot;
+          <span class="pill p3">M3</span> window-bound note, standalone receiver buffer</td>
+      <td><b>Tue 15</b> all four committed &middot; <b>Thu 17</b> <code>Packet</code> and emulator merged &middot;
+          <b>Sun 20</b> 8&nbsp;MiB Stop-and-Wait transfer matches</td>
+      <td>Original weeks 1&ndash;3</td>
     </tr>
     <tr>
-      <td class="num">1</td><td>Sep 1–7</td>
-      <td><span class="pill p1">M1</span> rewrite <code>Packet</code>, handshake ·
-          <span class="pill p4">M4</span> emulator v0 (loss only) + calibration ·
-          <span class="pill p2">M2</span> read RFC 6298 · <span class="pill p3">M3</span> read SR chapter</td>
-      <td>8 MiB transfer, SHA-256 match at 0% loss; calibration number committed</td>
-      <td><span class="pill p1">M1</span></td>
+      <td><b>Sprint B</b><br>Sep 21&ndash;27</td>
+      <td><span class="pill p2">M2</span> <code>GoBackN</code>, adaptive and fixed RTO &middot;
+          <span class="pill p3">M3</span> <code>SelectiveRepeat</code> &middot;
+          <span class="pill p1">M1</span> teardown, shared integrity suite &middot;
+          <span class="pill p4">M4</span> <code>run_matrix.py</code>, <code>plots.py</code> &middot;
+          experiments 1&ndash;3 first pass</td>
+      <td><b>Tue 22</b> Selective Repeat fallback decision &middot; <b>Thu 24 Core complete</b> &middot;
+          <b>Sun 27</b> figures 1&ndash;3 by script, at least 3 seeds per cell</td>
+      <td>Original weeks 4&ndash;5</td>
     </tr>
     <tr>
-      <td class="num">2</td><td>Sep 8–14</td>
-      <td><span class="pill p4">M4</span> emulator v1: dup, corrupt, delay+jitter, reorder, JSONL trace ·
-          <span class="pill p2">M2</span> <code>TimerWheel</code> ·
-          <span class="pill p1">M1</span> Stop-and-Wait hardened + CLIs</td>
-      <td>SHA-256 match at 10% loss across 10 seeds</td>
-      <td><span class="pill p2">M2</span></td>
+      <td><b>Buffer</b><br>Sep 28&ndash;Oct 5</td>
+      <td>Experiments 1&ndash;3 at the full 10 seeds; methodology section; anything that slipped</td>
+      <td>Figures 1&ndash;3 final, from committed CSVs</td>
+      <td>Original week 5 dates</td>
     </tr>
     <tr>
-      <td class="num">3</td><td>Sep 15–21</td>
-      <td><span class="pill p2">M2</span> <code>GoBackN</code> + <code>RttEstimator</code> ·
-          <span class="pill p4">M4</span> <code>RunStats</code> CSV + <code>run_matrix.py</code> ·
-          <span class="pill p3">M3</span> SR design + receiver buffer started</td>
-      <td>GBN integrity across 5 channel profiles × 10 seeds; first real plot exists</td>
-      <td><span class="pill p3">M3</span></td>
-    </tr>
-    <tr>
-      <td class="num">4</td><td>Sep 22–28</td>
-      <td><span class="pill p3">M3</span> <code>SelectiveRepeat</code> complete, wraparound tests ·
-          <span class="pill p2">M2</span> adaptive RTO wired into all three protocols</td>
-      <td><b>Core functionally done.</b> All three protocols pass one shared integrity suite</td>
-      <td><span class="pill p4">M4</span></td>
-    </tr>
-    <tr>
-      <td class="num">5</td><td>Sep 29–Oct 5</td>
-      <td>Experiments 1, 2, 3 at full seed count. Report methodology section drafted.</td>
-      <td>Figures 1–3 regenerated by script from committed CSVs</td>
-      <td><span class="pill p1">M1</span></td>
-    </tr>
-    <tr>
-      <td class="num">6</td><td>Oct 6–12</td>
-      <td>Experiment 4 with spurious-retransmit labelling · <code>tc netem</code> cross-validation ·
+      <td><b>Week 6</b><br>Oct 6&ndash;12</td>
+      <td>Experiment 4 with spurious-retransmit labelling &middot; <code>tc netem</code> cross-validation &middot;
           <b>cross-teaching session: each member teaches their module to the other three</b></td>
       <td>Figure 4 done; every member can trace a packet end to end through code they did not write</td>
-      <td><span class="pill p2">M2</span></td>
+      <td>Unchanged</td>
     </tr>
     <tr>
-      <td class="num">7</td><td>Oct 13–19</td>
-      <td>One stretch goal only — SACK blocks (<span class="pill p3">M3</span>). Full report draft.</td>
+      <td><b>Week 7</b><br>Oct 13&ndash;19</td>
+      <td>One stretch goal only &mdash; SACK blocks (<span class="pill p3">M3</span>). Full report draft.</td>
       <td>Report draft read and annotated by all four</td>
-      <td><span class="pill p3">M3</span></td>
+      <td>Unchanged</td>
     </tr>
     <tr>
-      <td class="num">8</td><td>Oct 20–26</td>
+      <td><b>Week 8</b><br>Oct 20&ndash;26</td>
       <td>Code freeze Oct 22. Final report. Viva drills against each other.</td>
       <td><code>make all</code> reproduces every figure from a clean clone</td>
-      <td><span class="pill p4">M4</span></td>
+      <td>Unchanged</td>
     </tr>
   </tbody>
 </table>
 
 <div class="gate">
-  <b>Critical path.</b> Everything downstream waits on two things: M1's <code>Packet</code> in Week 1 and
-  M4's emulator in Week 2. If either slips, the whole schedule slips. These two people should pair
-  in Week 1 if needed — the other two have reading to do and can absorb the delay.
+  <b>Critical path.</b> Everything downstream waits on two things: M1's <code>Packet</code> by Thursday 17 September and
+  M4's emulator by the same night. If either slips, the whole schedule slips. These two people should pair
+  on Friday 18 if needed — the other two have reading to do and can absorb the delay.
 </div>
 
 <h2>6. The claim and the four experiments</h2>
@@ -423,10 +408,10 @@ overhead is visible rather than hidden.</p>
   <thead><tr><th style="width:26%">Risk</th><th style="width:37%">Why it happens</th><th>Fallback, and when we take it</th></tr></thead>
   <tbody>
     <tr>
-      <td><b>Selective Repeat overruns Week 4</b></td>
+      <td><b>Selective Repeat overruns the sprint</b></td>
       <td>Receiver buffer plus per-packet timers is the hardest piece in the project.</td>
       <td>Ship SR with a single timer on the oldest unacked packet. Still correct, still beats GBN.
-          Document the simplification. <b>Decide on Sep 25</b>, not in October.</td>
+          Document the simplification. <b>Decide on Tuesday 22 September</b>, not in October.</td>
     </tr>
     <tr>
       <td><b>JVM timing jitter pollutes results</b></td>
@@ -448,8 +433,8 @@ overhead is visible rather than hidden.</p>
     <tr>
       <td><b>Someone falls behind quietly</b></td>
       <td>Eight weeks is long enough to hide a stall for a month.</td>
-      <td>Weekly gates are binary and public. The integration owner reports status every week. Raise
-          a problem in week 3, not week 7 — it is fixable in week 3.</td>
+      <td>Gates are binary and public, several a week during the sprint. Everyone posts a three-line check-in every night. Raise
+          a problem the evening it happens, in the nightly check-in &mdash; not at the next gate.</td>
     </tr>
   </tbody>
 </table>
