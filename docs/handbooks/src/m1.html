@@ -1,0 +1,452 @@
+<div class="cover">
+  <div class="role">{{ROLE}} · {{TITLE}}</div>
+  <h1>{{NAME}}</h1>
+  <div class="who">Roll {{ROLL}} · GitHub <code>{{GH}}</code> · CSE-14 · Reviewer: {{PAIR_A}} (Sprint A), {{PAIR_B}} (Sprint B)</div>
+</div>
+
+<p class="mission">You build the envelope every packet travels in, and the conversation wrapped around each transfer: the
+20-byte header and its checksum, the handshake that opens a transfer and the FIN that closes it, the sender and
+receiver programs, and the simplest of the three protocols — Stop-and-Wait. Later you build the integrity suite that
+decides when Core is complete, and you run Experiment 1. <b>Your Thursday 17 deadline is the most important date in
+the sprint</b>, because no one can test a protocol until your packet format is merged.</p>
+
+<div class="keydates">
+  <div><b>Thu 17 Sep</b><span><code>Packet</code> rewritten and merged — blocks all four of us</span></div>
+  <div><b>Sun 20 Sep</b><span>8&nbsp;MiB Stop-and-Wait transfer matches through the emulator</span></div>
+  <div><b>Thu 24 Sep</b><span>Your integrity suite decides Core complete</span></div>
+</div>
+
+<table>
+<thead><tr><th style="width:50%">You depend on</th><th>Depend on you</th></tr></thead>
+<tbody><tr>
+<td><b>Sohan</b> — emulator rewrite merged Thu 17, needed to test Stop-and-Wait<br>
+<b>Sinjan</b> — <code>RttEstimator</code> wired into Stop-and-Wait on Thu 24</td>
+<td><b>Everyone</b> — <code>Packet</code> on Thu 17<br>
+<b>Sinjan, Sohini</b> — <code>ArqProtocol</code> and <code>docs/CONVENTIONS.md</code> by Sat 19<br>
+<b>Sohan</b> — the sender's <code>RESULT</code> line by Sun 20</td>
+</tr></tbody></table>
+
+<h3>Contents</h3>
+<div class="toc">
+  <div>1 · Get set up</div><div>2 · Your part of the system</div><div>3 · Concepts you must master</div>
+  <div>4 · Design decisions you must defend</div><div>5 · Your day-by-day plan</div><div>6 · Team conventions</div>
+  <div>7 · How to test your work</div><div>8 · When something breaks</div><div>9 · Experiment 1</div>
+  <div>10 · Your report section</div><div>11 · How we work together</div><div>12 · Using AI without losing marks</div>
+  <div>13 · Viva preparation</div><div>14 · Help, references, glossary</div><div>15 · Sprint checklist</div>
+</div>
+
+<!--COMMON:setup-->
+
+<div class="brk"></div>
+<h2>2 · Your part of the system</h2>
+<!--COMMON:diagram-->
+
+<h3>Files you own</h3>
+<table>
+<thead><tr><th style="width:38%">File</th><th style="width:22%">Status</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>src/main/java/rdt/Packet.java</code></td><td>AI draft — rewrite by hand, Wed 16–Thu 17</td><td>Encodes and decodes the 20-byte header; computes and verifies the checksum</td></tr>
+<tr><td><code>src/main/java/rdt/CorruptPacketException.java</code></td><td>AI draft — rewrite by hand</td><td>Signals a datagram that cannot be trusted: runt, bad version, bad length, bad checksum</td></tr>
+<tr><td><code>src/main/java/rdt/ArqProtocol.java</code> and <code>ProtocolConfig.java</code></td><td>New, Fri 18</td><td>The interface all three protocols implement, and their shared settings</td></tr>
+<tr><td><code>src/main/java/rdt/Session.java</code> (suggested name)</td><td>New, Fri 18 – Tue 22</td><td>META handshake, FIN teardown and hash check, wrapped around any protocol</td></tr>
+<tr><td><code>src/main/java/rdt/StopAndWait.java</code></td><td>New, Sat 19</td><td>Alternating-bit ARQ</td></tr>
+<tr><td><code>src/main/java/app/Sender.java</code>, <code>Receiver.java</code></td><td>New, Sun 20</td><td>Command-line programs using the flags in convention 5</td></tr>
+<tr><td><code>src/test/java/rdt/PacketTest.java</code></td><td>Exists, 13 tests — keep</td><td>Your specification for the rewrite</td></tr>
+<tr><td><code>src/test/java/rdt/IntegrityTest.java</code></td><td>New, Wed 23 – Thu 24</td><td>3 protocols × 5 channel profiles × 10 seeds, asserting a hash match</td></tr>
+<tr><td><code>docs/CONVENTIONS.md</code></td><td>New, Sat 19</td><td>The decisions from the Friday call</td></tr>
+</tbody></table>
+<p class="muted">Ask the owner before changing <code>emulator/*</code> (Sohan), <code>TimerWheel</code>, <code>RttEstimator</code> or
+<code>GoBackN</code> (Sinjan), or <code>SelectiveRepeat</code> and its receive buffer (Sohini).</p>
+
+<div class="brk"></div>
+<h2>3 · Concepts you must master</h2>
+
+<h3>3.1 · The header, byte by byte</h3>
+<table>
+<thead><tr><th style="width:9%">Offset</th><th style="width:8%">Size</th><th style="width:16%">Field</th><th>Rules</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>1</td><td class="b">version</td><td>Always 1. Reject anything else.</td></tr>
+<tr><td>1</td><td>1</td><td class="b">type</td><td>DATA 0, ACK 1, SACK 2, FIN 3, FINACK 4</td></tr>
+<tr><td>2</td><td>1</td><td class="b">flags</td><td>Bit <code>0x01</code> = META, set only on the handshake packet</td></tr>
+<tr><td>3</td><td>1</td><td class="b">reserved</td><td>Write 0; ignore when reading</td></tr>
+<tr><td>4</td><td>4</td><td class="b">seq</td><td>Unsigned 32-bit sequence number</td></tr>
+<tr><td>8</td><td>4</td><td class="b">ack</td><td>Unsigned 32-bit acknowledgement number (convention 3)</td></tr>
+<tr><td>12</td><td>2</td><td class="b">payloadLen</td><td>Must equal the bytes that arrived minus 20</td></tr>
+<tr><td>14</td><td>2</td><td class="b">window</td><td>Unsigned 16-bit; informational in Core</td></tr>
+<tr><td>16</td><td>2</td><td class="b">checksum</td><td>RFC 1071, over the header with this field zero, followed by the payload</td></tr>
+<tr><td>18</td><td>2</td><td class="b">sackCount</td><td>0 in Core; used by Sohini's SACK stretch goal in week 7</td></tr>
+</tbody></table>
+<p>Everything is <b>big-endian</b> — network byte order, most significant byte first. <code>ByteBuffer</code> is big-endian by
+default, so as long as you never call <code>order(ByteOrder.LITTLE_ENDIAN)</code> you get network byte order for free,
+even though your laptop's processor is little-endian internally.</p>
+
+<h3>3.2 · Signed bytes, unsigned fields</h3>
+<p>Java has no unsigned integers. This is the bug most likely to cost you a day, so understand it before writing a line.</p>
+<ul>
+  <li>A Java <code>byte</code> runs from −128 to 127. The byte <code>0xF0</code> reads as −16. Before combining bytes into a
+      larger number, mask each one: <code>b &amp; 0xFF</code>.</li>
+  <li><code>buf.getInt()</code> returns a signed <code>int</code>. A sequence number of 3,000,000,000 comes back as
+      −1,294,967,296. Widen it with <code>Integer.toUnsignedLong(buf.getInt())</code> and keep it in a <code>long</code>.</li>
+  <li>Writing is the easy direction: <code>buf.putInt((int) seq)</code> keeps the low 32 bits, which is exactly the bit
+      pattern you want on the wire.</li>
+  <li>The 16-bit fields work the same way with <code>Short.toUnsignedInt(buf.getShort())</code>.</li>
+</ul>
+<div class="work">seq on the wire          FF FF FF FF
+buf.getInt()             -1              wrong
+Integer.toUnsignedLong   4294967295      right  (PacketTest checks exactly this)</div>
+
+<h3>3.3 · The Internet checksum, RFC 1071</h3>
+<ol>
+  <li>Take the datagram — header with the checksum field set to zero, then the payload — as a sequence of 16-bit
+      big-endian words. If the length is odd, the last byte is the <i>high</i> half of a final word.</li>
+  <li>Add the words using one's complement arithmetic: whenever a sum spills past 16 bits, add the carry back into the
+      bottom. This is the <b>end-around carry</b>.</li>
+  <li>Take the bitwise complement of the result and keep 16 bits. Write it into offset 16.</li>
+</ol>
+<p>Work these by hand before you code, then check each against your implementation:</p>
+<div class="work">Example 1   45 00 00 1C      0x4500 + 0x001C = 0x451C          complement 0xBAE3
+Example 2   FF FF 00 02      0xFFFF + 0x0002 = 0x1_0001
+                             fold: 0x0001 + 0x0001 = 0x0002    complement 0xFFFD
+Example 3   01 02 03 (odd)   0x0102 + 0x0300 = 0x0402          complement 0xFBFD
+Example 4   bytes 0..63      word i = 514i + 1, sum = 254,976 = 0x3E400
+                             fold: 0xE400 + 0x3 = 0xE403       complement 0x1BFC  (PacketTest)</div>
+
+<p><b>Verifying on receipt.</b> Either zero the field, recompute, and compare with what arrived — our choice, because it
+lets the error message show both values — or add every word including the checksum, which gives 0xFFFF for an intact
+datagram. The guarantee is the same.</p>
+
+<p><b>What it always catches:</b> any single-bit error. Flipping one bit changes one word by 2<sup>j</sup>, and 2<sup>j</sup>
+is never a multiple of 0xFFFF, so the one's complement sum must change. Flipping one bit of Example 1 to
+<code>45 01 00 1C</code> gives 0xBAE2 instead of 0xBAE3.</p>
+<p><b>What it misses:</b> two 16-bit words swapped (<code>00 1C 45 00</code> still gives 0xBAE3); errors in two words that
+cancel; and a word changing between 0x0000 and 0xFFFF, which are both zero in one's complement. That is one reason
+real transports also rely on sequence numbers — a checksum alone does not notice reordering.</p>
+
+<h3>3.4 · Stop-and-Wait — rdt 3.0</h3>
+<p>Only one packet is ever unacknowledged, so the sequence number only needs to answer one question: <i>is this the packet
+I just had, or the next one?</i> One bit is enough. After the handshake, your data packets are numbered 1, 0, 1, 0 …</p>
+<table>
+<thead><tr><th style="width:24%">Side and state</th><th style="width:30%">Event</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>Sender, waiting for ACK <i>b</i></td><td>ACK <i>b</i> arrives intact</td><td>Stop the timer; next packet uses bit 1−<i>b</i></td></tr>
+<tr><td></td><td>Timeout</td><td>Resend the same packet; restart the timer</td></tr>
+<tr><td></td><td>Corrupt packet, or ACK for 1−<i>b</i></td><td>Ignore it; the timer keeps running</td></tr>
+<tr><td>Receiver, expecting <i>b</i></td><td>DATA <i>b</i> intact</td><td>Deliver it, ACK <i>b</i>, now expect 1−<i>b</i></td></tr>
+<tr><td></td><td>DATA 1−<i>b</i> intact — a duplicate</td><td><b>Do not deliver.</b> ACK 1−<i>b</i> again</td></tr>
+<tr><td></td><td>Corrupt packet</td><td>Drop it silently; the sender's timer recovers</td></tr>
+</tbody></table>
+<p><b>Why the receiver must re-ACK duplicates.</b> The data arrives and is delivered, but its ACK is lost. The sender times
+out and resends. If the receiver discards the duplicate without acknowledging it, the sender resends forever.</p>
+<p><b>Premature timeout.</b> If an ACK is only delayed, the sender resends, then receives both the original ACK and a
+duplicate. This is why the sender ignores an ACK for the other bit rather than treating it as progress.</p>
+<p><b>The throughput ceiling.</b> One packet per round trip means goodput can never exceed payload × 8 ÷ RTT. With 1400
+bytes and a 40&nbsp;ms RTT that is <b>280&nbsp;kbps, however fast the link</b>. That ceiling is a line on Figure 1.</p>
+
+<h3>3.5 · The session: handshake, teardown, hash</h3>
+<p><b>Handshake.</b> The sender's first packet is DATA with <code>seq 0</code> and the META flag. Recommended payload: UTF-8
+text of three lines — filename, size in bytes, SHA-256 in hex. The receiver rejects a filename containing a line
+break or a size that does not parse, and replies ACK 0. The META packet can be lost like any other, so the sender
+retransmits it on timeout and the receiver re-ACKs duplicates.</p>
+<p><b>Teardown.</b> Once the last data packet is acknowledged, the sender sends FIN. The receiver replies FINACK and then
+<b>lingers</b> for about three timeouts, answering any repeated FIN — because its FINACK can be lost exactly like a data
+ACK. The sender retransmits FIN on timeout and gives up after a fixed number of tries. Giving up is safe at that
+point, since the file has already arrived, but it must be logged.</p>
+<p><b>Hash.</b> <code>MessageDigest.getInstance("SHA-256")</code>, updated chunk by chunk — by the sender as it reads the file,
+by the receiver as it writes chunks in order. Compare the two hex strings at the end and report
+<code>sha256_match</code>.</p>
+<p><b>Chunking.</b> 8&nbsp;MiB is 8,388,608 bytes: 5,992 packets of 1400 bytes, the last holding 1,208. Create test files
+with <code>head -c 8388608 /dev/urandom &gt; test8m.bin</code> in Git Bash or WSL.</p>
+
+<h2 style="margin-top:14px">4 · Design decisions you must defend</h2>
+<table class="long">
+<thead><tr><th style="width:32%">Decision</th><th>Why — the answer to give at the viva</th></tr></thead>
+<tbody>
+<tr><td class="b">A fixed 20-byte header</td><td>Constant-size parsing with no branches, every field at a known offset, and a reserved field for SACK so the format never changes mid-project.</td></tr>
+<tr><td class="b">Packet-numbered, not byte-numbered</td><td>Go-Back-N and Selective Repeat are defined in packets in the textbook, so window arithmetic stays in whole packets. TCP numbers bytes because it streams; we transfer fixed chunks.</td></tr>
+<tr><td class="b">Verify the checksum before trusting any field</td><td>A corrupted <code>payloadLen</code> could otherwise drive a read past the end of the buffer or misparse the payload.</td></tr>
+<tr><td class="b">Zero-and-recompute verification</td><td>Same guarantee as summing to 0xFFFF, but the exception can report both values when they disagree.</td></tr>
+<tr><td class="b">Session layer outside the protocols</td><td>One handshake and one teardown for all three protocols: less code, and identical session overhead, so experiments compare only the ARQ logic.</td></tr>
+<tr><td class="b">A META flag, not just <code>seq 0</code></td><td>In alternating-bit Stop-and-Wait, 0 is also an ordinary data number. The flag makes a late duplicate handshake impossible to mistake for data.</td></tr>
+<tr><td class="b">Checksum written as RFC 1071 describes it</td><td>We measured 0.6&nbsp;µs per packet in Java, so there is nothing to gain from optimising it and a lot to gain from being able to explain every line.</td></tr>
+<tr><td class="b">Stop-and-Wait times out with the socket, not the timer heap</td><td>It only ever has one timer, so a socket receive timeout is the simplest correct tool. From Thu 24 the value comes from Sinjan's estimator.</td></tr>
+</tbody></table>
+
+<div class="brk"></div>
+<h2>5 · Your day-by-day plan</h2>
+<h3>Sprint A · 14–20 September</h3>
+
+<div class="day"><div class="hd"><b>Mon 14 – Tue 15</b><span>Setup and reading</span></div>
+<ol>
+  <li>Complete section 1. First commit merged by Tuesday 10 pm.</li>
+  <li>Read <code>docs/PLAN.md</code> section 4.1 and RFC 1071 section 1. Read Kurose &amp; Ross section 3.4.1 on rdt 3.0.</li>
+  <li>Draw the header from memory until you get every offset right.</li>
+  <li>Work the four checksum examples in 3.3 by hand on paper.</li>
+</ol>
+<div class="done"><b>Done when:</b> your first commit is merged and your hand-worked checksums match 3.3.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Wed 16 – Thu 17</b><span>Rewrite Packet.java · BLOCKS EVERYONE</span></div>
+<ol>
+  <li><code>git checkout -b m1/packet-rewrite</code></li>
+  <li>Read the draft once to see its shape. Then delete the bodies of <code>encode</code>, <code>decode</code> and
+      <code>checksum</code>, and write them from 3.1–3.3. If you get stuck, go back to the tables, not to the old code.</li>
+  <li><b>Write <code>checksum</code> first</b>, then run <code>./build.sh</code>: the known-value and single-bit-flip tests will
+      tell you whether it is right before anything else depends on it. Commit.</li>
+  <li><b>Then <code>encode</code>:</b> allocate 20 + payload bytes, put every field in offset order, compute the checksum
+      over the whole array while its field is still zero, write it at offset 16. Commit.</li>
+  <li><b>Then <code>decode</code></b>, in this order: reject anything shorter than 20 bytes; verify the checksum; read the fields
+      with the unsigned widening from 3.2; check the version; check <code>payloadLen</code> against the bytes that
+      arrived. Commit.</li>
+  <li>When <code>PacketTest</code> shows 13 of 13, rewrite <code>CorruptPacketException</code> and open the PR by Thursday
+      afternoon. {{PAIR_A}} reviews it with three <i>why</i> questions.</li>
+  <li>Tick the <code>Packet.java</code> box in <code>AI-USE.md</code>, sign it and date it.</li>
+</ol>
+<div class="done"><b>Done when:</b> merged into <code>main</code> by Thursday night with <code>PacketTest: 13 run, 0 failed</code>,
+and the <code>AI-USE.md</code> box ticked.</div>
+<div class="viva"><b>Be able to explain:</b> questions 1, 2, 3 and 8 in section 13.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Fri 18</b><span>Handshake, interface, conventions call</span></div>
+<ol>
+  <li>Add the META flag constant and the handshake payload format from 3.5, with a test that formats a payload and
+      parses it back, and one that rejects a bad size.</li>
+  <li>Draft <code>ArqProtocol</code> and <code>ProtocolConfig</code> as described in convention 1. Keep it small: two operations
+      and the settings. Push it as a draft PR so Sinjan and Sohini can read it before the call.</li>
+  <li><b>8 pm — the conventions call.</b> You chair it. Go through section 6 row by row and write down every decision.</li>
+</ol>
+<div class="done"><b>Done when:</b> the handshake tests pass and the interface draft has been discussed on the call.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Sat 19</b><span>Conventions, then Stop-and-Wait</span></div>
+<ol>
+  <li>First thing: commit <code>docs/CONVENTIONS.md</code> with the call's decisions, and merge the interface once Sinjan and
+      Sohini approve. They start building against it on Sunday and Monday.</li>
+  <li>Write <code>StopAndWait</code> from the table in 3.4 — sender first, then receiver.</li>
+</ol>
+<div class="done"><b>Done when:</b> <code>CONVENTIONS.md</code> and the interface are merged, and Stop-and-Wait compiles against them.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Sun 20</b><span>CLIs and the first real transfer</span></div>
+<ol>
+  <li>Write <code>Sender</code> and <code>Receiver</code> with the flags from convention 5. At the end of a transfer the sender
+      prints the single <code>RESULT</code> line from convention 8.</li>
+  <li>Run a real transfer through the emulator at 0% loss, in three terminals:</li>
+</ol>
+<pre>java -cp build/classes emulator.NetEm --listen 9000 --to 127.0.0.1:9001 --seed 1 --both delay=20
+java -cp build/classes app.Receiver --port 9001 --out received.bin --protocol stopwait
+java -cp build/classes app.Sender --file test8m.bin --to 127.0.0.1:9000 --protocol stopwait
+sha256sum test8m.bin received.bin</pre>
+<div class="done"><b>Done when:</b> both hashes match. That is your part of Gate 3, Sunday 10 pm. Expect it to take about four
+minutes — see 3.4.</div>
+</div>
+
+<h3>Sprint B · 21–27 September</h3>
+
+<div class="day"><div class="hd"><b>Mon 21 – Tue 22</b><span>Harden Stop-and-Wait; FIN teardown</span></div>
+<ol>
+  <li>Run at <code>--both loss=0.10,delay=20</code> across seeds 1 to 10. Every failure is a bug in the table in 3.4 — find
+      which row.</li>
+  <li>Add FIN, FINACK and the receiver linger from 3.5. Test it by dropping FINACKs: run the emulator with
+      <code>--down loss=0.5</code> and confirm the transfer still ends cleanly.</li>
+  <li>No fixed <code>Thread.sleep</code> anywhere in shutdown.</li>
+</ol>
+<div class="done"><b>Done when:</b> 10 of 10 seeds match at 10% loss, each ending with an explicit FIN exchange.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Wed 23 – Thu 24</b><span>The integrity suite · decides Core complete</span></div>
+<ol>
+  <li>Wednesday: build <code>IntegrityTest</code> (design in section 7) running Stop-and-Wait, and Go-Back-N as soon as Sinjan
+      merges it that night.</li>
+  <li>Thursday: add Selective Repeat the moment Sohini merges it, run the full suite, and post the result in the chat.</li>
+</ol>
+<div class="done"><b>Done when:</b> 3 protocols × 5 profiles × 10 seeds all match — <b>Gate 5, Core complete</b>, Thursday 10 pm.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Fri 25 – Sun 27</b><span>Experiment 1</span></div>
+<ol>
+  <li>Friday: with Sohan, start the Stop-and-Wait and Go-Back-N cells first — Stop-and-Wait is the slow one, so it runs
+      overnight. Section 9 has the design and the runtime numbers.</li>
+  <li>Saturday: add the Selective Repeat cells.</li>
+  <li>Sunday: generate Figure 1 with <code>plots.py</code>.</li>
+</ol>
+<div class="done"><b>Done when:</b> Figure 1 is generated by script from committed CSVs with at least 3 seeds per cell.</div>
+</div>
+
+<h3>After the sprint</h3>
+<div class="day"><div class="hd"><b>28 Sep – 26 Oct</b><span>Buffer, then weeks 6–8</span></div>
+<ol>
+  <li><b>28 Sep – 5 Oct:</b> Experiment 1 at the full 10 seeds. Write the methodology section with Sohan.</li>
+  <li><b>6–12 Oct:</b> teach your module at the cross-teaching session; learn Go-Back-N and Selective Repeat well enough to
+      answer section 13 of their handbooks. Draft your report section.</li>
+  <li><b>13–19 Oct:</b> review the full report draft; check every figure caption says what the reader should notice.</li>
+  <li><b>20–26 Oct:</b> code freeze 22 October; viva drills.</li>
+</ol>
+</div>
+
+<!--COMMON:conventions-->
+
+<div class="brk"></div>
+<h2>7 · How to test your work</h2>
+<h3>Tests you already have — PacketTest, 13 tests</h3>
+<p>Round trips with and without payload, an odd-length payload, sequence numbers above 2<sup>31</sup>, maximum 16-bit values,
+<b>every single-bit flip of a 148-byte packet</b>, runt packets, a mismatched length, an unknown version, the RFC 1071
+end-around property, a known checksum value, and oversized or out-of-range fields. Treat them as the specification: a
+rewrite is correct when they all pass.</p>
+
+<h3>Tests to write</h3>
+<table>
+<thead><tr><th style="width:26%">Test class</th><th>What it must prove</th></tr></thead>
+<tbody>
+<tr><td class="b">HandshakeTest</td><td>Format then parse gives the same name, size and hash; a bad size is rejected; a name containing a line break is rejected.</td></tr>
+<tr><td class="b">StopAndWaitTest</td><td>Transfers a small file correctly over a clean channel, 10% loss, 5% duplication, 5% corruption and 10% reordering. Zero retransmissions on the clean channel.</td></tr>
+<tr><td class="b">SessionTest</td><td>The transfer ends cleanly when half the FINACKs are dropped; the receiver answers a repeated FIN during its linger.</td></tr>
+<tr><td class="b">IntegrityTest</td><td>For every protocol × profile × seed, the received hash matches.</td></tr>
+</tbody></table>
+
+<div class="tip"><b>Run the emulator inside the test.</b> <code>NetEmSmokeTest</code> already shows how: start <code>NetEm</code> on a
+daemon thread with port 0, call <code>awaitReady</code>, and read <code>boundPort()</code>. Every test then gets free ports and
+never collides with another run. Read that fixture before writing yours.</div>
+<div class="tip"><b>Keep unit tests fast.</b> Use a 256&nbsp;KiB file in tests, not 8&nbsp;MiB — the integrity suite runs 150
+transfers. The 8&nbsp;MiB file is for the experiments.</div>
+
+<h3>Profiles for the integrity suite</h3>
+<table>
+<thead><tr><th style="width:22%">Profile</th><th>Emulator setting</th></tr></thead>
+<tbody>
+<tr><td>clean</td><td><code>delay=5</code></td></tr>
+<tr><td>lossy</td><td><code>loss=0.10,delay=5</code></td></tr>
+<tr><td>duplicating</td><td><code>dup=0.05,delay=5</code></td></tr>
+<tr><td>corrupting</td><td><code>corrupt=0.05,delay=5</code></td></tr>
+<tr><td>reordering</td><td><code>reorder=0.10,delay=5,jitter=2</code></td></tr>
+</tbody></table>
+<p>Remember convention 13: add every new test class to <code>build.sh</code> and to the <code>Makefile</code>.</p>
+
+<h2 style="margin-top:14px">8 · When something breaks</h2>
+<table class="long">
+<thead><tr><th style="width:30%">Symptom</th><th style="width:36%">Likely cause</th><th>How to check</th></tr></thead>
+<tbody>
+<tr><td>Every packet fails its checksum</td><td>Checksum computed after the field was filled, written at the wrong offset, or bytes combined without <code>&amp; 0xFF</code></td><td><code>Packet.checksum</code> over an encoded packet must return 0</td></tr>
+<tr><td>Sequence numbers negative or enormous</td><td>Missing <code>Integer.toUnsignedLong</code>, or a cast in the wrong place</td><td>PacketTest's above-2<sup>31</sup> test</td></tr>
+<tr><td>Good packets rejected as "declared payload"</td><td>Decoding the whole 65,535-byte receive buffer instead of <code>DatagramPacket.getLength()</code> bytes</td><td>Print the length you pass to <code>decode</code></td></tr>
+<tr><td>Transfer hangs before any data</td><td>Handshake lost and not retransmitted; or the sender aimed at 9001 instead of the emulator on 9000</td><td>Run the emulator with <code>--verbose</code></td></tr>
+<tr><td>Emulator logs traffic, receiver gets nothing</td><td><code>--to</code> points at the wrong port, or the receiver was started second</td><td>Start the receiver first</td></tr>
+<tr><td>Received file larger than the original</td><td>The receiver delivered a duplicate instead of re-ACKing it</td><td>Rows 5 and 6 of the table in 3.4</td></tr>
+<tr><td>Hangs at the very end</td><td>FINACK lost and the sender never retransmits FIN; or the receiver exited without lingering</td><td>SessionTest with dropped FINACKs</td></tr>
+<tr><td>Same size, different hash</td><td>Delivered out of order, or accepted a corrupt packet before checking</td><td>Verify the checksum before any delivery</td></tr>
+<tr><td>Goodput far below 280&nbsp;kbps at 0% loss</td><td>Printing every packet, or a timeout of a second or more</td><td>Run without <code>--verbose</code>; print the RTO</td></tr>
+<tr><td><code>Address already in use</code></td><td>A previous run still holds the port</td><td>Git Bash: <code>taskkill //F //IM java.exe</code>; WSL: <code>pkill java</code></td></tr>
+<tr><td><code>bash\r: No such file or directory</code> in WSL</td><td><code>build.sh</code> checked out with Windows line endings</td><td>Re-clone inside WSL; <code>.gitattributes</code> now forces Unix line endings</td></tr>
+</tbody></table>
+
+<div class="brk"></div>
+<h2>9 · Experiment 1 — goodput against loss rate</h2>
+<table>
+<tbody>
+<tr><td class="b" style="width:22%">Question</td><td>How does each protocol's goodput fall as packet loss rises?</td></tr>
+<tr><td class="b">Variable</td><td>Loss 0, 0.1, 0.5, 1, 2, 5, 10, 20%, applied in both directions with <code>--both loss=p</code></td></tr>
+<tr><td class="b">Held fixed</td><td>Window 32 for Go-Back-N and Selective Repeat; 1400-byte payload; 20&nbsp;ms delay each way; jitter, RTO mode and file size as locked in the configs on Tue 22</td></tr>
+<tr><td class="b">Seeds</td><td>At least 3 per cell by Sun 27; 10 in the buffer week</td></tr>
+<tr><td class="b">Measured</td><td><code>goodput_bps</code>, <code>throughput_bps</code>, <code>retransmissions</code>, <code>timeouts</code></td></tr>
+<tr><td class="b">Owner</td><td>You, with Sohan running the harness</td></tr>
+</tbody></table>
+
+<h3>What we expect, and what would be interesting</h3>
+<ul>
+  <li><b>Stop-and-Wait</b> stays under its 280&nbsp;kbps ceiling at every loss rate, falling as loss rises.</li>
+  <li><b>Go-Back-N</b> is fastest at 0% but falls steeply, because each loss can cost up to a whole window of resends.</li>
+  <li><b>Selective Repeat</b> falls gently, because each loss costs one resend.</li>
+  <li>The claim models normalised goodput as roughly (1−p) for Selective Repeat and (1−p)<sup>W</sup> for Go-Back-N.
+      That model is crude — it ignores ACK loss and the time spent waiting for timeouts — so where the measured curve
+      departs from it, <b>explain why</b>. That analysis is worth more than a curve that happens to fit.</li>
+</ul>
+
+<h3>Runtime — plan for it</h3>
+<div class="warn"><b>Stop-and-Wait is the bottleneck of the whole experiment.</b> Estimated at 8&nbsp;MiB, RTO around
+120&nbsp;ms, loss in both directions: <b>4 minutes a run at 0% loss, about 11 minutes at 20%</b>. One seed of the eight
+Stop-and-Wait cells takes about 44 minutes; ten seeds, about 7.3 hours. At 2&nbsp;MiB those become 1 and 2.7 minutes, and
+1.8 hours for ten seeds. So the Stop-and-Wait cells start <b>Friday evening</b> and run overnight. If Sohan's dry run on
+Tuesday 22 shows they are too slow, the whole experiment — every protocol, not just Stop-and-Wait — moves to 2&nbsp;MiB,
+and the report says so. Goodput is a rate, so file size changes the running time, not the number being measured.</div>
+
+<h3>Figure 1</h3>
+<ul>
+  <li>Left panel: goodput in Mbps against loss rate, one line per protocol, 95% confidence-interval error bars, and the
+      280&nbsp;kbps Stop-and-Wait ceiling drawn as a dashed line.</li>
+  <li>Right panel: goodput normalised to its own 0% value, with the (1−p) and (1−p)<sup>32</sup> model curves overlaid.</li>
+  <li>The loss axis includes 0, so it cannot be logarithmic — use evenly spaced categories.</li>
+  <li>The caption states the settings and <i>n</i>, the number of seeds per point.</li>
+</ul>
+
+<h2 style="margin-top:14px">10 · Your report section — wire format and session</h2>
+<ol>
+  <li><b>Header layout</b> — the table from 3.1 and the reasons from section 4.</li>
+  <li><b>The checksum</b> — the algorithm, one worked example, what it catches and what it cannot, and why we verify first.</li>
+  <li><b>Unsigned fields in Java</b> — the problem and the fix, in a short paragraph with the <code>FF FF FF FF</code> example.</li>
+  <li><b>The session</b> — handshake, teardown and hash, with a timeline figure of a lost FINACK.</li>
+  <li><b>Stop-and-Wait</b> — the sender and receiver rules, and the throughput ceiling.</li>
+  <li><b>Experiment 1</b> — Figure 1 and three paragraphs: what happened, how it compares with the model, and why.</li>
+</ol>
+<p class="muted">About two to three pages. Draft it in week 6 while the cross-teaching is fresh.</p>
+
+<!--COMMON:workflow-->
+<!--COMMON:ai-->
+
+<div class="brk"></div>
+<h2>13 · Viva preparation</h2>
+<p>Practise these out loud with a teammate. Sir will also ask you to change code live — the last two are rehearsals.</p>
+
+<div class="qa"><div class="q">1. Walk me through the checksum, byte by byte.</div><ul>
+<li>16-bit big-endian words; an odd final byte is the high half of a word.</li>
+<li>One's complement addition with the end-around carry; complement at the end.</li>
+<li>Computed with the checksum field at zero. Work Example 1 or 2 from 3.3 on the board.</li></ul></div>
+
+<div class="qa"><div class="q">2. Why is every single-bit error caught? Which errors are not?</div><ul>
+<li>One flipped bit changes one word by 2<sup>j</sup>, which is never a multiple of 0xFFFF, so the sum changes.</li>
+<li>Missed: swapped words, errors that cancel, a word flipping between 0x0000 and 0xFFFF.</li></ul></div>
+
+<div class="qa"><div class="q">3. Why <code>Integer.toUnsignedLong</code> on the sequence field?</div><ul>
+<li>Java's <code>int</code> is signed; above 2<sup>31</sup> the value reads as negative.</li>
+<li>Show <code>FF FF FF FF</code> reading as −1 without it and 4,294,967,295 with it.</li></ul></div>
+
+<div class="qa"><div class="q">4. In Stop-and-Wait, an ACK is lost. What happens, step by step?</div><ul>
+<li>The data was already delivered. The sender's timer fires and it resends.</li>
+<li>The receiver sees a duplicate, does not deliver it, and ACKs it again. The sender moves on.</li></ul></div>
+
+<div class="qa"><div class="q">5. Why is one bit enough for Stop-and-Wait but not for Go-Back-N?</div><ul>
+<li>Stop-and-Wait has one packet in flight, so it only distinguishes "this one again" from "the next one".</li>
+<li>Go-Back-N has up to W in flight, and needs at least W+1 distinct numbers to tell them apart.</li></ul></div>
+
+<div class="qa"><div class="q">6. Why can't Stop-and-Wait go faster than 280&nbsp;kbps here?</div><ul>
+<li>One packet per round trip: 1400 × 8 ÷ 0.040 s. The link speed never enters the formula.</li></ul></div>
+
+<div class="qa"><div class="q">7. The FINACK is lost. What happens?</div><ul>
+<li>The sender's FIN timer fires and it resends FIN; the lingering receiver answers again.</li>
+<li>If every FINACK is lost the sender gives up after its retry limit — safe, because the file has already arrived.</li></ul></div>
+
+<div class="qa"><div class="q">8. Why verify the checksum before reading the length field?</div><ul>
+<li>A corrupted length could send the parser past the end of the buffer or mis-split header and payload. Nothing is trusted until the checksum passes.</li></ul></div>
+
+<div class="qa"><div class="q">9. Live change: add a NAK packet type.</div><ul>
+<li>A new type constant and name; handling in the protocol that sends and receives it; a test.</li>
+<li>The header layout and the checksum do not change at all — explain why.</li></ul></div>
+
+<div class="qa"><div class="q">10. Live change: make the payload 1000 bytes instead of 1400.</div><ul>
+<li>It is a <code>ProtocolConfig</code> value, so no header change. More packets per file, and Stop-and-Wait's ceiling drops to 200&nbsp;kbps.</li></ul></div>
+
+<!--COMMON:help-->
+
+<div class="brk"></div>
+<h2>15 · Sprint checklist</h2>
+<ul class="check">
+  <li><b>Tue 15</b> — cloned, identity set, <code>./build.sh</code> green, first commit merged</li>
+  <li><b>Tue 15</b> — the four checksum examples worked by hand</li>
+  <li><b>Thu 17</b> — <code>Packet</code> rewritten, 13/13, merged; <code>AI-USE.md</code> box ticked</li>
+  <li><b>Fri 18</b> — handshake format and tests; interface draft PR; chaired the 8 pm call</li>
+  <li><b>Sat 19</b> — <code>CONVENTIONS.md</code> and <code>ArqProtocol</code> merged</li>
+  <li><b>Sun 20</b> — Sender and Receiver CLIs; <code>RESULT</code> line; 8&nbsp;MiB transfer matches at 0% loss</li>
+  <li><b>Tue 22</b> — 10/10 seeds match at 10% loss; FIN teardown survives dropped FINACKs</li>
+  <li><b>Wed 23</b> — integrity suite running Stop-and-Wait and Go-Back-N</li>
+  <li><b>Thu 24</b> — integrity suite passes all three protocols: Core complete</li>
+  <li><b>Sun 27</b> — Figure 1 from at least 3 seeds per cell</li>
+  <li><b>Every night</b> — three-line check-in by 10 pm; at least one commit every working day</li>
+</ul>

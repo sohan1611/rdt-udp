@@ -1,0 +1,49 @@
+<div class="brk"></div>
+<h2>14 · Help, references and glossary</h2>
+
+<h4>Who to ask</h4>
+<table>
+<thead><tr><th style="width:52%">Questions about</th><th style="width:20%">Ask</th><th>GitHub</th></tr></thead>
+<tbody>
+<tr><td>Packet format, checksum, handshake, FIN, CLIs, Stop-and-Wait, the integrity suite</td><td class="b">Shaili Seth</td><td><code>shailiseth24</code></td></tr>
+<tr><td>Timers, RTT estimation, Karn's algorithm, Go-Back-N, fixed and adaptive RTO</td><td class="b">Sinjan Mishra</td><td><code>Thesin-01</code></td></tr>
+<tr><td>Selective Repeat, the receive buffer, window bounds, wraparound</td><td class="b">Sohini Pandit</td><td><code>sohinix</code></td></tr>
+<tr><td>The emulator, trace files, calibration, RunStats, CSVs, plots, repository access</td><td class="b">Sohan Mandal</td><td><code>sohan1611</code></td></tr>
+</tbody></table>
+<p>Stuck for more than an hour? Say so in the group chat. An hour stuck in a two-week sprint is expensive; two
+minutes of someone else's attention usually is not.</p>
+
+<h4>References</h4>
+<ul>
+  <li><b>RFC 1071</b>, <i>Computing the Internet Checksum</i> — section 1 is the algorithm.</li>
+  <li><b>RFC 6298</b>, <i>Computing TCP's Retransmission Timer</i> — Jacobson/Karels estimation, Karn's algorithm,
+      backoff.</li>
+  <li><b>Kurose &amp; Ross</b>, <i>Computer Networking: A Top-Down Approach</i> — section 3.4 (reliable data transfer:
+      rdt 3.0, Go-Back-N, Selective Repeat) and section 3.5 (TCP round-trip time estimation).</li>
+  <li><b>Java 21 API documentation</b> — <code>java.nio.ByteBuffer</code>, <code>java.net.DatagramSocket</code>,
+      <code>java.util.PriorityQueue</code>, <code>java.security.MessageDigest</code>, <code>java.util.Random</code>,
+      <code>Math.floorMod</code>.</li>
+  <li><b>In the repository</b> — <code>docs/PLAN.md</code> for the design decisions, <code>docs/member-playbook.html</code>
+      for everyone's dates, <code>AI-USE.md</code>, and the existing tests, which show the house test style.</li>
+</ul>
+
+<h4>Glossary</h4>
+<table class="long">
+<tbody>
+<tr><td class="b nw" style="width:24%">ARQ</td><td>Automatic Repeat reQuest: reliability by detecting loss and retransmitting. Stop-and-Wait, Go-Back-N and Selective Repeat are three ARQ schemes.</td></tr>
+<tr><td class="b nw">RTT</td><td>Round-trip time — data out, ACK back.</td></tr>
+<tr><td class="b nw">RTO</td><td>Retransmission timeout — how long the sender waits for an ACK before resending.</td></tr>
+<tr><td class="b nw">SRTT, RTTVAR</td><td>The smoothed RTT and its smoothed variation, from which RTO is computed (RFC 6298).</td></tr>
+<tr><td class="b nw">Cumulative ACK</td><td>"Everything up to <i>n</i> has arrived." Used by Go-Back-N.</td></tr>
+<tr><td class="b nw">Selective ACK</td><td>"This particular packet has arrived." Used by Selective Repeat.</td></tr>
+<tr><td class="b nw">Window</td><td>How many unacknowledged packets the sender may have in flight at once.</td></tr>
+<tr><td class="b nw">Sequence space</td><td>The range of sequence numbers: 2<sup>k</sup> values for <i>k</i> bits, wrapping back to 0.</td></tr>
+<tr><td class="b nw">Goodput</td><td>Useful file bytes delivered per second — excluding headers and retransmissions.</td></tr>
+<tr><td class="b nw">Throughput</td><td>Every byte put on the wire per second — including headers and retransmissions.</td></tr>
+<tr><td class="b nw">Spurious retransmission</td><td>Resending a packet whose original actually arrived.</td></tr>
+<tr><td class="b nw">Network byte order</td><td>Big-endian: most significant byte first. <code>ByteBuffer</code>'s default.</td></tr>
+<tr><td class="b nw">One's complement sum</td><td>Addition where a carry out of the top bit is added back in at the bottom — the end-around carry. The basis of the Internet checksum.</td></tr>
+<tr><td class="b nw">Seed</td><td>The starting value for the emulator's random generator. Same seed, same decisions, on any machine.</td></tr>
+<tr><td class="b nw">95% confidence interval</td><td>A range around a measured mean reflecting run-to-run variation. Every data point we plot carries one.</td></tr>
+<tr><td class="b nw">JIT warm-up</td><td>The JVM runs code slowly at first and compiles hot paths as it goes, so the first packets of a run can be slower.</td></tr>
+</tbody></table>

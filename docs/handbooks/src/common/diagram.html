@@ -1,0 +1,59 @@
+<figure class="diagram">
+<svg viewBox="0 0 720 318" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="How the sender, emulator and receiver fit together">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7480"/>
+    </marker>
+  </defs>
+
+  <rect class="grp" x="8" y="8" width="210" height="262" rx="6"/>
+  <text class="gt" x="18" y="26">Sender (one JVM)</text>
+  <rect class="grp" x="252" y="8" width="216" height="262" rx="6"/>
+  <text class="gt" x="262" y="26">NetEm (separate process)</text>
+  <rect class="grp" x="502" y="8" width="210" height="262" rx="6"/>
+  <text class="gt" x="512" y="26">Receiver (one JVM)</text>
+
+  <rect class="box m1" x="18" y="40" width="190" height="22" rx="3"/><text class="bt" x="113" y="51">Sender CLI · file chunks · SHA-256</text>
+  <rect class="box m1" x="18" y="68" width="190" height="22" rx="3"/><text class="bt" x="113" y="79">Session: META handshake · FIN</text>
+  <rect class="box m1" x="18" y="96" width="190" height="22" rx="3"/><text class="bt" x="113" y="107">Stop-and-Wait</text>
+  <rect class="box m2" x="18" y="124" width="190" height="22" rx="3"/><text class="bt" x="113" y="135">Go-Back-N</text>
+  <rect class="box m3" x="18" y="152" width="190" height="22" rx="3"/><text class="bt" x="113" y="163">Selective Repeat</text>
+  <rect class="box m2" x="18" y="180" width="190" height="22" rx="3"/><text class="bt" x="113" y="191">TimerWheel · RttEstimator</text>
+  <rect class="box m1" x="18" y="208" width="190" height="22" rx="3"/><text class="bt" x="113" y="219">Packet · RFC 1071 checksum</text>
+  <rect class="box m4" x="18" y="236" width="190" height="22" rx="3"/><text class="bt" x="113" y="247">RunStats → RESULT line</text>
+
+  <rect class="box m4" x="262" y="40" width="196" height="22" rx="3"/><text class="bt" x="360" y="51">UDP socket :9000 · learns sender</text>
+  <rect class="box m4" x="262" y="68" width="196" height="22" rx="3"/><text class="bt" x="360" y="79">Channel c2s: loss dup corrupt delay</text>
+  <rect class="box m4" x="262" y="96" width="196" height="22" rx="3"/><text class="bt" x="360" y="107">Channel s2c: same, own seed</text>
+  <rect class="box m4" x="262" y="124" width="196" height="22" rx="3"/><text class="bt" x="360" y="135">Release queue · tiebreak · 1 ms</text>
+  <rect class="box m4" x="262" y="152" width="196" height="22" rx="3"/><text class="bt" x="360" y="163">java.util.Random · 10 draws/packet</text>
+  <rect class="box m4" x="262" y="180" width="196" height="22" rx="3"/><text class="bt" x="360" y="191">Calibrate · capacity ceiling</text>
+  <rect class="box m4" x="262" y="208" width="196" height="22" rx="3"/><text class="bt" x="360" y="219">tc netem cross-check (week 6)</text>
+  <rect class="box m4" x="262" y="236" width="196" height="22" rx="3"/><text class="bt" x="360" y="247">TraceLog → trace.jsonl</text>
+
+  <rect class="box m1" x="512" y="40" width="190" height="22" rx="3"/><text class="bt" x="607" y="51">Receiver CLI · write file · check hash</text>
+  <rect class="box m1" x="512" y="68" width="190" height="22" rx="3"/><text class="bt" x="607" y="79">Session: META handshake · FIN</text>
+  <rect class="box m1" x="512" y="96" width="190" height="22" rx="3"/><text class="bt" x="607" y="107">Stop-and-Wait</text>
+  <rect class="box m2" x="512" y="124" width="190" height="22" rx="3"/><text class="bt" x="607" y="135">Go-Back-N</text>
+  <rect class="box m3" x="512" y="152" width="190" height="22" rx="3"/><text class="bt" x="607" y="163">Selective Repeat · receive buffer</text>
+  <rect class="box m3" x="512" y="180" width="190" height="22" rx="3"/><text class="bt" x="607" y="191">Sequence-space wraparound</text>
+  <rect class="box m1" x="512" y="208" width="190" height="22" rx="3"/><text class="bt" x="607" y="219">Packet · RFC 1071 checksum</text>
+  <rect class="box m4" x="512" y="236" width="190" height="22" rx="3"/><text class="bt" x="607" y="247">RunStats counters</text>
+
+  <line class="wire" x1="219" y1="56" x2="250" y2="56" marker-end="url(#ah)"/>
+  <text class="lbl" x="235" y="49">DATA</text>
+  <line class="wire" x1="469" y1="56" x2="500" y2="56" marker-end="url(#ah)"/>
+  <text class="lbl" x="485" y="49">DATA</text>
+  <line class="wire" x1="500" y1="86" x2="469" y2="86" marker-end="url(#ah)"/>
+  <text class="lbl" x="485" y="99">ACK</text>
+  <line class="wire" x1="250" y1="86" x2="219" y2="86" marker-end="url(#ah)"/>
+  <text class="lbl" x="235" y="99">ACK</text>
+
+  <line class="wire" x1="113" y1="271" x2="113" y2="282" marker-end="url(#ah)"/>
+  <line class="wire" x1="360" y1="271" x2="360" y2="282" marker-end="url(#ah)"/>
+  <line class="wire" x1="607" y1="271" x2="607" y2="282" marker-end="url(#ah)"/>
+  <rect class="box m4" x="8" y="284" width="704" height="26" rx="3"/><text class="bt" x="360" y="297">Python analysis: run_matrix.py → results/*.csv → plots.py → figures/*.png</text>
+</svg>
+</figure>
+<p class="legend">Bold, coloured boxes are yours. Grey boxes belong to teammates — either you depend on them, or
+they depend on you. Packets always travel through NetEm: the sender and receiver never talk directly.</p>

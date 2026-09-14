@@ -1,0 +1,57 @@
+<div class="brk"></div>
+<h2>11 · How we work together</h2>
+
+<h4>Nightly check-in — by 10 pm, in the group chat</h4>
+<p>Three lines, every night of the sprint. For example:</p>
+<pre>Done:     receive buffer releases 1,3,4,2 in order; 5 tests passing
+Tomorrow: duplicate handling, then open the PR
+Blocked:  nothing</pre>
+<p>In a two-week sprint, a silent day costs whoever is waiting on you half a day. If you are blocked, say so that
+evening — never save it for the next gate.</p>
+
+<h4>Branches</h4>
+<p>Never commit directly to <code>main</code>. Use one branch per task, named after your role —
+<code>{{BRANCH}}/short-task-name</code>. Always start from the latest <code>main</code>:</p>
+<pre>git checkout main
+git pull
+git checkout -b {{BRANCH}}/short-task-name</pre>
+<p>Bring <code>main</code> into your branch at least once a day, so you meet other people's changes while the
+conflicts are still small:</p>
+<pre>git fetch origin
+git merge origin/main</pre>
+
+<h4>Pull requests</h4>
+<p>Push your branch, open a pull request on GitHub, and use this description:</p>
+<pre>What:        one sentence
+Why:         which playbook task this is
+How tested:  the commands you ran and what they printed
+Ask me:      two things you want the reviewer to question</pre>
+
+<table>
+<thead><tr><th style="width:34%">When</th><th>Your reviewer — and whose PRs you review</th></tr></thead>
+<tbody>
+<tr><td>Sprint A · 14–20 September</td><td class="b">{{PAIR_A}}</td></tr>
+<tr><td>Sprint B · 21–27 September</td><td class="b">{{PAIR_B}}</td></tr>
+</tbody></table>
+<p><b>Review within 12 hours.</b> An unreviewed PR blocks someone. If your partner is stuck, anyone else may review
+instead, and you review your partner's work on the same terms.</p>
+
+<div class="warn"><b>The explanation check.</b> Before approving, the reviewer asks two or three <i>why</i> questions —
+<i>why this data structure, what happens if this ACK is lost, why this bound and not another</i>. If the author cannot
+answer, the PR does not merge. A five-minute voice call is enough. It rehearses the viva every day, and it catches
+copy-pasted code while there is still time to rewrite it.</div>
+
+<h4>Commits</h4>
+<ul>
+  <li>At least <b>one commit every working day</b> of the sprint, under your own name and email.</li>
+  <li>Small commits whose messages say what changed — <i>"Release buffered packets once the gap at rcv_base fills"</i>,
+      not <i>"update"</i>.</li>
+  <li>Never commit on someone else's behalf. The brief counts that as non-contribution by the absent member.</li>
+  <li><b>No <code>Co-Authored-By</code> lines, no bot pull requests, and Dependabot stays off.</b> The contributor list
+      must show exactly our four names.</li>
+</ul>
+
+<h4>Other people's files</h4>
+<p>If you need a change in a file someone else owns, message them first. If it is urgent and they are unreachable,
+make the smallest change you can, say so in your PR, and tag them. A merge conflict in a file is resolved by that
+file's owner.</p>

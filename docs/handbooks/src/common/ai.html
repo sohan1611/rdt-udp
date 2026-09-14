@@ -1,0 +1,37 @@
+<h2 style="margin-top:14px">12 · Using AI without losing marks</h2>
+<table>
+<thead><tr><th style="width:52%">Permitted by the brief</th><th>Not permitted</th></tr></thead>
+<tbody><tr>
+<td>Explaining concepts · debugging · reviewing your code · generating tests · boilerplate and plotting scripts ·
+improving your writing</td>
+<td>Generating the core protocol implementation and submitting it as your own work</td>
+</tr></tbody></table>
+
+<p><b>Our rule: use AI to understand your module, then type the code yourself.</b> Two reasons, both about marks.
+The viva is individual and worth 5 of the 10 marks, and sir will ask you to change your code live — code you did not
+write is code you cannot change under pressure, and it scores zero however well it runs. And a chatbot asked for a
+textbook protocol gives every group roughly the same code. Another group in our year is doing P3, and the brief
+treats identical-looking submissions as collusion.</p>
+
+<h4>Uses that help</h4>
+<ul>
+  <li><i>"Explain Karn's algorithm with a timeline where the ACK arrives just after a retransmission."</i> Then close
+      it and draw the timeline yourself.</li>
+  <li><i>"Here is my window check and a failing test. Why does it fail when the sequence numbers wrap?"</i> —
+      debugging code you wrote.</li>
+  <li><i>"Write tests for a receive buffer that must release packets in order."</i> Tests are explicitly permitted.</li>
+  <li><i>"Quiz me on my module the way a viva examiner would."</i> The single most useful thing it can do for you.</li>
+</ul>
+<h4>Uses that cost marks</h4>
+<ul>
+  <li><i>"Write GoBackN.java."</i> Even if you read it afterwards, you will not be able to change it live.</li>
+  <li>Putting AI output into a PR you cannot then explain in the review check.</li>
+</ul>
+
+<h4>Log it the same day</h4>
+<p>Whenever AI materially helped, add an entry under your role in <code>AI-USE.md</code>:</p>
+<pre>### 2026-09-17 — receive buffer
+**What:** asked why Java's % operator goes negative for a wrapped sequence number
+**Permitted under:** explaining concepts
+**Mine:** the buffer design, all of the code, and the tests for the wrap case</pre>
+<p>Honest disclosure carries no penalty. Undisclosed use discovered at the viva does.</p>

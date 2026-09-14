@@ -1,0 +1,55 @@
+<div class="brk"></div>
+<h2>1 · Get set up — by Tuesday 15 September, 10 pm</h2>
+<p>Gate 1 is the first check of the sprint: all four of us have cloned the repository, verified our git identity,
+and pushed a first commit. Everything after it depends on this.</p>
+
+<div class="warn"><b>The repository is not a shared folder.</b> Sohan's copy lives on Sohan's laptop. You make your
+own complete copy on <i>your</i> laptop by cloning it from GitHub, then you work, commit and push from there. GitHub is
+only the meeting point. Every command in this handbook runs on your own machine. (If you already have a working
+clone, start at step 4.)</div>
+
+<h4>Step 1 — Install the tools</h4>
+<ul>
+  <li><b>Git.</b> On Windows this also installs <b>Git Bash</b> — run every command in this handbook there, not in
+      PowerShell or Command Prompt.</li>
+  <li><b>JDK 21</b> (Adoptium Temurin). Check that <code>java -version</code> and <code>javac -version</code> both
+      report 21.</li>
+  <li><b>WSL2 with Ubuntu</b> on Windows, because the experiments run on Linux. Inside Ubuntu install the JDK and
+      Python too:</li>
+</ul>
+<pre>wsl --install -d Ubuntu
+wsl -d Ubuntu
+sudo apt update &amp;&amp; sudo apt install -y openjdk-21-jdk make python3-pip
+java -version</pre>
+
+<h4>Step 2 — Clone onto your laptop</h4>
+<pre>git clone https://github.com/sohan1611/rdt-udp.git
+cd rdt-udp</pre>
+<p>You now have your own <code>rdt-udp</code> folder. Everything from here on happens inside it.</p>
+
+<h4>Step 3 — Tell git who you are, inside that folder</h4>
+<pre>git config user.name  "{{NAME}}"
+git config user.email "the-email-on-your-github-account"</pre>
+<div class="warn"><b>This email decides whether you count as a contributor.</b> It must be one of the addresses listed
+at <code>github.com/settings/emails</code> for your account <code>{{GH}}</code>. If you would rather not use a personal
+address, that page shows a private one ending in <code>@users.noreply.github.com</code> that links just as well.
+Commits with an unrecognised email show a grey avatar and are credited to nobody — and sir treats commit history as
+evidence of individual contribution.</div>
+
+<h4>Step 4 — Confirm the build</h4>
+<pre>./build.sh</pre>
+<p>You should see three test suites and <b>33 tests, 0 failed</b>. If anything fails, paste the output in the group
+chat the same evening.</p>
+
+<h4>Step 5 — Push your first commit</h4>
+<p>Open <code>AI-USE.md</code> and replace <code>_[name]_</code> beside your role heading with your name. Then:</p>
+<pre>git checkout -b setup/{{FIRST_LOWER}}
+git add AI-USE.md
+git commit -m "Add {{FIRST}} to AI-USE.md"
+git push -u origin setup/{{FIRST_LOWER}}
+git log -1 --format='%an &lt;%ae&gt;'</pre>
+<p>The last command must print your own name and your GitHub email. Open the pull request on GitHub and ask
+{{PAIR_A}} to approve it. Your first push asks you to sign in to GitHub; on Windows a browser window opens, which is
+normal.</p>
+<div class="done"><b>Done when:</b> your PR is merged, <code>git log</code> shows your own name and email, and you can
+see yourself on the repository's Contributors page.</div>

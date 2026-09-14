@@ -91,7 +91,7 @@ Revised 14 September 2026 for the post-mid-semester sprint</div>
 
 <div class="callout">
   <b>How to use this document.</b> Everyone reads the sprint calendar (page 2), the gates, and
-  Parts 0 and 1 today. After that, work from your own section. Every block tells you what to do,
+  Parts 0 and 1 today. After that, work from your own section, and use your own handbook in the <code>Handbooks</code> folder for the detail behind every task &mdash; concepts, worked examples, tests, debugging and viva preparation. Every block tells you what to do,
   how you know you are finished, and what you must be able to say out loud about it. That last
   part matters most: the viva is worth 5 of the 10 marks and it is assessed <i>individually</i>.
 </div>
@@ -151,7 +151,7 @@ Green rows are gates.</p>
     <tr><td class="d">Wed 16</td><td>Rewrite <code>Packet</code></td><td><code>TimerWheel</code> design + start</td><td>Window-bound note; start receiver buffer</td><td>Finish <code>Channel</code>; rewrite <code>NetEm</code></td></tr>
     <tr><td class="d">Thu 17</td><td><b><code>Packet</code> merged, 13/13</b></td><td><code>TimerWheel</code> + tests</td><td>Receiver buffer + tests</td><td><b>Emulator merged, 20/20</b></td></tr>
     <tr class="gate"><td class="d">Thu night</td><td colspan="4"><b>GATE 2</b> &mdash; <code>Packet</code> and emulator both rewritten by hand and merged; both <code>AI-USE.md</code> boxes ticked.</td></tr>
-    <tr><td class="d">Fri 18</td><td>Metadata handshake</td><td><b><code>TimerWheel</code> merged</b></td><td>Wraparound test cases; <b>buffer merged</b></td><td>JDK in WSL2; calibrate on WSL2</td></tr>
+    <tr><td class="d">Fri 18</td><td>Metadata handshake; draft <code>ArqProtocol</code></td><td><b><code>TimerWheel</code> merged</b></td><td>Wraparound test cases; <b>buffer merged</b></td><td>Rewrite <code>Calibrate</code>; JDK in WSL2; calibrate there</td></tr><tr class="gate"><td class="d">Fri 18, 8 pm</td><td colspan="4"><b>CONVENTIONS CALL</b> &mdash; all four, 30 minutes: protocol interface, sequence and ACK rules, CLI flags, RunStats, the result line and the trace format. Shaili commits <code>docs/CONVENTIONS.md</code> on Saturday morning. The proposals are in section 6 of every handbook.</td></tr>
     <tr><td class="d">Sat 19</td><td><code>StopAndWait</code></td><td><code>RttEstimator</code> + hand-worked tests</td><td>SR design: per-packet timers</td><td><code>RunStats</code> to CSV</td></tr>
     <tr><td class="d">Sun 20</td><td>CLIs; <b>S&amp;W at 0% loss</b></td><td><b><code>RttEstimator</code> merged</b></td><td>Start <code>SelectiveRepeat</code></td><td>Help S&amp;W run through emulator</td></tr>
     <tr class="gate"><td class="d">Sun night</td><td colspan="4"><b>GATE 3</b> &mdash; timer heap, RTT estimator and receiver buffer merged; 8&nbsp;MiB Stop-and-Wait transfer matches at 0% loss; WSL2 calibration committed.</td></tr>
@@ -252,7 +252,7 @@ window opens, which is normal. Once this merges, you appear in the contributor l
 sprint a silent day costs half a day for whoever is waiting on you. If you are blocked, say so the
 same evening, not at the next gate.</p>
 
-<h4>Branches and pull requests</h4>
+<h4>Friday 18 September, 8 pm &mdash; conventions call</h4><p>Thirty minutes, all four of us. We agree the decisions that let four people's code plug together on Monday 21: the protocol interface, what sequence and ACK numbers mean, the command-line flags, the RunStats fields and result line, and the trace format. Section 6 of every handbook lists the proposals. Shaili commits the outcome as <code>docs/CONVENTIONS.md</code> on Saturday morning.</p><h4>Branches and pull requests</h4>
 <p>Never commit straight to <code>main</code>. One branch per task:
 <code>m1/packet-rewrite</code>, <code>m2/timer-wheel</code>, <code>m3/receiver-buffer</code>,
 <code>m4/emulator-rewrite</code>.</p>
@@ -342,11 +342,11 @@ and submitting it as your own. Log material help in <code>AI-USE.md</code> the s
 </div>
 
 <div class="blk">
-  <div class="hd"><b>Fri 18</b><span>Metadata handshake</span></div>
+  <div class="hd"><b>Fri 18</b><span>Metadata handshake, interface, conventions call</span></div>
   <ol>
     <li>A <code>seq=0</code> DATA packet whose payload carries the filename, file size and SHA-256
         hash. The receiver parses it and replies with ACK 0. Real data then starts at
-        <code>seq=1</code>.</li>
+        <code>seq=1</code>.</li><li>Draft the <code>ArqProtocol</code> interface and <code>ProtocolConfig</code>, and push them as a draft PR before the call. <b>8 pm: chair the conventions call.</b> On Saturday morning commit <code>docs/CONVENTIONS.md</code> and merge the interface.</li>
   </ol>
   <div class="done"><b>Done when:</b> the receiver prints the filename, size and hash it received,
     and they match what the sender sent.</div>
@@ -668,7 +668,7 @@ tested until your emulator rewrite is merged. You are already set up, so you sta
         rewrite is correct.</li>
     <li><code>git checkout -b m4/emulator-rewrite</code>, then rewrite in this order:
       <ul>
-        <li><b>Mon 14:</b> <code>ChannelConfig.java</code> and <code>TraceLog.java</code> &mdash; small, gets you moving.</li>
+        <li><b>Mon 14:</b> <code>ChannelConfig.java</code> and <code>TraceLog.java</code> &mdash; small, gets you moving. Add <code>type</code> and <code>ack</code> to every trace line now, so Experiment 4 can tell ACKs apart.</li>
         <li><b>Tue 15 &ndash; Wed 16:</b> <code>Channel.java</code> &mdash; the impairment model, the real work.</li>
         <li><b>Wed 16 &ndash; Thu 17:</b> <code>NetEm.java</code> &mdash; the socket loop and release queue.</li>
       </ul></li>
@@ -694,7 +694,7 @@ tested until your emulator rewrite is merged. You are already set up, so you sta
 <div class="blk">
   <div class="hd"><b>Fri 18</b><span>Calibrate on the real experiment host</span></div>
   <ol>
-    <li>Install JDK 21 inside WSL2 (Part 0, step 1).</li>
+    <li>Rewrite <code>Calibrate.java</code> by hand &mdash; it belongs to the same <code>AI-USE.md</code> open item as the emulator.</li><li>Install JDK 21 inside WSL2 (Part 0, step 1).</li>
     <li>Run the calibration there and commit the result, replacing the Windows figure. The experiments
         run on Linux, so that is the ceiling that counts.</li>
   </ol>

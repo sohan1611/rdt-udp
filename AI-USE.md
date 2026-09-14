@@ -79,6 +79,16 @@ Python byte-loop checksum caps at ~14k packets/second; the same textbook loop in
 runs at ~1.68M. This is why we chose Java.
 **Permitted under:** explaining concepts.
 
+### 2026-09-14 — Member playbook and per-member handbooks
+**What:** Claude drafted the day-by-day member playbook (first written 31 August, revised
+14 September for the post-exam sprint) and one handbook per member: concepts with worked
+examples, test and debugging guides, experiment designs, report outlines, and viva question
+banks. The handbooks contain explanations and design guidance only — no protocol
+implementation code.
+**Permitted under:** explaining concepts; improving our writing.
+**Mine:** The sprint schedule and role allocation were team decisions. Each member writes
+their own module.
+
 ---
 
 # Open items — must be cleared before submission

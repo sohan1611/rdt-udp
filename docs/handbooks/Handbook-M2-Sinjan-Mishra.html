@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>M2 Handbook - Sinjan Mishra</title>
+<link rel="stylesheet" href="src/handbook.css">
+<style>:root { --me: #1b4d7a; --me-tint: #e3ecf5; }</style>
+</head>
+<body class="m2">
+<div class="cover">
+  <div class="role">M2 · Timers and Go-Back-N</div>
+  <h1>Sinjan Mishra</h1>
+  <div class="who">Roll 2405910 · GitHub <code>Thesin-01</code> · CSE-14 · Reviewer: Shaili Seth (Sprint A), Sohan Mandal (Sprint B)</div>
+</div>
+
+<p class="mission">You own time. Every protocol must decide how long to wait before assuming a packet is lost, and what to
+resend when it gives up. You build the timer machinery all three protocols share, the Jacobson/Karels estimator that
+sets the timeout from measured round-trip times, and Go-Back-N itself. In week 6 you run Experiment 4 — the one
+experiment no other group will have. <b>Nothing in Sprint A blocks you</b>: your timer heap and estimator are plain Java,
+so you can build and test them before the packet format even exists.</p>
+
+<div class="keydates">
+  <div><b>Fri 18 Sep</b><span><code>TimerWheel</code> merged — Sohini needs it for Selective Repeat</span></div>
+  <div><b>Wed 23 Sep</b><span>Go-Back-N merged, passing 5 profiles × 10 seeds</span></div>
+  <div><b>Thu 24 Sep</b><span>Adaptive RTO working in all three protocols</span></div>
+</div>
+
+<table>
+<thead><tr><th style="width:50%">You depend on</th><th>Depend on you</th></tr></thead>
+<tbody><tr>
+<td><b>Shaili</b> — <code>Packet</code> on Thu 17; <code>ArqProtocol</code> and conventions on Sat 19<br>
+<b>Sohan</b> — emulator on Thu 17; trace lines with <code>type</code> and <code>ack</code> for Experiment 4</td>
+<td><b>Sohini</b> — <code>TimerWheel</code> on Fri 18<br>
+<b>Shaili, Sohini</b> — adaptive RTO on Thu 24<br>
+<b>Sohan</b> — the <code>--rto</code> flag for the experiments on Fri 25</td>
+</tr></tbody></table>
+
+<h3>Contents</h3>
+<div class="toc">
+  <div>1 · Get set up</div><div>2 · Your part of the system</div><div>3 · Concepts you must master</div>
+  <div>4 · Design decisions you must defend</div><div>5 · Your day-by-day plan</div><div>6 · Team conventions</div>
+  <div>7 · How to test your work</div><div>8 · When something breaks</div><div>9 · Experiment 4</div>
+  <div>10 · Your report section</div><div>11 · How we work together</div><div>12 · Using AI without losing marks</div>
+  <div>13 · Viva preparation</div><div>14 · Help, references, glossary</div><div>15 · Sprint checklist</div>
+</div>
+
+<div class="brk"></div>
+<h2>1 · Get set up — by Tuesday 15 September, 10 pm</h2>
+<p>Gate 1 is the first check of the sprint: all four of us have cloned the repository, verified our git identity,
+and pushed a first commit. Everything after it depends on this.</p>
+
+<div class="warn"><b>The repository is not a shared folder.</b> Sohan's copy lives on Sohan's laptop. You make your
+own complete copy on <i>your</i> laptop by cloning it from GitHub, then you work, commit and push from there. GitHub is
+only the meeting point. Every command in this handbook runs on your own machine. (If you already have a working
+clone, start at step 4.)</div>
+
+<h4>Step 1 — Install the tools</h4>
+<ul>
+  <li><b>Git.</b> On Windows this also installs <b>Git Bash</b> — run every command in this handbook there, not in
+      PowerShell or Command Prompt.</li>
+  <li><b>JDK 21</b> (Adoptium Temurin). Check that <code>java -version</code> and <code>javac -version</code> both
+      report 21.</li>
+  <li><b>WSL2 with Ubuntu</b> on Windows, because the experiments run on Linux. Inside Ubuntu install the JDK and
+      Python too:</li>
+</ul>
+<pre>wsl --install -d Ubuntu
+wsl -d Ubuntu
+sudo apt update &amp;&amp; sudo apt install -y openjdk-21-jdk make python3-pip
+java -version</pre>
+
+<h4>Step 2 — Clone onto your laptop</h4>
+<pre>git clone https://github.com/sohan1611/rdt-udp.git
+cd rdt-udp</pre>
+<p>You now have your own <code>rdt-udp</code> folder. Everything from here on happens inside it.</p>
+
+<h4>Step 3 — Tell git who you are, inside that folder</h4>
+<pre>git config user.name  "Sinjan Mishra"
+git config user.email "the-email-on-your-github-account"</pre>
+<div class="warn"><b>This email decides whether you count as a contributor.</b> It must be one of the addresses listed
+at <code>github.com/settings/emails</code> for your account <code>Thesin-01</code>. If you would rather not use a personal
+address, that page shows a private one ending in <code>@users.noreply.github.com</code> that links just as well.
+Commits with an unrecognised email show a grey avatar and are credited to nobody — and sir treats commit history as
+evidence of individual contribution.</div>
+
+<h4>Step 4 — Confirm the build</h4>
+<pre>./build.sh</pre>
+<p>You should see three test suites and <b>33 tests, 0 failed</b>. If anything fails, paste the output in the group
+chat the same evening.</p>
+
+<h4>Step 5 — Push your first commit</h4>
+<p>Open <code>AI-USE.md</code> and replace <code>_[name]_</code> beside your role heading with your name. Then:</p>
+<pre>git checkout -b setup/sinjan
+git add AI-USE.md
+git commit -m "Add Sinjan to AI-USE.md"
+git push -u origin setup/sinjan
+git log -1 --format='%an &lt;%ae&gt;'</pre>
+<p>The last command must print your own name and your GitHub email. Open the pull request on GitHub and ask
+Shaili Seth to approve it. Your first push asks you to sign in to GitHub; on Windows a browser window opens, which is
+normal.</p>
+<div class="done"><b>Done when:</b> your PR is merged, <code>git log</code> shows your own name and email, and you can
+see yourself on the repository's Contributors page.</div>
+
+
+<div class="brk"></div>
+<h2>2 · Your part of the system</h2>
+<figure class="diagram">
+<svg viewBox="0 0 720 318" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="How the sender, emulator and receiver fit together">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7480"/>
+    </marker>
+  </defs>
+
+  <rect class="grp" x="8" y="8" width="210" height="262" rx="6"/>
+  <text class="gt" x="18" y="26">Sender (one JVM)</text>
+  <rect class="grp" x="252" y="8" width="216" height="262" rx="6"/>
+  <text class="gt" x="262" y="26">NetEm (separate process)</text>
+  <rect class="grp" x="502" y="8" width="210" height="262" rx="6"/>
+  <text class="gt" x="512" y="26">Receiver (one JVM)</text>
+
+  <rect class="box m1" x="18" y="40" width="190" height="22" rx="3"/><text class="bt" x="113" y="51">Sender CLI · file chunks · SHA-256</text>
+  <rect class="box m1" x="18" y="68" width="190" height="22" rx="3"/><text class="bt" x="113" y="79">Session: META handshake · FIN</text>
+  <rect class="box m1" x="18" y="96" width="190" height="22" rx="3"/><text class="bt" x="113" y="107">Stop-and-Wait</text>
+  <rect class="box m2" x="18" y="124" width="190" height="22" rx="3"/><text class="bt" x="113" y="135">Go-Back-N</text>
+  <rect class="box m3" x="18" y="152" width="190" height="22" rx="3"/><text class="bt" x="113" y="163">Selective Repeat</text>
+  <rect class="box m2" x="18" y="180" width="190" height="22" rx="3"/><text class="bt" x="113" y="191">TimerWheel · RttEstimator</text>
+  <rect class="box m1" x="18" y="208" width="190" height="22" rx="3"/><text class="bt" x="113" y="219">Packet · RFC 1071 checksum</text>
+  <rect class="box m4" x="18" y="236" width="190" height="22" rx="3"/><text class="bt" x="113" y="247">RunStats → RESULT line</text>
+
+  <rect class="box m4" x="262" y="40" width="196" height="22" rx="3"/><text class="bt" x="360" y="51">UDP socket :9000 · learns sender</text>
+  <rect class="box m4" x="262" y="68" width="196" height="22" rx="3"/><text class="bt" x="360" y="79">Channel c2s: loss dup corrupt delay</text>
+  <rect class="box m4" x="262" y="96" width="196" height="22" rx="3"/><text class="bt" x="360" y="107">Channel s2c: same, own seed</text>
+  <rect class="box m4" x="262" y="124" width="196" height="22" rx="3"/><text class="bt" x="360" y="135">Release queue · tiebreak · 1 ms</text>
+  <rect class="box m4" x="262" y="152" width="196" height="22" rx="3"/><text class="bt" x="360" y="163">java.util.Random · 10 draws/packet</text>
+  <rect class="box m4" x="262" y="180" width="196" height="22" rx="3"/><text class="bt" x="360" y="191">Calibrate · capacity ceiling</text>
+  <rect class="box m4" x="262" y="208" width="196" height="22" rx="3"/><text class="bt" x="360" y="219">tc netem cross-check (week 6)</text>
+  <rect class="box m4" x="262" y="236" width="196" height="22" rx="3"/><text class="bt" x="360" y="247">TraceLog → trace.jsonl</text>
+
+  <rect class="box m1" x="512" y="40" width="190" height="22" rx="3"/><text class="bt" x="607" y="51">Receiver CLI · write file · check hash</text>
+  <rect class="box m1" x="512" y="68" width="190" height="22" rx="3"/><text class="bt" x="607" y="79">Session: META handshake · FIN</text>
+  <rect class="box m1" x="512" y="96" width="190" height="22" rx="3"/><text class="bt" x="607" y="107">Stop-and-Wait</text>
+  <rect class="box m2" x="512" y="124" width="190" height="22" rx="3"/><text class="bt" x="607" y="135">Go-Back-N</text>
+  <rect class="box m3" x="512" y="152" width="190" height="22" rx="3"/><text class="bt" x="607" y="163">Selective Repeat · receive buffer</text>
+  <rect class="box m3" x="512" y="180" width="190" height="22" rx="3"/><text class="bt" x="607" y="191">Sequence-space wraparound</text>
+  <rect class="box m1" x="512" y="208" width="190" height="22" rx="3"/><text class="bt" x="607" y="219">Packet · RFC 1071 checksum</text>
+  <rect class="box m4" x="512" y="236" width="190" height="22" rx="3"/><text class="bt" x="607" y="247">RunStats counters</text>
+
+  <line class="wire" x1="219" y1="56" x2="250" y2="56" marker-end="url(#ah)"/>
+  <text class="lbl" x="235" y="49">DATA</text>
+  <line class="wire" x1="469" y1="56" x2="500" y2="56" marker-end="url(#ah)"/>
+  <text class="lbl" x="485" y="49">DATA</text>
+  <line class="wire" x1="500" y1="86" x2="469" y2="86" marker-end="url(#ah)"/>
+  <text class="lbl" x="485" y="99">ACK</text>
+  <line class="wire" x1="250" y1="86" x2="219" y2="86" marker-end="url(#ah)"/>
+  <text class="lbl" x="235" y="99">ACK</text>
+
+  <line class="wire" x1="113" y1="271" x2="113" y2="282" marker-end="url(#ah)"/>
+  <line class="wire" x1="360" y1="271" x2="360" y2="282" marker-end="url(#ah)"/>
+  <line class="wire" x1="607" y1="271" x2="607" y2="282" marker-end="url(#ah)"/>
+  <rect class="box m4" x="8" y="284" width="704" height="26" rx="3"/><text class="bt" x="360" y="297">Python analysis: run_matrix.py → results/*.csv → plots.py → figures/*.png</text>
+</svg>
+</figure>
+<p class="legend">Bold, coloured boxes are yours. Grey boxes belong to teammates — either you depend on them, or
+they depend on you. Packets always travel through NetEm: the sender and receiver never talk directly.</p>
+
+
+<h3>Files you own</h3>
+<table>
+<thead><tr><th style="width:38%">File</th><th style="width:22%">Status</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>docs/timers-design.md</code></td><td>New, Wed 16</td><td>Half-page design note: the event loop, the heap, cancellation, why no threads</td></tr>
+<tr><td><code>src/main/java/rdt/TimerWheel.java</code></td><td>New, Wed 16 – Fri 18</td><td>A single-threaded timer heap shared by Go-Back-N and Selective Repeat</td></tr>
+<tr><td><code>src/main/java/rdt/RttEstimator.java</code></td><td>New, Sat 19 – Sun 20</td><td>Jacobson/Karels RTT estimation, backoff, RTO floor and cap</td></tr>
+<tr><td><code>src/main/java/rdt/GoBackN.java</code></td><td>New, Mon 21 – Wed 23</td><td>Sliding window, cumulative ACKs, one timer on the window base</td></tr>
+<tr><td><code>src/test/java/rdt/TimerWheelTest.java</code>, <code>RttEstimatorTest.java</code>, <code>GoBackNTest.java</code></td><td>New, with each class</td><td>See section 7</td></tr>
+<tr><td><code>docs/exp4-design.md</code></td><td>New, Sun 27</td><td>How spurious retransmissions are labelled from the trace</td></tr>
+<tr><td><code>analysis/spurious.py</code></td><td>Week 6, with Sohan</td><td>The labelling analysis for Experiment 4</td></tr>
+</tbody></table>
+<p class="muted">On Thu 24 you wire adaptive RTO into <code>StopAndWait</code> (Shaili's) and <code>SelectiveRepeat</code> (Sohini's). Do
+that sitting with each owner, not by editing their files alone.</p>
+
+<div class="brk"></div>
+<h2>3 · Concepts you must master</h2>
+
+<h3>3.1 · Why a timeout is a trade-off</h3>
+<p>Set the timeout too short and the sender resends packets that were never lost — <i>spurious retransmissions</i>, which
+waste the link. Set it too long and, after a real loss, the sender sits idle. Round-trip times vary from packet to
+packet, so any fixed value is wrong somewhere. That is the whole reason RTO is <i>estimated</i>.</p>
+
+<h3>3.2 · Which clock</h3>
+<p>Use <code>System.nanoTime()</code> for every timer and every RTT measurement. It is monotonic: it only moves forward.
+<code>System.currentTimeMillis()</code> is wall-clock time, which jumps when the system clock is corrected — a jump
+backwards gives a negative RTT. <code>nanoTime</code> values are only meaningful as differences, never as a time of day.</p>
+
+<h3>3.3 · One thread, one loop</h3>
+<p>Every protocol runs a loop like this, and your timer heap is what drives it:</p>
+<ol>
+  <li>Ask the heap for the earliest deadline.</li>
+  <li>Set the socket receive timeout to the time remaining — <b>at least 1&nbsp;ms</b>, because
+      <code>setSoTimeout(0)</code> means <i>wait forever</i>.</li>
+  <li>Block in <code>receive</code>. Either a packet arrives, and you handle it (which may cancel or schedule timers), or
+      <code>SocketTimeoutException</code> is thrown and you carry on.</li>
+  <li>Fire every timer whose deadline has passed.</li>
+  <li>Go back to step 1.</li>
+</ol>
+<p><b>Why there is no race.</b> Handling an ACK and firing a timeout happen on the same thread, one after the other, so there
+is never a moment when both run. With a separate timer thread, an ACK could arrive while that thread is halfway through
+a retransmission, and every piece of window state would need a lock — the exact concurrency the brief warns about.</p>
+<p><b>Granularity.</b> <code>setSoTimeout</code> works in milliseconds, so deadlines finer than 1&nbsp;ms round up. Our round trips
+are tens of milliseconds, so this is fine. Calling <code>setSoTimeout</code> is a system call, so only call it when the value
+changes. The emulator's loop uses exactly this design — read <code>NetEm.run</code> and <code>blockMillis</code> to see it working.</p>
+<p><b>Why not a <code>Selector</code>.</b> A selector multiplexes many sockets; a protocol has one, so it would add nothing.
+It also failed outright on Sohan's Windows laptop, where the JDK could not create its internal loopback pipe.</p>
+
+<h3>3.4 · The timer heap</h3>
+<ul>
+  <li>A <code>PriorityQueue</code> ordered by deadline, with an insertion counter as a tiebreak so timers due at the same
+      instant fire in the order they were scheduled. Without the tiebreak the order is undefined, and runs stop being
+      reproducible.</li>
+  <li><b>Cancelling.</b> <code>PriorityQueue.remove(timer)</code> searches the whole queue — O(<i>n</i>). The alternative is
+      <b>lazy cancellation</b>: mark the timer cancelled and simply skip it when it reaches the top — O(1) to cancel. With
+      at most a window's worth of timers the leftover cancelled entries cost nothing. Pick one and be able to justify it.</li>
+  <li><b>Never change a deadline while the timer is in the queue.</b> The heap does not notice, its ordering silently
+      breaks, and timers fire late. To reschedule, cancel and add a new entry.</li>
+  <li><b>When firing:</b> collect the expired timers first, then run their actions. An action that schedules a new timer
+      while you are still iterating the queue will otherwise throw <code>ConcurrentModificationException</code>.</li>
+</ul>
+<div class="warn"><b>A naming trap you will be asked about.</b> The class is called <code>TimerWheel</code>, but it is a heap. A real
+<i>hashed timing wheel</i> is a different structure — buckets by time slot, O(1) insert — used in operating system
+kernels and in Netty. We chose a heap because we have few timers and want exact ordering. Either say that confidently,
+or propose renaming it <code>TimerHeap</code> at the Friday call.</div>
+
+<h3>3.5 · Jacobson/Karels — RFC 6298</h3>
+<p>On the <b>first</b> RTT measurement <i>R</i>:</p>
+<div class="work">SRTT   = R
+RTTVAR = R / 2
+RTO    = SRTT + max(G, 4 × RTTVAR)          G = clock granularity, 1 ms here</div>
+<p>On every <b>later</b> measurement — <b>in this order</b>, because the RTTVAR line uses the <i>old</i> SRTT:</p>
+<div class="work">RTTVAR = 3/4 × RTTVAR + 1/4 × |SRTT − R|     (β = 1/4)
+SRTT   = 7/8 × SRTT   + 1/8 × R              (α = 1/8)
+RTO    = SRTT + max(G, 4 × RTTVAR)</div>
+
+<p>Worked example — these exact numbers belong in your tests:</p>
+<table>
+<thead><tr><th>Sample R (ms)</th><th>SRTT</th><th>RTTVAR</th><th>RTO</th></tr></thead>
+<tbody>
+<tr><td>100 (first)</td><td>100</td><td>50</td><td>300</td></tr>
+<tr><td>120</td><td>102.5</td><td>42.5</td><td>272.5</td></tr>
+<tr><td>80</td><td>99.6875</td><td>37.5</td><td>249.6875</td></tr>
+<tr><td>200</td><td>112.2266</td><td>53.2031</td><td>325.0391</td></tr>
+</tbody></table>
+<div class="warn"><b>The order trap.</b> If you update SRTT first, the second row becomes RTTVAR 41.875 and RTO 270 instead of
+272.5. A test using the table above catches it immediately. Note that the playbook lists the SRTT formula first for
+readability — follow the RFC's order in code.</div>
+
+<p><b>Why 4 × RTTVAR.</b> A timeout set at the average RTT would fire on roughly half of perfectly normal packets. Adding a
+multiple of the variation pushes the timeout into the tail of the distribution, so it fires on genuine loss.</p>
+<p><b>Backoff.</b> Each timeout doubles RTO, up to a cap. This stops a sender hammering a path that is dropping everything.</p>
+<p><b>Floor and cap — a deliberate deviation.</b> RFC 6298 recommends a minimum RTO of <b>1 second</b> for the Internet. On our
+emulated 40&nbsp;ms path that would stall every loss for 25 round trips and make adaptive RTO look terrible. Choose a
+lower floor and a cap, write both in <code>docs/timers-design.md</code>, and state the deviation and its reason in the report.
+An examiner will respect a documented deviation; an unexplained one looks like a mistake.</p>
+
+<h3>3.6 · Karn's algorithm</h3>
+<div class="work">t = 0 ms     send packet P                  RTO = 300 ms
+t = 300 ms   timer fires, resend P          RTO backs off to 600 ms
+t = 320 ms   an ACK for P arrives
+
+Was it for the original?        RTT = 320 ms
+Or for the retransmission?      RTT =  20 ms          — sixteen times smaller</div>
+<p>The sender cannot tell. Feeding either number into the estimator corrupts it. <b>Karn's rule: never take an RTT sample from
+a packet that was sent more than once.</b> Keep the backed-off RTO, and only resume sampling from a packet that was sent
+exactly once and then acknowledged. In practice: record each packet's first send time and whether it was ever
+retransmitted, and sample only when the acknowledged packet was not.</p>
+
+<h3>3.7 · Go-Back-N</h3>
+<p>The sender keeps <code>base</code> (oldest unacknowledged) and <code>nextSeq</code> (next to send), with window size N.</p>
+<table>
+<thead><tr><th style="width:26%">Event</th><th>Sender action</th></tr></thead>
+<tbody>
+<tr><td>Room in the window and data left</td><td>Send <code>nextSeq</code> and advance it. If nothing was outstanding, start the timer.</td></tr>
+<tr><td>ACK <i>n</i>, inside the window</td><td>Set <code>base = n + 1</code>. If <code>base == nextSeq</code>, stop the timer; otherwise restart it for the new base. Take an RTT sample if Karn allows.</td></tr>
+<tr><td>ACK <i>n</i>, below <code>base</code></td><td>A duplicate — ignore it, count it in <code>dup_acks</code></td></tr>
+<tr><td>Timeout</td><td>Resend <b>every</b> packet from <code>base</code> to <code>nextSeq − 1</code>, restart the timer, back off RTO</td></tr>
+</tbody></table>
+<table>
+<thead><tr><th style="width:26%">Receiver event</th><th>Receiver action</th></tr></thead>
+<tbody>
+<tr><td>The expected packet, intact</td><td>Deliver it; ACK it; expect the next one</td></tr>
+<tr><td>Any other intact packet</td><td>Discard it; re-ACK the last packet delivered in order</td></tr>
+<tr><td>A corrupt packet</td><td>Drop it silently</td></tr>
+</tbody></table>
+<p>The receiver keeps <b>no buffer</b>. That is what makes Go-Back-N simple, and it is exactly why it loses to Selective
+Repeat under loss: one lost packet forces everything behind it to be sent again.</p>
+
+<h3>3.8 · Why Go-Back-N needs W ≤ 2<sup>k</sup> − 1</h3>
+<p>With <i>k</i> sequence bits there are 2<sup>k</sup> numbers, and they wrap. The sender's window and the receiver's window
+(size 1) must never be able to overlap: <b>W + 1 ≤ 2<sup>k</sup></b>.</p>
+<div class="work">k = 2, numbers 0 1 2 3.   Illegal: W = 4
+  send 0 1 2 3  →  all arrive and are delivered  →  receiver now expects 0 (a NEW packet)
+  every ACK is lost  →  sender times out, resends the OLD 0
+  receiver accepts old 0 as new 0  →  wrong data, silently
+
+Legal: W = 3
+  send 0 1 2  →  delivered  →  receiver expects 3
+  every ACK is lost  →  sender resends old 0 1 2  →  none is 3  →  discarded, re-ACK 2  ✓</div>
+
+<h3>3.9 · Fixed RTO mode</h3>
+<p><code>--rto fixed:X</code> sets RTO to X × base RTT (convention 7) with <b>no estimation and no backoff</b> — genuinely fixed, so
+Experiment 4 compares one clean policy against another.</p>
+
+<h2 style="margin-top:14px">4 · Design decisions you must defend</h2>
+<table class="long">
+<thead><tr><th style="width:32%">Decision</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td class="b">One thread and a heap, no <code>ScheduledExecutorService</code></td><td>No race between timeouts and ACKs, no locks, reproducible ordering. See 3.3.</td></tr>
+<tr><td class="b">Lazy cancellation (or O(<i>n</i>) removal)</td><td>Whichever you choose, the cost argument in 3.4.</td></tr>
+<tr><td class="b"><code>nanoTime</code>, not wall-clock time</td><td>Monotonic; cannot produce negative intervals. See 3.2.</td></tr>
+<tr><td class="b">RFC 6298 order, with a lower floor</td><td>Correct estimation; the 1-second floor is tuned for the Internet, not a 40&nbsp;ms emulated path. Documented.</td></tr>
+<tr><td class="b">No samples from retransmitted packets</td><td>Karn's ambiguity, 3.6.</td></tr>
+<tr><td class="b">One Go-Back-N timer, on the base</td><td>Everything behind the base is resent together anyway, so one timer is enough.</td></tr>
+<tr><td class="b">Cumulative ACK = last in-order packet received</td><td>The textbook convention, and team convention 3.</td></tr>
+<tr><td class="b">Fixed RTO means no backoff either</td><td>Experiment 4 must compare policies, not a mixture of them.</td></tr>
+</tbody></table>
+
+<div class="brk"></div>
+<h2>5 · Your day-by-day plan</h2>
+<h3>Sprint A · 14–20 September</h3>
+
+<div class="day"><div class="hd"><b>Mon 14 – Tue 15</b><span>Setup and reading</span></div>
+<ol>
+  <li>Complete section 1. First commit merged by Tuesday 10 pm.</li>
+  <li>Read <b>RFC 6298</b> in full — it is short. Sections 2 and 5 are the ones you implement.</li>
+  <li>Read Kurose &amp; Ross section 3.4.3 (Go-Back-N) and section 3.5.3 (estimating RTT).</li>
+  <li>Work the table in 3.5 by hand before looking at it. Then work it again in the wrong order and see it change.</li>
+</ol>
+<div class="done"><b>Done when:</b> your first commit is merged and your hand-worked table matches 3.5.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Wed 16 – Fri 18</b><span>TimerWheel · Sohini needs it Friday</span></div>
+<ol>
+  <li>Wednesday morning: write <code>docs/timers-design.md</code> — the loop from 3.3, the heap and your cancellation choice
+      from 3.4, and why there is no timer thread. Commit it.</li>
+  <li><code>git checkout -b m2/timer-wheel</code>. The heap needs four things: schedule a timer for a deadline, cancel a timer,
+      report the earliest live deadline, and hand back every timer that has expired by a given time.</li>
+  <li>Write the tests in section 7 alongside the code, not after.</li>
+  <li>Thursday: review Shaili's <code>Packet</code> PR with three <i>why</i> questions.</li>
+  <li>Friday: PR by the afternoon, merged by the evening. <b>8 pm: conventions call</b> — you own convention 7 and are
+      consulted on 3; raise the <code>TimerWheel</code> naming question.</li>
+</ol>
+<div class="done"><b>Done when:</b> merged by Friday night, passing a randomised test against a sorted-list oracle.</div>
+<div class="viva"><b>Be able to explain:</b> questions 1 and 2 in section 13.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Sat 19 – Sun 20</b><span>RttEstimator</span></div>
+<ol>
+  <li><code>git checkout -b m2/rtt-estimator</code>. It needs to accept a sample, react to a timeout with backoff, and report the
+      current RTO, applying your floor and cap.</li>
+  <li>Encode the whole table from 3.5 as a test, plus a test that would fail if the update order were wrong.</li>
+  <li>Decide the floor and the cap, and record them in your design note.</li>
+</ol>
+<div class="done"><b>Done when:</b> merged by Sunday night, matching the table to 1e-9. Gate 3 includes it.</div>
+<div class="viva"><b>Be able to explain:</b> questions 3, 4, 8 and 9 in section 13.</div>
+</div>
+
+<h3>Sprint B · 21–27 September</h3>
+
+<div class="day"><div class="hd"><b>Mon 21 – Wed 23</b><span>Go-Back-N</span></div>
+<ol>
+  <li><b>Monday:</b> <code>git checkout -b m2/go-back-n</code>. Build the sender from the first table in 3.7 against Shaili's
+      <code>ArqProtocol</code>, driven by your heap and estimator, with Karn's rule applied.</li>
+  <li><b>Tuesday:</b> the receiver from the second table. First end-to-end transfers at 0% and 10% loss through the emulator.</li>
+  <li><b>Wednesday:</b> all five integrity profiles × 10 seeds; a wraparound run with <code>--seqbits 3</code> and window 7; and
+      the illegal-window demonstration from 3.8. Merged by Wednesday night.</li>
+</ol>
+<div class="done"><b>Done when:</b> merged by Wednesday 10 pm, passing 5 profiles × 10 seeds — your part of Gate 4.</div>
+<div class="viva"><b>Be able to explain:</b> questions 5, 6 and 7 in section 13.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Thu 24 – Fri 25</b><span>Adaptive and fixed RTO everywhere</span></div>
+<ol>
+  <li>Thursday: with Shaili, then Sohini, wire <code>RttEstimator</code> into Stop-and-Wait and Selective Repeat.</li>
+  <li>Friday: <code>--rto fixed:X</code> for all three. Test that <code>fixed:1.5</code> with <code>--both delay=20</code> produces an RTO of 60&nbsp;ms.</li>
+</ol>
+<div class="done"><b>Done when:</b> every protocol accepts both <code>--rto adaptive</code> and <code>--rto fixed:1.5</code>.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Sat 26 – Sun 27</b><span>Support runs; design Experiment 4</span></div>
+<ol>
+  <li>Help keep the overnight experiment runs healthy.</li>
+  <li>Write <code>docs/exp4-design.md</code> from section 9 — especially the labelling method.</li>
+</ol>
+</div>
+
+<h3>After the sprint</h3>
+<div class="day"><div class="hd"><b>28 Sep – 26 Oct</b><span>Buffer, then weeks 6–8</span></div>
+<ol>
+  <li><b>28 Sep – 5 Oct:</b> finish anything that slipped; draft your report section.</li>
+  <li><b>6–12 Oct:</b> run Experiment 4 and write <code>analysis/spurious.py</code> with Sohan. Teach your module at cross-teaching.</li>
+  <li><b>13–19 Oct:</b> finish your report section.</li>
+  <li><b>20–26 Oct:</b> code freeze 22 October; viva drills.</li>
+</ol>
+</div>
+
+<div class="brk"></div>
+<h2>6 · Team conventions — agreed on the Friday 18 call</h2>
+<p>Four people are writing code that has to plug together on Monday 21. Each item below is a decision that, left
+unspoken, becomes a day of integration bugs. <b>On Friday 18 September at 8 pm, all four of us join a 30-minute
+call</b>, confirm or change each default, and Shaili commits the result as <code>docs/CONVENTIONS.md</code> on
+Saturday morning. Until then, treat these as proposals — and if you disagree with one, bring the reason to the call
+rather than quietly doing something else.</p>
+
+<table class="long">
+<thead><tr><th style="width:4%">#</th><th style="width:18%">Topic</th><th>Proposed default</th><th style="width:13%">Owner</th></tr></thead>
+<tbody>
+<tr><td>1</td><td class="b">Protocol interface</td><td>One <code>ArqProtocol</code> interface with two operations: <i>send a file to
+a peer</i> and <i>receive a file on a port</i>. Both take a shared <code>ProtocolConfig</code> (window, RTO mode,
+sequence-space bits, payload size) and return <code>RunStats</code>. The session layer — metadata handshake, FIN
+teardown, hash check — sits outside the protocols and wraps whichever one is chosen, so Go-Back-N and Selective Repeat
+never reimplement it.</td><td>Shaili</td></tr>
+<tr><td>2</td><td class="b">Sequence numbers</td><td>The handshake is a DATA packet with <code>seq = 0</code> and flag bit
+<code>0x01</code> (META) set. File data starts at <code>seq = 1</code>. The sequence space is <i>k</i> bits, set with
+<code>--seqbits</code>; the default is 32 and only wraparound tests make it small. Every comparison between sequence
+numbers uses modular arithmetic.</td><td>Shaili</td></tr>
+<tr><td>3</td><td class="b">What an ACK number means</td><td>The <code>ack</code> field always holds a sequence number that
+<i>was received</i>. Stop-and-Wait and Selective Repeat acknowledge exactly that packet. Go-Back-N's <code>ack n</code>
+is cumulative: everything up to and including <i>n</i> arrived in order — the textbook convention. Each protocol
+restates its rule in its class comment.</td><td>Shaili, Sinjan, Sohini</td></tr>
+<tr><td>4</td><td class="b">Payload size</td><td>1400 bytes per DATA packet; the last one is shorter. An 8&nbsp;MiB file is
+therefore 5,992 data packets plus the handshake.</td><td>Shaili</td></tr>
+<tr><td>5</td><td class="b">Command-line flags</td><td><b>Sender:</b> <code>--file</code> <code>--to host:port</code>
+<code>--protocol stopwait|gbn|sr</code> <code>--window N</code> <code>--rto adaptive|fixed:X</code>
+<code>--seqbits k</code> <code>--verbose</code>.<br><b>Receiver:</b> <code>--port</code> <code>--out</code>
+<code>--protocol</code> <code>--window N</code> <code>--seqbits k</code> <code>--verbose</code>. An unknown flag is an
+error, never silently ignored.</td><td>Shaili</td></tr>
+<tr><td>6</td><td class="b">Ports</td><td>For manual runs the emulator listens on 9000 and the receiver on 9001. The experiment
+harness picks fresh ports for every run.</td><td>Sohan</td></tr>
+<tr><td>7</td><td class="b">Fixed RTO</td><td><code>--rto fixed:1.5</code> means RTO = 1.5 × base RTT, where <b>base RTT =
+emulator delay up + delay down</b>. With <code>--both delay=20</code> that is 40&nbsp;ms, so <code>fixed:1.5</code> is
+60&nbsp;ms.</td><td>Sinjan</td></tr>
+<tr><td>8</td><td class="b">Result line</td><td>At the end of a transfer the sender prints exactly one line beginning
+<code>RESULT&nbsp;</code> followed by a single JSON object of <code>RunStats</code> fields. Nothing else may print a line
+starting with <code>RESULT</code>. <code>run_matrix.py</code> reads only that line.</td><td>Sohan</td></tr>
+<tr><td>9</td><td class="b">What goodput means</td><td><b>Goodput</b> = file bytes × 8 ÷ elapsed seconds, where
+<i>elapsed</i> runs from sending <code>seq 1</code> to receiving the ACK that covers the last data packet — handshake and
+FIN excluded. <b>Wire throughput</b> = every byte the sender put on the wire, headers and retransmissions included, × 8 ÷
+the same elapsed time.</td><td>Sohan</td></tr>
+<tr><td>10</td><td class="b">RunStats fields</td><td><code>protocol, window, seqbits, rto_mode, file_bytes, elapsed_ms,
+goodput_bps, wire_bytes, throughput_bps, data_sent, retransmissions, timeouts, dup_acks, acks_received,
+corrupt_dropped, sha256_match</code>. The harness adds the run settings itself — seed, loss, dup, corrupt, reorder,
+delay, jitter.</td><td>Sohan</td></tr>
+<tr><td>11</td><td class="b">Trace lines</td><td><code>us, dir, type, seq, ack, action, delayMs</code>. The <code>type</code>
+and <code>ack</code> fields are new in the emulator rewrite. Today every ACK is logged with <code>seq 0</code>, so ACKs
+cannot be told apart — and Experiment 4 needs to tell them apart.</td><td>Sohan</td></tr>
+<tr><td>12</td><td class="b">Logging</td><td>No printing per packet unless <code>--verbose</code> is given. Writing a line for
+every packet costs more than the protocol itself and makes goodput numbers meaningless.</td><td>Everyone</td></tr>
+<tr><td>13</td><td class="b">Tests and main</td><td>Every new test class is added to <b>both</b> <code>build.sh</code> and the
+<code>TESTS</code> line of the <code>Makefile</code>, or it never runs. Run <code>./build.sh</code> before every push:
+<code>main</code> must always build, because a compile error there stops all four of us.</td><td>Everyone</td></tr>
+<tr><td>14</td><td class="b">Sequence arithmetic</td><td>One small <code>SeqSpace</code> helper for every modular comparison — distance
+from the window base, "inside the window", "inside the previous window" — built on <code>Math.floorMod</code> and shared by
+Go-Back-N and Selective Repeat. The wraparound rule is then written once and tested once.</td><td>Sohini</td></tr>
+</tbody></table>
+
+
+<div class="brk"></div>
+<h2>7 · How to test your work</h2>
+<table class="long">
+<thead><tr><th style="width:24%">Test class</th><th>What it must prove</th></tr></thead>
+<tbody>
+<tr><td class="b">TimerWheelTest</td><td>Timers pop in deadline order; equal deadlines pop in scheduling order; a cancelled timer never fires; cancelling a timer that already fired is harmless; an empty heap reports no deadline; and <b>a randomised sequence of thousands of schedules and cancels matches a simple sorted list</b> — the oracle test, which catches heap bugs that hand-written cases miss.</td></tr>
+<tr><td class="b">RttEstimatorTest</td><td>The first sample sets SRTT = R and RTTVAR = R/2; the four rows of the table in 3.5 to within 1e-9; an update in the wrong order would fail; each timeout doubles RTO; RTO never goes below the floor or above the cap.</td></tr>
+<tr><td class="b">GoBackNTest</td><td>Correct transfer over all five profiles; <b>zero retransmissions on a clean channel</b>, which proves the timer stops and restarts correctly; completes with 20% ACK loss; a <code>--seqbits 3</code>, window 7 transfer wraps correctly.</td></tr>
+<tr><td class="b">Karn check</td><td>After a forced retransmission, the estimator receives no sample for that packet. Easiest to test by counting samples the protocol passes on.</td></tr>
+</tbody></table>
+<div class="tip"><b>Reuse the fixture.</b> <code>NetEmSmokeTest</code> shows how to run the emulator inside a test on free ports. Your
+Go-Back-N tests can follow the same pattern.</div>
+<p>Convention 13: add each new test class to <code>build.sh</code> and to the <code>Makefile</code>.</p>
+
+<h2 style="margin-top:14px">8 · When something breaks</h2>
+<table class="long">
+<thead><tr><th style="width:30%">Symptom</th><th style="width:38%">Likely cause</th><th>How to check</th></tr></thead>
+<tbody>
+<tr><td>Retransmissions on a perfect channel</td><td>Timer not stopped when <code>base == nextSeq</code>, not restarted on ACK, or RTO far too small</td><td>GoBackNTest's zero-retransmission case</td></tr>
+<tr><td>Stalls for ever after one loss</td><td>No timer running while packets are outstanding; or a zero timeout passed to <code>setSoTimeout</code></td><td>Log the heap's earliest deadline each loop</td></tr>
+<tr><td>CPU at 100% while idle</td><td>The loop never blocks: remaining time computed as 0 and not clamped to 1&nbsp;ms</td><td>Print the value given to <code>setSoTimeout</code></td></tr>
+<tr><td>RTO climbs and never comes down</td><td>Backoff applied but sampling never resumes after a clean exchange</td><td>Log samples accepted and rejected by Karn's rule</td></tr>
+<tr><td>Negative RTT samples</td><td>Mixing <code>currentTimeMillis</code> with <code>nanoTime</code>, or subtracting in the wrong order</td><td>Use one clock everywhere</td></tr>
+<tr><td>RTO wrong by a few percent</td><td>SRTT updated before RTTVAR</td><td>The table test in 3.5</td></tr>
+<tr><td><code>ConcurrentModificationException</code></td><td>A firing timer schedules a new one while you iterate the queue</td><td>Collect expired timers first, then act</td></tr>
+<tr><td>Old data accepted after a wrap</td><td>Window too big for <code>--seqbits</code>, or <code>%</code> used where <code>Math.floorMod</code> was needed</td><td>The illegal-window demonstration in 3.8</td></tr>
+<tr><td>Goodput at large windows far below W ÷ RTT</td><td>Printing every packet, or timeouts firing before ACKs return</td><td>Run without <code>--verbose</code>; count timeouts</td></tr>
+<tr><td><code>bash\r: No such file or directory</code> in WSL</td><td><code>build.sh</code> with Windows line endings</td><td>Re-clone inside WSL; <code>.gitattributes</code> now forces Unix line endings</td></tr>
+</tbody></table>
+
+<div class="brk"></div>
+<h2>9 · Experiment 4 — RTO sensitivity</h2>
+<p>This is the experiment that makes our submission distinctive. Other groups can say "adaptive RTO seemed better". We can
+say <i>how many retransmissions were wasted, and why</i>, because our emulator's trace records what really happened to
+every packet.</p>
+<table>
+<tbody>
+<tr><td class="b" style="width:22%">Question</td><td>How many retransmissions are spurious under fixed timeouts versus adaptive RTO, and what does each policy cost in completion time?</td></tr>
+<tr><td class="b">Variable</td><td>RTO policy: <code>fixed:1.2</code>, <code>fixed:1.5</code>, <code>fixed:2</code>, <code>fixed:3</code>, <code>adaptive</code></td></tr>
+<tr><td class="b">Held fixed</td><td>Selective Repeat for labelling, Go-Back-N for completion time; window 32; 2% loss; 20&nbsp;ms delay each way with <b>10&nbsp;ms jitter</b> — jitter is what makes a fixed timeout fire early</td></tr>
+<tr><td class="b">Seeds</td><td>10 per cell</td></tr>
+<tr><td class="b">Measured</td><td>Retransmissions, split into <i>necessary</i>, <i>spurious — ACK lost</i>, and <i>spurious — premature timeout</i>; completion time; goodput</td></tr>
+</tbody></table>
+
+<h3>How a retransmission is labelled</h3>
+<ol>
+  <li>The sender logs every transmission: sequence number and attempt number.</li>
+  <li>From the emulator trace, take the sender-to-receiver DATA lines for each sequence number, in order. <b>Skip lines whose
+      action is <code>dup</code> or <code>dup+corrupt</code></b> — those are extra copies the emulator made, not transmissions.</li>
+  <li>For attempt <i>k</i> ≥ 2 of packet <i>s</i>, look at what happened to attempt <i>k</i> − 1:
+    <ul>
+      <li><code>drop</code> or <code>corrupt</code> — the earlier copy never usefully arrived, so this retransmission was
+          <b>necessary</b>.</li>
+      <li><code>pass</code> or <code>reorder</code> — the earlier copy arrived intact, so this one was <b>spurious</b>. Then check the
+          receiver-to-sender trace: if the ACK for <i>s</i> was dropped or corrupted, label it <b>spurious — ACK lost</b>;
+          otherwise <b>spurious — premature timeout</b>.</li>
+    </ul></li>
+</ol>
+<div class="warn"><b>Why Selective Repeat, not Go-Back-N, for labelling.</b> A Go-Back-N receiver <i>discards</i> intact packets that
+arrive out of order, so "the earlier copy arrived" does not mean "the earlier copy was accepted". Resending it may have
+been genuinely necessary. Selective Repeat buffers every intact packet, so for it the label is exact. Use Go-Back-N only
+for completion time and total retransmissions, and explain this choice in the report — it is a good viva answer.</div>
+<div class="warn"><b>This depends on convention 11.</b> The trace only identifies ACKs once Sohan's rewrite adds <code>type</code> and
+<code>ack</code> to each line. Today every ACK is logged with <code>seq 0</code>. Check it is in place before week 6.</div>
+
+<h3>What we expect</h3>
+<ul>
+  <li><code>fixed:1.2</code> — many premature timeouts, because 10&nbsp;ms of jitter pushes many round trips past 1.2 × 40&nbsp;ms.</li>
+  <li><code>fixed:3</code> — almost no spurious retransmissions, but slow recovery from every real loss.</li>
+  <li><code>adaptive</code> — few spurious retransmissions <i>and</i> completion time near the best fixed setting. If it is not,
+      find out why before writing it up.</li>
+</ul>
+
+<h3>Figure 4</h3>
+<ul>
+  <li>Left panel: stacked bars per policy — necessary, spurious because an ACK was lost, spurious because of a premature timeout.</li>
+  <li>Right panel: completion time per policy with 95% confidence intervals.</li>
+</ul>
+
+<h2 style="margin-top:14px">10 · Your report section — timers, RTO and Go-Back-N</h2>
+<ol>
+  <li><b>The event loop</b> — one thread, the heap, and why there is no race.</li>
+  <li><b>RTT estimation</b> — the RFC 6298 update, the worked table, the floor and cap and why they deviate from the RFC.</li>
+  <li><b>Karn's algorithm</b> — the timeline from 3.6.</li>
+  <li><b>Go-Back-N</b> — sender and receiver rules, and the W ≤ 2<sup>k</sup> − 1 bound with its failure case.</li>
+  <li><b>Experiment 4</b> — the labelling method, Figure 4, and what it shows.</li>
+</ol>
+<p class="muted">About two to three pages.</p>
+
+<div class="brk"></div>
+<h2>11 · How we work together</h2>
+
+<h4>Nightly check-in — by 10 pm, in the group chat</h4>
+<p>Three lines, every night of the sprint. For example:</p>
+<pre>Done:     receive buffer releases 1,3,4,2 in order; 5 tests passing
+Tomorrow: duplicate handling, then open the PR
+Blocked:  nothing</pre>
+<p>In a two-week sprint, a silent day costs whoever is waiting on you half a day. If you are blocked, say so that
+evening — never save it for the next gate.</p>
+
+<h4>Branches</h4>
+<p>Never commit directly to <code>main</code>. Use one branch per task, named after your role —
+<code>m2/short-task-name</code>. Always start from the latest <code>main</code>:</p>
+<pre>git checkout main
+git pull
+git checkout -b m2/short-task-name</pre>
+<p>Bring <code>main</code> into your branch at least once a day, so you meet other people's changes while the
+conflicts are still small:</p>
+<pre>git fetch origin
+git merge origin/main</pre>
+
+<h4>Pull requests</h4>
+<p>Push your branch, open a pull request on GitHub, and use this description:</p>
+<pre>What:        one sentence
+Why:         which playbook task this is
+How tested:  the commands you ran and what they printed
+Ask me:      two things you want the reviewer to question</pre>
+
+<table>
+<thead><tr><th style="width:34%">When</th><th>Your reviewer — and whose PRs you review</th></tr></thead>
+<tbody>
+<tr><td>Sprint A · 14–20 September</td><td class="b">Shaili Seth</td></tr>
+<tr><td>Sprint B · 21–27 September</td><td class="b">Sohan Mandal</td></tr>
+</tbody></table>
+<p><b>Review within 12 hours.</b> An unreviewed PR blocks someone. If your partner is stuck, anyone else may review
+instead, and you review your partner's work on the same terms.</p>
+
+<div class="warn"><b>The explanation check.</b> Before approving, the reviewer asks two or three <i>why</i> questions —
+<i>why this data structure, what happens if this ACK is lost, why this bound and not another</i>. If the author cannot
+answer, the PR does not merge. A five-minute voice call is enough. It rehearses the viva every day, and it catches
+copy-pasted code while there is still time to rewrite it.</div>
+
+<h4>Commits</h4>
+<ul>
+  <li>At least <b>one commit every working day</b> of the sprint, under your own name and email.</li>
+  <li>Small commits whose messages say what changed — <i>"Release buffered packets once the gap at rcv_base fills"</i>,
+      not <i>"update"</i>.</li>
+  <li>Never commit on someone else's behalf. The brief counts that as non-contribution by the absent member.</li>
+  <li><b>No <code>Co-Authored-By</code> lines, no bot pull requests, and Dependabot stays off.</b> The contributor list
+      must show exactly our four names.</li>
+</ul>
+
+<h4>Other people's files</h4>
+<p>If you need a change in a file someone else owns, message them first. If it is urgent and they are unreachable,
+make the smallest change you can, say so in your PR, and tag them. A merge conflict in a file is resolved by that
+file's owner.</p>
+
+<h2 style="margin-top:14px">12 · Using AI without losing marks</h2>
+<table>
+<thead><tr><th style="width:52%">Permitted by the brief</th><th>Not permitted</th></tr></thead>
+<tbody><tr>
+<td>Explaining concepts · debugging · reviewing your code · generating tests · boilerplate and plotting scripts ·
+improving your writing</td>
+<td>Generating the core protocol implementation and submitting it as your own work</td>
+</tr></tbody></table>
+
+<p><b>Our rule: use AI to understand your module, then type the code yourself.</b> Two reasons, both about marks.
+The viva is individual and worth 5 of the 10 marks, and sir will ask you to change your code live — code you did not
+write is code you cannot change under pressure, and it scores zero however well it runs. And a chatbot asked for a
+textbook protocol gives every group roughly the same code. Another group in our year is doing P3, and the brief
+treats identical-looking submissions as collusion.</p>
+
+<h4>Uses that help</h4>
+<ul>
+  <li><i>"Explain Karn's algorithm with a timeline where the ACK arrives just after a retransmission."</i> Then close
+      it and draw the timeline yourself.</li>
+  <li><i>"Here is my window check and a failing test. Why does it fail when the sequence numbers wrap?"</i> —
+      debugging code you wrote.</li>
+  <li><i>"Write tests for a receive buffer that must release packets in order."</i> Tests are explicitly permitted.</li>
+  <li><i>"Quiz me on my module the way a viva examiner would."</i> The single most useful thing it can do for you.</li>
+</ul>
+<h4>Uses that cost marks</h4>
+<ul>
+  <li><i>"Write GoBackN.java."</i> Even if you read it afterwards, you will not be able to change it live.</li>
+  <li>Putting AI output into a PR you cannot then explain in the review check.</li>
+</ul>
+
+<h4>Log it the same day</h4>
+<p>Whenever AI materially helped, add an entry under your role in <code>AI-USE.md</code>:</p>
+<pre>### 2026-09-17 — receive buffer
+**What:** asked why Java's % operator goes negative for a wrapped sequence number
+**Permitted under:** explaining concepts
+**Mine:** the buffer design, all of the code, and the tests for the wrap case</pre>
+<p>Honest disclosure carries no penalty. Undisclosed use discovered at the viva does.</p>
+
+
+<div class="brk"></div>
+<h2>13 · Viva preparation</h2>
+
+<div class="qa"><div class="q">1. How do you avoid a race between a timeout firing and an ACK arriving?</div><ul>
+<li>There is no race: both are events on one thread, handled one at a time.</li>
+<li>Walk through the loop in 3.3; contrast with a timer thread needing locks.</li></ul></div>
+
+<div class="qa"><div class="q">2. Why a heap? And why is it called TimerWheel?</div><ul>
+<li>Few timers, exact ordering, O(log <i>n</i>) operations; your cancellation choice and its cost.</li>
+<li>A real timing wheel is a bucketed O(1) structure; ours is a heap by choice.</li></ul></div>
+
+<div class="qa"><div class="q">3. Walk me through Jacobson/Karels with numbers.</div><ul>
+<li>First sample, then the update in RFC order; work the second row of the table in 3.5.</li>
+<li>Why RTTVAR must use the old SRTT.</li></ul></div>
+
+<div class="qa"><div class="q">4. Why add four times RTTVAR?</div><ul>
+<li>Timing out at the mean would fire on about half of normal packets; the variance term moves the timeout into the tail.</li></ul></div>
+
+<div class="qa"><div class="q">5. What does Karn's algorithm protect against?</div><ul>
+<li>Draw the 300&nbsp;ms / 320&nbsp;ms timeline; the ambiguous ACK; the rule; backoff kept until a clean sample.</li></ul></div>
+
+<div class="qa"><div class="q">6. Why does Go-Back-N resend the whole window? Isn't that wasteful?</div><ul>
+<li>The receiver discards out-of-order packets, so everything after a loss must be resent anyway.</li>
+<li>Yes, it is wasteful under loss — that is what Experiment 1 and 2 show, and why Selective Repeat exists.</li></ul></div>
+
+<div class="qa"><div class="q">7. Why W ≤ 2<sup>k</sup> − 1?</div><ul>
+<li>Sender window plus receiver window must fit in the sequence space. Draw the k = 2 case from 3.8.</li></ul></div>
+
+<div class="qa"><div class="q">8. Why <code>nanoTime</code> and not <code>currentTimeMillis</code>?</div><ul>
+<li>Monotonic versus wall clock; a clock correction could make an RTT negative.</li></ul></div>
+
+<div class="qa"><div class="q">9. Your minimum RTO differs from RFC 6298. Why?</div><ul>
+<li>1 second is for the Internet; on a 40&nbsp;ms path it stalls every loss for 25 round trips. State your floor.</li></ul></div>
+
+<div class="qa"><div class="q">10. Live change: shrink the window from 32 to 8 during a transfer.</div><ul>
+<li>New sends respect the new limit immediately; packets already in flight above it are simply acknowledged or resent as normal.</li></ul></div>
+
+<div class="qa"><div class="q">11. Live change: switch from adaptive to fixed RTO.</div><ul>
+<li>A <code>ProtocolConfig</code> value; no estimation and no backoff in fixed mode; show where the RTO is read.</li></ul></div>
+
+<div class="brk"></div>
+<h2>14 · Help, references and glossary</h2>
+
+<h4>Who to ask</h4>
+<table>
+<thead><tr><th style="width:52%">Questions about</th><th style="width:20%">Ask</th><th>GitHub</th></tr></thead>
+<tbody>
+<tr><td>Packet format, checksum, handshake, FIN, CLIs, Stop-and-Wait, the integrity suite</td><td class="b">Shaili Seth</td><td><code>shailiseth24</code></td></tr>
+<tr><td>Timers, RTT estimation, Karn's algorithm, Go-Back-N, fixed and adaptive RTO</td><td class="b">Sinjan Mishra</td><td><code>Thesin-01</code></td></tr>
+<tr><td>Selective Repeat, the receive buffer, window bounds, wraparound</td><td class="b">Sohini Pandit</td><td><code>sohinix</code></td></tr>
+<tr><td>The emulator, trace files, calibration, RunStats, CSVs, plots, repository access</td><td class="b">Sohan Mandal</td><td><code>sohan1611</code></td></tr>
+</tbody></table>
+<p>Stuck for more than an hour? Say so in the group chat. An hour stuck in a two-week sprint is expensive; two
+minutes of someone else's attention usually is not.</p>
+
+<h4>References</h4>
+<ul>
+  <li><b>RFC 1071</b>, <i>Computing the Internet Checksum</i> — section 1 is the algorithm.</li>
+  <li><b>RFC 6298</b>, <i>Computing TCP's Retransmission Timer</i> — Jacobson/Karels estimation, Karn's algorithm,
+      backoff.</li>
+  <li><b>Kurose &amp; Ross</b>, <i>Computer Networking: A Top-Down Approach</i> — section 3.4 (reliable data transfer:
+      rdt 3.0, Go-Back-N, Selective Repeat) and section 3.5 (TCP round-trip time estimation).</li>
+  <li><b>Java 21 API documentation</b> — <code>java.nio.ByteBuffer</code>, <code>java.net.DatagramSocket</code>,
+      <code>java.util.PriorityQueue</code>, <code>java.security.MessageDigest</code>, <code>java.util.Random</code>,
+      <code>Math.floorMod</code>.</li>
+  <li><b>In the repository</b> — <code>docs/PLAN.md</code> for the design decisions, <code>docs/member-playbook.html</code>
+      for everyone's dates, <code>AI-USE.md</code>, and the existing tests, which show the house test style.</li>
+</ul>
+
+<h4>Glossary</h4>
+<table class="long">
+<tbody>
+<tr><td class="b nw" style="width:24%">ARQ</td><td>Automatic Repeat reQuest: reliability by detecting loss and retransmitting. Stop-and-Wait, Go-Back-N and Selective Repeat are three ARQ schemes.</td></tr>
+<tr><td class="b nw">RTT</td><td>Round-trip time — data out, ACK back.</td></tr>
+<tr><td class="b nw">RTO</td><td>Retransmission timeout — how long the sender waits for an ACK before resending.</td></tr>
+<tr><td class="b nw">SRTT, RTTVAR</td><td>The smoothed RTT and its smoothed variation, from which RTO is computed (RFC 6298).</td></tr>
+<tr><td class="b nw">Cumulative ACK</td><td>"Everything up to <i>n</i> has arrived." Used by Go-Back-N.</td></tr>
+<tr><td class="b nw">Selective ACK</td><td>"This particular packet has arrived." Used by Selective Repeat.</td></tr>
+<tr><td class="b nw">Window</td><td>How many unacknowledged packets the sender may have in flight at once.</td></tr>
+<tr><td class="b nw">Sequence space</td><td>The range of sequence numbers: 2<sup>k</sup> values for <i>k</i> bits, wrapping back to 0.</td></tr>
+<tr><td class="b nw">Goodput</td><td>Useful file bytes delivered per second — excluding headers and retransmissions.</td></tr>
+<tr><td class="b nw">Throughput</td><td>Every byte put on the wire per second — including headers and retransmissions.</td></tr>
+<tr><td class="b nw">Spurious retransmission</td><td>Resending a packet whose original actually arrived.</td></tr>
+<tr><td class="b nw">Network byte order</td><td>Big-endian: most significant byte first. <code>ByteBuffer</code>'s default.</td></tr>
+<tr><td class="b nw">One's complement sum</td><td>Addition where a carry out of the top bit is added back in at the bottom — the end-around carry. The basis of the Internet checksum.</td></tr>
+<tr><td class="b nw">Seed</td><td>The starting value for the emulator's random generator. Same seed, same decisions, on any machine.</td></tr>
+<tr><td class="b nw">95% confidence interval</td><td>A range around a measured mean reflecting run-to-run variation. Every data point we plot carries one.</td></tr>
+<tr><td class="b nw">JIT warm-up</td><td>The JVM runs code slowly at first and compiles hot paths as it goes, so the first packets of a run can be slower.</td></tr>
+</tbody></table>
+
+
+<div class="brk"></div>
+<h2>15 · Sprint checklist</h2>
+<ul class="check">
+  <li><b>Tue 15</b> — cloned, identity set, build green, first commit merged</li>
+  <li><b>Tue 15</b> — RTT table worked by hand, in both orders</li>
+  <li><b>Wed 16</b> — <code>docs/timers-design.md</code> committed</li>
+  <li><b>Thu 17</b> — reviewed Shaili's <code>Packet</code> PR</li>
+  <li><b>Fri 18</b> — <code>TimerWheel</code> merged with the oracle test; joined the 8 pm call</li>
+  <li><b>Sun 20</b> — <code>RttEstimator</code> merged; floor and cap documented</li>
+  <li><b>Tue 22</b> — Go-Back-N transfers at 0% and 10% loss</li>
+  <li><b>Wed 23</b> — Go-Back-N merged: 5 profiles × 10 seeds, wraparound, illegal-window demo</li>
+  <li><b>Thu 24</b> — adaptive RTO in Stop-and-Wait and Selective Repeat, paired with their owners</li>
+  <li><b>Fri 25</b> — <code>--rto fixed:X</code> for all three</li>
+  <li><b>Sun 27</b> — <code>docs/exp4-design.md</code></li>
+  <li><b>Every night</b> — three-line check-in by 10 pm; at least one commit every working day</li>
+</ul>
+
+<footer>M2 Handbook &middot; Sinjan Mishra &middot; CS-30003 Coding Assignment 1 &middot;
+P3 Reliable Data Transfer over UDP &middot; revised 14 September 2026 &middot; source in
+<code>docs/handbooks/</code> of the repository</footer>
+</body>
+</html>

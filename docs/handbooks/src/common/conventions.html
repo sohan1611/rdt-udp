@@ -1,0 +1,59 @@
+<div class="brk"></div>
+<h2>6 · Team conventions — agreed on the Friday 18 call</h2>
+<p>Four people are writing code that has to plug together on Monday 21. Each item below is a decision that, left
+unspoken, becomes a day of integration bugs. <b>On Friday 18 September at 8 pm, all four of us join a 30-minute
+call</b>, confirm or change each default, and Shaili commits the result as <code>docs/CONVENTIONS.md</code> on
+Saturday morning. Until then, treat these as proposals — and if you disagree with one, bring the reason to the call
+rather than quietly doing something else.</p>
+
+<table class="long">
+<thead><tr><th style="width:4%">#</th><th style="width:18%">Topic</th><th>Proposed default</th><th style="width:13%">Owner</th></tr></thead>
+<tbody>
+<tr><td>1</td><td class="b">Protocol interface</td><td>One <code>ArqProtocol</code> interface with two operations: <i>send a file to
+a peer</i> and <i>receive a file on a port</i>. Both take a shared <code>ProtocolConfig</code> (window, RTO mode,
+sequence-space bits, payload size) and return <code>RunStats</code>. The session layer — metadata handshake, FIN
+teardown, hash check — sits outside the protocols and wraps whichever one is chosen, so Go-Back-N and Selective Repeat
+never reimplement it.</td><td>Shaili</td></tr>
+<tr><td>2</td><td class="b">Sequence numbers</td><td>The handshake is a DATA packet with <code>seq = 0</code> and flag bit
+<code>0x01</code> (META) set. File data starts at <code>seq = 1</code>. The sequence space is <i>k</i> bits, set with
+<code>--seqbits</code>; the default is 32 and only wraparound tests make it small. Every comparison between sequence
+numbers uses modular arithmetic.</td><td>Shaili</td></tr>
+<tr><td>3</td><td class="b">What an ACK number means</td><td>The <code>ack</code> field always holds a sequence number that
+<i>was received</i>. Stop-and-Wait and Selective Repeat acknowledge exactly that packet. Go-Back-N's <code>ack n</code>
+is cumulative: everything up to and including <i>n</i> arrived in order — the textbook convention. Each protocol
+restates its rule in its class comment.</td><td>Shaili, Sinjan, Sohini</td></tr>
+<tr><td>4</td><td class="b">Payload size</td><td>1400 bytes per DATA packet; the last one is shorter. An 8&nbsp;MiB file is
+therefore 5,992 data packets plus the handshake.</td><td>Shaili</td></tr>
+<tr><td>5</td><td class="b">Command-line flags</td><td><b>Sender:</b> <code>--file</code> <code>--to host:port</code>
+<code>--protocol stopwait|gbn|sr</code> <code>--window N</code> <code>--rto adaptive|fixed:X</code>
+<code>--seqbits k</code> <code>--verbose</code>.<br><b>Receiver:</b> <code>--port</code> <code>--out</code>
+<code>--protocol</code> <code>--window N</code> <code>--seqbits k</code> <code>--verbose</code>. An unknown flag is an
+error, never silently ignored.</td><td>Shaili</td></tr>
+<tr><td>6</td><td class="b">Ports</td><td>For manual runs the emulator listens on 9000 and the receiver on 9001. The experiment
+harness picks fresh ports for every run.</td><td>Sohan</td></tr>
+<tr><td>7</td><td class="b">Fixed RTO</td><td><code>--rto fixed:1.5</code> means RTO = 1.5 × base RTT, where <b>base RTT =
+emulator delay up + delay down</b>. With <code>--both delay=20</code> that is 40&nbsp;ms, so <code>fixed:1.5</code> is
+60&nbsp;ms.</td><td>Sinjan</td></tr>
+<tr><td>8</td><td class="b">Result line</td><td>At the end of a transfer the sender prints exactly one line beginning
+<code>RESULT&nbsp;</code> followed by a single JSON object of <code>RunStats</code> fields. Nothing else may print a line
+starting with <code>RESULT</code>. <code>run_matrix.py</code> reads only that line.</td><td>Sohan</td></tr>
+<tr><td>9</td><td class="b">What goodput means</td><td><b>Goodput</b> = file bytes × 8 ÷ elapsed seconds, where
+<i>elapsed</i> runs from sending <code>seq 1</code> to receiving the ACK that covers the last data packet — handshake and
+FIN excluded. <b>Wire throughput</b> = every byte the sender put on the wire, headers and retransmissions included, × 8 ÷
+the same elapsed time.</td><td>Sohan</td></tr>
+<tr><td>10</td><td class="b">RunStats fields</td><td><code>protocol, window, seqbits, rto_mode, file_bytes, elapsed_ms,
+goodput_bps, wire_bytes, throughput_bps, data_sent, retransmissions, timeouts, dup_acks, acks_received,
+corrupt_dropped, sha256_match</code>. The harness adds the run settings itself — seed, loss, dup, corrupt, reorder,
+delay, jitter.</td><td>Sohan</td></tr>
+<tr><td>11</td><td class="b">Trace lines</td><td><code>us, dir, type, seq, ack, action, delayMs</code>. The <code>type</code>
+and <code>ack</code> fields are new in the emulator rewrite. Today every ACK is logged with <code>seq 0</code>, so ACKs
+cannot be told apart — and Experiment 4 needs to tell them apart.</td><td>Sohan</td></tr>
+<tr><td>12</td><td class="b">Logging</td><td>No printing per packet unless <code>--verbose</code> is given. Writing a line for
+every packet costs more than the protocol itself and makes goodput numbers meaningless.</td><td>Everyone</td></tr>
+<tr><td>13</td><td class="b">Tests and main</td><td>Every new test class is added to <b>both</b> <code>build.sh</code> and the
+<code>TESTS</code> line of the <code>Makefile</code>, or it never runs. Run <code>./build.sh</code> before every push:
+<code>main</code> must always build, because a compile error there stops all four of us.</td><td>Everyone</td></tr>
+<tr><td>14</td><td class="b">Sequence arithmetic</td><td>One small <code>SeqSpace</code> helper for every modular comparison — distance
+from the window base, "inside the window", "inside the previous window" — built on <code>Math.floorMod</code> and shared by
+Go-Back-N and Selective Repeat. The wraparound rule is then written once and tested once.</td><td>Sohini</td></tr>
+</tbody></table>

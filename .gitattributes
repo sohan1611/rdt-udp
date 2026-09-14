@@ -1,0 +1,7 @@
+# Keep scripts on Unix line endings on every machine.
+#
+# Without this, a Windows checkout converts them to CRLF, and they then fail
+# inside WSL with "bash\r: No such file or directory".
+*.sh      text eol=lf
+*.py      text eol=lf
+Makefile  text eol=lf

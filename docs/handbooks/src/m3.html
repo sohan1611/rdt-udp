@@ -1,0 +1,407 @@
+<div class="cover">
+  <div class="role">{{ROLE}} · {{TITLE}}</div>
+  <h1>{{NAME}}</h1>
+  <div class="who">Roll {{ROLL}} · GitHub <code>{{GH}}</code> · CSE-14 · Reviewer: {{PAIR_A}} (Sprint A), {{PAIR_B}} (Sprint B)</div>
+</div>
+
+<p class="mission">You build the smartest of the three protocols: when one packet is lost, only that packet is sent again.
+The receiver must hold packets that arrive early and release them in order once the gap fills, and every packet in
+flight has its own timer. It is the hardest module in the project. That is why your Sprint A builds its hardest
+piece — the receive buffer — as a plain data structure before any networking, why you own the sequence arithmetic
+both window protocols share, and why there is a fallback decision on Tuesday 22 so the project can never stall on
+one module.</p>
+
+<div class="keydates">
+  <div><b>Fri 18 Sep</b><span>Receive buffer and <code>SeqSpace</code> merged</span></div>
+  <div><b>Tue 22 Sep, 10 pm</b><span>Fallback decision with Sohan</span></div>
+  <div><b>Thu 24 Sep</b><span>Selective Repeat merged — Core complete depends on it</span></div>
+</div>
+
+<table>
+<thead><tr><th style="width:50%">You depend on</th><th>Depend on you</th></tr></thead>
+<tbody><tr>
+<td><b>Sinjan</b> — <code>TimerWheel</code> on Fri 18<br>
+<b>Shaili</b> — <code>Packet</code> on Thu 17; <code>ArqProtocol</code> and conventions on Sat 19<br>
+<b>Sohan</b> — the emulator on Thu 17</td>
+<td><b>Sinjan</b> — <code>SeqSpace</code> for Go-Back-N's wraparound<br>
+<b>Shaili</b> — Selective Repeat for the integrity suite, Thu 24<br>
+<b>Everyone</b> — Core complete, Thu 24<br>
+<b>Sohan</b> — Experiment 2 runs from Fri 25</td>
+</tr></tbody></table>
+
+<h3>Contents</h3>
+<div class="toc">
+  <div>1 · Get set up</div><div>2 · Your part of the system</div><div>3 · Concepts you must master</div>
+  <div>4 · Design decisions you must defend</div><div>5 · Your day-by-day plan</div><div>6 · Team conventions</div>
+  <div>7 · How to test your work</div><div>8 · When something breaks</div><div>9 · Experiment 2</div>
+  <div>10 · Your report section</div><div>11 · How we work together</div><div>12 · Using AI without losing marks</div>
+  <div>13 · Viva preparation</div><div>14 · Help, references, glossary</div><div>15 · Sprint checklist</div>
+</div>
+
+<!--COMMON:setup-->
+
+<div class="brk"></div>
+<h2>2 · Your part of the system</h2>
+<!--COMMON:diagram-->
+
+<h3>Files you own</h3>
+<table>
+<thead><tr><th style="width:38%">File</th><th style="width:22%">Status</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>docs/sr-window-bound.md</code></td><td>New, Wed 16</td><td>Your explanation of W ≤ 2<sup>k−1</sup>, with the failure case. It opens your report section.</td></tr>
+<tr><td><code>src/main/java/rdt/SeqSpace.java</code></td><td>New, Wed 16</td><td>Modular sequence arithmetic shared by both window protocols (convention 14)</td></tr>
+<tr><td><code>src/main/java/rdt/ReceiveBuffer.java</code></td><td>New, Wed 16 – Fri 18</td><td>Holds early packets and releases a contiguous run in order</td></tr>
+<tr><td><code>src/main/java/rdt/SelectiveRepeat.java</code></td><td>New, Sun 20 – Thu 24</td><td>The protocol: per-packet timers, selective ACKs, buffered delivery</td></tr>
+<tr><td><code>src/test/java/rdt/SeqSpaceTest.java</code>, <code>ReceiveBufferTest.java</code>, <code>SelectiveRepeatTest.java</code></td><td>New, with each class</td><td>See section 7</td></tr>
+</tbody></table>
+<p class="muted">Ask before changing <code>Packet</code> (Shaili), <code>TimerWheel</code> or <code>GoBackN</code> (Sinjan), or anything under
+<code>emulator/</code> (Sohan).</p>
+
+<div class="brk"></div>
+<h2>3 · Concepts you must master</h2>
+
+<h3>3.1 · The Selective Repeat sender</h3>
+<p>The window runs from <code>send_base</code> for N sequence numbers. Each slot in it is in one of three states: <i>sent and
+waiting for its ACK</i>, <i>acknowledged</i>, or <i>not yet sent</i>.</p>
+<table>
+<thead><tr><th style="width:28%">Event</th><th>Sender action</th></tr></thead>
+<tbody>
+<tr><td>Room in the window and data left</td><td>Send the next packet and start <b>its own</b> timer</td></tr>
+<tr><td>ACK <i>s</i>, inside the window</td><td>Mark <i>s</i> acknowledged and cancel its timer. If <i>s</i> is <code>send_base</code>, slide <code>send_base</code> forward past every consecutive acknowledged slot — which may let new packets go out.</td></tr>
+<tr><td>ACK <i>s</i>, outside the window</td><td>Ignore it</td></tr>
+<tr><td>Timer for <i>s</i> fires</td><td>If <i>s</i> is still unacknowledged, resend <b>only</b> <i>s</i> and restart <b>only</b> its timer</td></tr>
+</tbody></table>
+
+<h3>3.2 · The Selective Repeat receiver</h3>
+<p>The receive window runs from <code>rcv_base</code> for N sequence numbers.</p>
+<table>
+<thead><tr><th style="width:36%">An intact packet <i>s</i> arrives…</th><th>Receiver action</th></tr></thead>
+<tbody>
+<tr><td>inside the window</td><td>ACK <i>s</i>. Store it if not already stored. If <i>s</i> is <code>rcv_base</code>, deliver it and every consecutive stored packet after it, advancing <code>rcv_base</code> past them.</td></tr>
+<tr><td>in the <b>previous</b> window, <code>rcv_base − N</code> to <code>rcv_base − 1</code></td><td><b>ACK <i>s</i> again</b>, but do not store or deliver it</td></tr>
+<tr><td>anywhere else</td><td>Ignore it</td></tr>
+</tbody></table>
+<p><b>Why the previous window must be re-ACKed.</b> Suppose <i>s</i> arrived and was delivered, but its ACK was lost. The sender
+still believes <i>s</i> is missing, so its <code>send_base</code> cannot move past it, and it keeps resending <i>s</i>. If the
+receiver ignores those copies, the sender never gets its ACK and the transfer deadlocks. Re-ACKing is what unblocks it.</p>
+
+<h3>3.3 · A worked timeline</h3>
+<div class="work">A four-packet file, window N = 4. Packet 2 is lost.
+
+sender   sends 1 2 3 4, starting four timers
+receiver gets 1  -> it is rcv_base: deliver 1, ACK 1, rcv_base = 2
+receiver gets 3  -> early: store 3, ACK 3
+receiver gets 4  -> early: store 4, ACK 4
+sender   ACK 1 -> send_base = 2.   ACK 3, ACK 4 -> marked, their timers cancelled
+sender   timer for 2 fires -> resend 2, and only 2
+receiver gets 2  -> deliver 2, then 3 and 4 from the buffer; rcv_base = 5; ACK 2
+sender   ACK 2 -> send_base slides past 3 and 4 to 5. Done.
+
+Retransmissions:  Selective Repeat 1 (packet 2)      Go-Back-N 3 (packets 2, 3, 4)</div>
+
+<h3>3.4 · The window bound — the question you will be asked</h3>
+<p>With <i>k</i> sequence bits there are 2<sup>k</sup> numbers, and they wrap around to 0. The receiver can never tell an
+<i>old</i> packet 0 from a <i>new</i> packet 0 — both carry the number 0. So the two windows must never be able to overlap:</p>
+<div class="work">sender window + receiver window  ≤  2^k
+
+Go-Back-N:          receiver window is 1   ->  W + 1 ≤ 2^k   ->  W ≤ 2^k − 1
+Selective Repeat:   receiver window is W   ->  W + W ≤ 2^k   ->  W ≤ 2^(k−1)</div>
+<p>The failure, with <i>k</i> = 2 — numbers 0, 1, 2, 3:</p>
+<div class="work">Illegal: W = 3
+  sender sends 0 1 2  ->  all arrive and are delivered
+  receiver window moves on to  3 0 1
+  every ACK is lost  ->  sender times out and resends its OLD packet 0
+  0 is inside the receiver's window  ->  stored as the NEW packet 0
+  -> later delivered as file data. Wrong bytes, and nothing reports an error.
+
+Legal: W = 2
+  sender sends 0 1  ->  delivered  ->  receiver window moves on to  2 3
+  every ACK is lost  ->  sender resends old 0
+  0 is in the previous window (0 1)  ->  re-ACKed, not delivered   ✓</div>
+<p>This is why the sequence-space size must be at least 8 bits for our largest experiment window of 128. We use 32 bits,
+so only your wraparound tests ever get close to the limit.</p>
+
+<h3>3.5 · Modular arithmetic in Java — and the <code>%</code> trap</h3>
+<p>Every window test reduces to one quantity: <b>how far is <i>s</i> ahead of the base, around the circle?</b></p>
+<div class="work">offset(s, base)  =  Math.floorMod(s − base, M)          M = 2^k
+
+in the window         offset(s, base) < N
+in the previous one   Math.floorMod(base − s, M) is between 1 and N</div>
+<div class="warn"><b>Never use <code>%</code> for this.</b> In Java, <code>(1 − 3) % 4</code> is <b>−2</b>, because <code>%</code> keeps the sign of
+the left side. <code>Math.floorMod(1 − 3, 4)</code> is <b>2</b>, which is the answer you need. This single substitution is the most
+common wraparound bug there is.</div>
+<p>Check yourself with M = 8, <code>base</code> = 6, N = 4, so the window is {6, 7, 0, 1}:</p>
+<div class="work">s = 1   floorMod(1 − 6, 8) = floorMod(−5, 8) = 3    3 &lt; 4          inside the window     ✓
+s = 2   floorMod(2 − 6, 8) = 4                     4 is not &lt; 4    not inside            ✓
+s = 4   floorMod(6 − 4, 8) = 2                     2 is in 1..4    previous window {2,3,4,5}  ✓</div>
+<p>With 32-bit sequence numbers held in a <code>long</code>, M = 2<sup>32</sup> = 4,294,967,296 fits comfortably. Put these three
+operations in <code>SeqSpace</code> (convention 14) so the rule is written once, tested once, and used by Sinjan's Go-Back-N too.</p>
+
+<h3>3.6 · Designing the receive buffer</h3>
+<table>
+<thead><tr><th style="width:22%">Option</th><th style="width:40%">For</th><th>Against</th></tr></thead>
+<tbody>
+<tr><td class="b">Ring buffer of N slots</td><td>O(1) store and lookup; memory fixed at N × 1400 bytes; indexed by <i>offset</i>, which is already the wraparound-safe number</td><td>A little more bookkeeping for the head index</td></tr>
+<tr><td class="b">TreeMap by sequence number</td><td>Very little code</td><td>Sorted by raw number, so after a wrap packet 0 sorts before 4,294,967,295 — the ordering breaks exactly where it matters</td></tr>
+</tbody></table>
+<p><b>Recommendation: the ring buffer, indexed by offset from <code>rcv_base</code>.</b> Because the index is computed with
+<code>SeqSpace</code>, wraparound is handled in one place. The buffer needs to: accept a packet and say whether it was <i>new</i>,
+a <i>duplicate</i>, <i>previous-window</i> or <i>outside</i>; hand back everything now deliverable, in order; and report the
+current base. Build and test it with no sockets at all.</p>
+
+<h3>3.7 · Per-packet timers</h3>
+<p>Each unacknowledged packet has a timer in Sinjan's <code>TimerWheel</code> — at most N at once. An ACK cancels one timer; a
+timeout resends one packet. <b>Always check the packet is still unacknowledged when its timer fires.</b> If the heap cancels
+lazily, a cancelled timer can still reach the top, and without that check you would resend a packet that was already
+acknowledged — which shows up as retransmissions on a perfect channel.</p>
+
+<h3>3.8 · ACKs and the <code>sackCount</code> field</h3>
+<p><b>Core:</b> each ACK acknowledges one packet — the <code>ack</code> field holds its number and <code>sackCount</code> is 0
+(convention 3). <b>Week 7 stretch — SACK blocks:</b> <code>sackCount</code> says how many ranges follow in the payload, each a pair of
+32-bit start and end numbers. One ACK can then report everything received, which helps most when ACKs are being lost.</p>
+
+<h3>3.9 · The fallback, if Tuesday 22 needs it</h3>
+<p>Keep the receiver exactly as it is. On the sender, replace per-packet timers with <b>one timer on the oldest unacknowledged
+packet</b>; when it fires, resend only that packet. It is still selective and still correct. What it loses: when several
+packets in one window are lost, they are recovered one timeout at a time rather than in parallel. Document it as a
+deliberate simplification, and restore per-packet timers in week 7.</p>
+
+<h2 style="margin-top:14px">4 · Design decisions you must defend</h2>
+<table class="long">
+<thead><tr><th style="width:32%">Decision</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td class="b">W ≤ 2<sup>k−1</sup>, and the protocol refuses anything larger</td><td>Beyond it, old and new packets become indistinguishable. Draw 3.4.</td></tr>
+<tr><td class="b">Ring buffer indexed by offset</td><td>O(1), bounded memory, wraparound handled once. See 3.6.</td></tr>
+<tr><td class="b">A shared <code>SeqSpace</code> helper using <code>Math.floorMod</code></td><td>The <code>%</code> trap; one tested implementation for both window protocols.</td></tr>
+<tr><td class="b">Re-ACK the previous window</td><td>Otherwise a lost ACK deadlocks the sender. See 3.2.</td></tr>
+<tr><td class="b">Check "still unacknowledged" when a timer fires</td><td>Lazy cancellation can surface stale timers. See 3.7.</td></tr>
+<tr><td class="b">Individual ACKs in Core, SACK blocks as stretch</td><td>Correctness first; SACK is an efficiency gain, not a requirement.</td></tr>
+</tbody></table>
+
+<div class="brk"></div>
+<h2>5 · Your day-by-day plan</h2>
+<h3>Sprint A · 14–20 September</h3>
+
+<div class="day"><div class="hd"><b>Mon 14 – Tue 15</b><span>Setup and theory</span></div>
+<ol>
+  <li>Complete section 1. First commit merged by Tuesday 10 pm.</li>
+  <li>Read Kurose &amp; Ross section 3.4.4, including the figure where the receiver cannot tell an old packet from a new one.</li>
+  <li>Derive the bound in 3.4 yourself on paper, then draw the <i>k</i> = 2 failure without looking.</li>
+</ol>
+<div class="done"><b>Done when:</b> first commit merged, and you can draw the failure case from memory.</div>
+<div class="viva"><b>Be able to explain:</b> question 1 in section 13 — the one you are most likely to be asked.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Wed 16</b><span>Window-bound note and SeqSpace</span></div>
+<ol>
+  <li>Commit <code>docs/sr-window-bound.md</code>: the rule, the <i>k</i> = 2 failure, the legal case.</li>
+  <li><code>git checkout -b m3/seq-space</code>. Write <code>SeqSpace</code> with the three operations in 3.5, and a test for every
+      line of the worked example there, plus the <code>%</code> trap. Open the PR the same day — Sinjan will build on it.</li>
+</ol>
+<div class="done"><b>Done when:</b> the note is committed and the <code>SeqSpace</code> PR is open with its tests passing.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Wed 16 – Fri 18</b><span>Receive buffer, standalone</span></div>
+<ol>
+  <li><code>git checkout -b m3/receive-buffer</code>. Build the ring buffer from 3.6 with no networking.</li>
+  <li>Feed it 1, 3, 4, 2 and assert it releases 1, then nothing, then nothing, then 2, 3, 4 together.</li>
+  <li>Add duplicates of a stored packet, duplicates of a delivered packet, previous-window packets and outside packets.</li>
+  <li>Thursday: review Sohan's emulator PR with three <i>why</i> questions.</li>
+  <li>Friday: wraparound cases with a 3-bit sequence space, crossing 6, 7, 0, 1. Merge by Friday night.
+      <b>8 pm: conventions call</b> — you own convention 14 and are consulted on convention 3.</li>
+</ol>
+<div class="done"><b>Done when:</b> <code>SeqSpace</code> and the buffer are merged by Friday night, passing every case in section 7.</div>
+<div class="viva"><b>Be able to explain:</b> questions 5 and 6 in section 13.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Sat 19 – Sun 20</b><span>Design and start SelectiveRepeat</span></div>
+<ol>
+  <li>Saturday: on paper, design the sender's three slot states from 3.1 and exactly what happens on an ACK and on a timeout.
+      Read <code>docs/CONVENTIONS.md</code> and the merged <code>ArqProtocol</code> interface once Shaili commits them.</li>
+  <li>Sunday: <code>git checkout -b m3/selective-repeat</code>. Build the receiver side first — it is mostly your buffer, which already works.</li>
+</ol>
+</div>
+
+<h3>Sprint B · 21–27 September</h3>
+
+<div class="day"><div class="hd"><b>Mon 21 – Tue 22</b><span>Sender, first transfers, fallback decision</span></div>
+<ol>
+  <li>Monday: the sender with per-packet timers from 3.1. First transfer at 0% loss through the emulator.</li>
+  <li>Tuesday: run at 10% loss. Use <code>--verbose</code> once to confirm that <b>only lost packets are resent</b>, never a
+      whole window.</li>
+</ol>
+<div class="warn"><b>Tuesday 22, 10 pm — the fallback decision, with Sohan.</b> The test: does Selective Repeat transfer a file
+correctly at 10% loss on at least three seeds? If yes, carry on. If no, switch the sender to the single timer in 3.9
+tonight. That is still correct, still ahead of Go-Back-N, and far easier to finish by Thursday. Choosing it on Tuesday is
+good planning. Discovering on Thursday that you should have is what breaks the sprint.</div>
+<div class="done"><b>Done when:</b> at 10% loss the logs show only lost packets resent — or the fallback has been chosen.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Wed 23 – Thu 24</b><span>Finish · Core complete depends on you</span></div>
+<ol>
+  <li>Wednesday: an end-to-end run with <code>--seqbits 3</code> and window 4 that wraps several times and still matches. Add the
+      window validation, so a window above 2<sup>k−1</sup> is refused with a clear error.</li>
+  <li>Wednesday: the illegal-window demonstration, at buffer level — see the tip in section 7.</li>
+  <li>Thursday: merge by the afternoon, so Shaili can add you to the integrity suite that evening.</li>
+</ol>
+<div class="done"><b>Done when:</b> Selective Repeat passes the shared integrity suite — <b>Gate 5, Core complete</b>, Thursday 10 pm.</div>
+<div class="viva"><b>Be able to explain:</b> questions 2, 3, 4 and 8 in section 13.</div>
+</div>
+
+<div class="day"><div class="hd"><b>Fri 25 – Sun 27</b><span>Experiment 2</span></div>
+<ol>
+  <li>With Sohan, start the Go-Back-N and Selective Repeat cells from section 9.</li>
+  <li>Sunday: generate Figure 2 with <code>plots.py</code>.</li>
+</ol>
+<div class="done"><b>Done when:</b> Figure 2 is generated by script from committed CSVs with at least 3 seeds per cell.</div>
+</div>
+
+<h3>After the sprint</h3>
+<div class="day"><div class="hd"><b>28 Sep – 26 Oct</b><span>Buffer, then weeks 6–8</span></div>
+<ol>
+  <li><b>28 Sep – 5 Oct:</b> Experiment 2 at the full 10 seeds; finish anything that slipped.</li>
+  <li><b>6–12 Oct:</b> teach Selective Repeat at the cross-teaching session — Sohan in particular must be able to explain it.
+      Draft your report section.</li>
+  <li><b>13–19 Oct:</b> stretch goal: SACK blocks, <i>only</i> if Core is solid. If the fallback was taken, restore per-packet timers instead.</li>
+  <li><b>20–26 Oct:</b> code freeze 22 October; viva drills.</li>
+</ol>
+</div>
+
+<!--COMMON:conventions-->
+
+<div class="brk"></div>
+<h2>7 · How to test your work</h2>
+<table class="long">
+<thead><tr><th style="width:24%">Test class</th><th>What it must prove</th></tr></thead>
+<tbody>
+<tr><td class="b">SeqSpaceTest</td><td>Every line of the worked example in 3.5; <code>floorMod</code> gives 2 where <code>%</code> gives −2; the window and previous-window checks at both edges; a 32-bit space where the window straddles 4,294,967,295 and 0.</td></tr>
+<tr><td class="b">ReceiveBufferTest</td><td>In-order arrivals release immediately; 1, 3, 4, 2 releases 1 / nothing / nothing / 2, 3, 4; a duplicate of a stored packet is reported as a duplicate and not stored twice; a delivered packet arriving again is reported as previous-window; outside packets are ignored; a full window then filled from the base releases everything; wraparound across 6, 7, 0, 1 with a 3-bit space.</td></tr>
+<tr><td class="b">SelectiveRepeatTest</td><td>Correct transfer over all five integrity profiles; <b>zero retransmissions on a clean channel</b>; completes with 20% of ACKs lost; with 10% data loss, retransmissions stay close to the number of data packets the emulator dropped; a <code>--seqbits 3</code>, window 4 transfer wraps and matches; a window of 5 with 3 bits is refused.</td></tr>
+</tbody></table>
+
+<div class="tip"><b>Demonstrate the illegal window at buffer level.</b> The playbook asks you to show that an illegal window
+corrupts data. Doing that through the network means making the emulator lose <i>exactly</i> every ACK of one window, which is
+not reproducible. Instead, script the 3.4 scenario directly against <code>ReceiveBuffer</code> with a 2-bit space: window 3,
+deliver 0, 1, 2, then offer the old 0 and show it is accepted as new. Then the same with window 2, and show it is
+classified as previous-window. It is deterministic, it proves the same point, and the protocol itself refuses illegal
+windows — so there is no unsafe mode hiding in the real code.</div>
+<div class="tip"><b>Reuse the fixture.</b> <code>NetEmSmokeTest</code> shows how to run the emulator inside a test on free ports.</div>
+<p>Convention 13: add each new test class to <code>build.sh</code> and to the <code>Makefile</code>.</p>
+
+<h2 style="margin-top:14px">8 · When something breaks</h2>
+<table class="long">
+<thead><tr><th style="width:30%">Symptom</th><th style="width:38%">Likely cause</th><th>How to check</th></tr></thead>
+<tbody>
+<tr><td>Transfer never finishes; sender's base stuck</td><td>Receiver ignoring previous-window packets instead of re-ACKing them</td><td>Run with 20% ACK loss; row 2 of the table in 3.2</td></tr>
+<tr><td>Garbled or repeated blocks after a wrap</td><td><code>%</code> instead of <code>Math.floorMod</code>, or window too large for <code>--seqbits</code></td><td>SeqSpaceTest and the window validation</td></tr>
+<tr><td>Retransmissions on a perfect channel</td><td>A cancelled timer fired and resent an acknowledged packet</td><td>The "still unacknowledged" check in 3.7</td></tr>
+<tr><td>Retransmissions far above the losses</td><td>Timeout too short, or a timeout resending more than one packet</td><td>Compare with the trace's drop count</td></tr>
+<tr><td>File bytes out of order</td><td>Delivering packets as they arrive rather than from the buffer head</td><td>ReceiveBufferTest's 1, 3, 4, 2 case</td></tr>
+<tr><td>Memory keeps growing</td><td>Storing outside-window packets, or never clearing delivered slots</td><td>Print occupied slots per second</td></tr>
+<tr><td><code>send_base</code> never slides although ACKs arrive</td><td>Sliding only by one, instead of past every consecutive acknowledged slot</td><td>Row 2 of the table in 3.1</td></tr>
+<tr><td>A test passes on some seeds only</td><td>An assertion about timing instead of outcome</td><td>Assert on hashes and counts, never on exact timings</td></tr>
+<tr><td><code>bash\r: No such file or directory</code> in WSL</td><td><code>build.sh</code> with Windows line endings</td><td>Re-clone inside WSL; <code>.gitattributes</code> now forces Unix line endings</td></tr>
+</tbody></table>
+
+<div class="brk"></div>
+<h2>9 · Experiment 2 — goodput against window size</h2>
+<p>This is the heart of our claim: the gap between Selective Repeat and Go-Back-N should widen as the window grows.</p>
+<table>
+<tbody>
+<tr><td class="b" style="width:22%">Question</td><td>How does goodput change with window size for Go-Back-N and Selective Repeat, and does the gap widen?</td></tr>
+<tr><td class="b">Variable</td><td>Window 1, 2, 4, 8, 16, 32, 64, 128</td></tr>
+<tr><td class="b">Held fixed</td><td>Loss 1% and 5% as two series; 1400-byte payload; 20&nbsp;ms delay each way; 32-bit sequence space; file size, jitter and RTO mode as locked on Tue 22</td></tr>
+<tr><td class="b">Seeds</td><td>At least 3 per cell by Sun 27; 10 in the buffer week</td></tr>
+<tr><td class="b">Measured</td><td><code>goodput_bps</code>, <code>retransmissions</code>, <code>throughput_bps</code></td></tr>
+</tbody></table>
+<p><b>Load check.</b> The largest window sends at most 128 packets per 40&nbsp;ms round trip — about 3,200 packets a second — an
+order of magnitude under the harness budget, so the curves reflect the protocols, not the machine. These runs take
+seconds to a minute each, unlike Stop-and-Wait.</p>
+
+<h3>What we expect</h3>
+<ul>
+  <li>At window 1, both protocols behave like Stop-and-Wait.</li>
+  <li>Selective Repeat's goodput keeps rising with the window.</li>
+  <li>Go-Back-N rises, then flattens or falls, because each loss can cost up to a whole window of resends — more
+      noticeably at 5% than at 1%.</li>
+  <li>The gap widens with the window, and faster at the higher loss rate.</li>
+</ul>
+<div class="warn"><b>Stay within what we can measure.</b> Our emulator adds delay and loss but has no bandwidth limit, so there is no
+"bandwidth-delay product" knee in these curves. The proposal's claim is about loss rate and window size, which this
+experiment tests directly. Do not claim bandwidth effects in the report unless a rate limit is added to the emulator.</div>
+
+<h3>Figure 2</h3>
+<ul>
+  <li>Goodput against window, with the window axis doubling (logarithmic, base 2). Two panels — 1% and 5% loss — one line
+      per protocol, 95% confidence-interval error bars.</li>
+  <li>The caption states the settings and <i>n</i>.</li>
+</ul>
+
+<h2 style="margin-top:14px">10 · Your report section — Selective Repeat</h2>
+<ol>
+  <li><b>The window bound</b> — from <code>docs/sr-window-bound.md</code>: the rule, the failure, the legal case, and the buffer-level demonstration.</li>
+  <li><b>Sender and receiver</b> — the tables in 3.1 and 3.2, and the lost-ACK deadlock that makes re-ACKing necessary.</li>
+  <li><b>The receive buffer</b> — the design choice in 3.6 and why wraparound lives in <code>SeqSpace</code>.</li>
+  <li><b>Timers</b> — per-packet timers and stale-timer safety; the fallback, if it was used.</li>
+  <li><b>Experiment 2</b> — Figure 2 and what it shows about the claim.</li>
+</ol>
+<p class="muted">About two to three pages.</p>
+
+<!--COMMON:workflow-->
+<!--COMMON:ai-->
+
+<div class="brk"></div>
+<h2>13 · Viva preparation</h2>
+
+<div class="qa"><div class="q">1. Why does Selective Repeat need W ≤ 2<sup>k−1</sup> when Go-Back-N only needs W ≤ 2<sup>k</sup> − 1?</div><ul>
+<li>Sender window plus receiver window must fit in the sequence space; Go-Back-N's receiver window is 1, Selective Repeat's is W.</li>
+<li>Draw the <i>k</i> = 2, window 3 failure from 3.4, then the window 2 case working.</li></ul></div>
+
+<div class="qa"><div class="q">2. Why must the receiver ACK packets from the previous window?</div><ul>
+<li>Delivered packet, lost ACK: the sender cannot advance and keeps resending. Without a fresh ACK it deadlocks.</li></ul></div>
+
+<div class="qa"><div class="q">3. How does the receiver decide whether a packet is new or a retransmission?</div><ul>
+<li>Its offset from <code>rcv_base</code>: inside the window it may be new or a duplicate of a stored one; in the previous window it is old.</li>
+<li>This only works because of the window bound.</li></ul></div>
+
+<div class="qa"><div class="q">4. Why a timer per packet? What would a single timer lose?</div><ul>
+<li>Each loss is recovered independently and in parallel.</li>
+<li>A single timer on the oldest packet recovers several losses one timeout at a time — the fallback in 3.9.</li></ul></div>
+
+<div class="qa"><div class="q">5. Why <code>Math.floorMod</code> and not <code>%</code>?</div><ul>
+<li><code>(1 − 3) % 4</code> is −2 in Java; <code>floorMod</code> gives 2. Wraparound comparisons break with <code>%</code>.</li></ul></div>
+
+<div class="qa"><div class="q">6. Why a ring buffer rather than a TreeMap?</div><ul>
+<li>O(1), bounded memory, indexed by a wraparound-safe offset. A TreeMap sorts raw numbers, which misorders packets across a wrap.</li></ul></div>
+
+<div class="qa"><div class="q">7. Four packets, packet 2 lost. Count the retransmissions for each protocol.</div><ul>
+<li>Walk the timeline in 3.3. Selective Repeat: 1. Go-Back-N: 3.</li></ul></div>
+
+<div class="qa"><div class="q">8. A timer fires for a packet that was already acknowledged. What happens?</div><ul>
+<li>Nothing is sent: the fire handler checks the packet is still unacknowledged. Explain lazy cancellation.</li></ul></div>
+
+<div class="qa"><div class="q">9. Live change: shrink the window from 32 to 8 during a transfer.</div><ul>
+<li>The sender stops sending past the new limit; slots already in flight are acknowledged or resent as normal.</li>
+<li>The receiver's window must match — and the new size must still satisfy the bound.</li></ul></div>
+
+<div class="qa"><div class="q">10. What would SACK blocks change on the wire?</div><ul>
+<li><code>sackCount</code> ranges of 32-bit start and end pairs in the payload; the header layout is unchanged.</li></ul></div>
+
+<!--COMMON:help-->
+
+<div class="brk"></div>
+<h2>15 · Sprint checklist</h2>
+<ul class="check">
+  <li><b>Tue 15</b> — cloned, identity set, build green, first commit merged</li>
+  <li><b>Tue 15</b> — the window-bound failure drawn from memory</li>
+  <li><b>Wed 16</b> — <code>docs/sr-window-bound.md</code> committed; <code>SeqSpace</code> PR open</li>
+  <li><b>Thu 17</b> — reviewed Sohan's emulator PR</li>
+  <li><b>Fri 18</b> — <code>SeqSpace</code> and <code>ReceiveBuffer</code> merged, wraparound cases passing; joined the 8 pm call</li>
+  <li><b>Sat 19</b> — sender design on paper; read <code>CONVENTIONS.md</code></li>
+  <li><b>Mon 21</b> — Selective Repeat transfers at 0% loss</li>
+  <li><b>Tue 22</b> — only lost packets resent at 10% loss; fallback decided by 10 pm</li>
+  <li><b>Wed 23</b> — 3-bit wraparound run matches; illegal window refused; buffer-level demonstration</li>
+  <li><b>Thu 24</b> — Selective Repeat merged and passing the integrity suite: Core complete</li>
+  <li><b>Sun 27</b> — Figure 2 from at least 3 seeds per cell</li>
+  <li><b>Every night</b> — three-line check-in by 10 pm; at least one commit every working day</li>
+</ul>
