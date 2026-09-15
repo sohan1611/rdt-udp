@@ -61,7 +61,7 @@ _No entries yet._
 
 _No entries yet._
 
-## M4 — Channel & Evidence · _[name]_
+## M4 — Channel & Evidence · Sohan Mandal
 
 ### 2026-08-31 — Project planning and role split
 **What:** Claude extracted the assignment PDF, compared the eight catalogue projects
