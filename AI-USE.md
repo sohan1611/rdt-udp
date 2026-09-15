@@ -49,7 +49,7 @@ Add an entry whenever AI materially helped. Use this shape:
 **Mine:** <what you did yourself>
 ```
 
-## M1 — Framing & Session · _[name]_
+## M1 — Framing & Session · Shaili Seth
 
 _No entries yet._
 
