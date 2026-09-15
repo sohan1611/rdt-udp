@@ -53,9 +53,7 @@ Add an entry whenever AI materially helped. Use this shape:
 
 _No entries yet._
 
-## M2 — Timers & Go-Back-N · _[name]_
-
-_No entries yet._
+## M2 — Timers & Go-Back-N · Sinjan Mishra
 
 ## M3 — Selective Repeat · _[name]_
 
