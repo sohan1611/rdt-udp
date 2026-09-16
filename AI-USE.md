@@ -55,7 +55,7 @@ _No entries yet._
 
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
-## M3 — Selective Repeat · _[name]_
+## M3 — Selective Repeat · Sohini Pandit
 
 _No entries yet._
 
