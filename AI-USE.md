@@ -100,6 +100,13 @@ branch, and drafted the review comments. I posted them and made the request-chan
 and merge decisions.
 **Permitted under:** reviewing our code.
 
+### 2026-09-17 — TraceLog tests
+**What:** Claude wrote `TraceLogTest` — six cases covering the disabled path, the JSON line
+shape, three-decimal delays, locale independence, one line per record, and close being safe
+to call twice — and registered it in `build.sh` and the `Makefile`.
+**Permitted under:** generating tests.
+**Mine:** the `TraceLog` implementation the tests run against, including the Locale.ROOT fix.
+
 ---
 
 # Open items — must be cleared before submission
