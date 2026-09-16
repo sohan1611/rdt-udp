@@ -1,5 +1,4 @@
 package emulator;
-
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -8,39 +7,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * Append-only JSONL log of every impairment decision the emulator makes.
- *
- * <p>One line per decision, for example:
- *
- * <pre>
- * {"us":1043,"dir":"c2s","seq":17,"action":"drop","delayMs":0.0}
- * {"us":1102,"dir":"c2s","seq":18,"action":"pass","delayMs":21.4}
- * </pre>
- *
- * <p>This file is what makes Experiment 4 possible: because it records whether
- * each packet was really lost, a retransmission can be labelled
- * <em>spurious</em> (the original did arrive) or <em>necessary</em> after the
- * fact. Without ground truth from the channel itself, the best anyone can say
- * is that adaptive RTO "seems better".
- *
- * <p>It also means any strange run can be replayed packet by packet, which is
- * worth having in front of you at the viva.
- *
- * <p>Timestamps are microseconds since the log was opened, so a trace is
- * comparable across machines. Writes are buffered; nothing is flushed to disk
- * until {@link #close}, so tracing costs little in the hot path. Pass a null
- * path to disable tracing entirely.
- */
 public final class TraceLog implements AutoCloseable {
 
-    /**
-     * Flush after this many records. Buffering keeps tracing cheap in the hot
-     * path, but an emulator killed by the experiment harness between runs would
-     * otherwise lose whatever was still in the buffer — and Experiment 4 needs
-     * a complete trace to label retransmissions. Flushing periodically bounds
-     * the loss to at most this many lines.
-     */
     private static final int FLUSH_EVERY = 256;
 
     private final Writer out;
@@ -56,7 +24,6 @@ public final class TraceLog implements AutoCloseable {
         this.startNanos = System.nanoTime();
     }
 
-    /** A trace that discards everything, for runs where tracing is off. */
     public static TraceLog disabled() {
         try {
             return new TraceLog(null);
