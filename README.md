@@ -44,14 +44,20 @@ third-party runtime dependencies** — only the JDK standard library.
 
 ## Status
 
-- [x] `Packet` — 20-byte header, RFC 1071 checksum, 13 tests passing
-- [x] `NetEm` — channel emulator, 20 tests passing (14 model + 6 end-to-end)
-- [x] `Calibrate` — capacity calibration (Sprint A gate for M4)
-- [ ] `StopAndWait`
-- [ ] `GoBackN`
-- [ ] `SelectiveRepeat`
-- [ ] `RttEstimator` — Jacobson/Karels + Karn
-- [ ] Experiment harness and plots
+Updated 16 September. `main` runs **54 tests across four suites, all passing**.
+
+| Component | Owner | State |
+|---|---|---|
+| `SeqSpace` — modular sequence arithmetic | M3 | Merged, 21 tests passing |
+| `Packet` — 20-byte header, RFC 1071 checksum | M1 | Hand-written rewrite on `m1/packet-rewrite`, 13 tests passing; merges 17 Sep |
+| `Channel`, `NetEm`, `TraceLog`, `ChannelConfig` — emulator | M4 | Draft on `main`, 20 tests passing; hand-written rewrite in progress |
+| `Calibrate` — capacity calibration | M4 | WSL2 measurement due 18 Sep |
+| `TimerWheel`, `RttEstimator` | M2 | Design note merged; code due 18 and 20 Sep |
+| `ReceiveBuffer` | M3 | Due 18 Sep |
+| `StopAndWait`, session handshake, sender/receiver CLIs | M1 | Due 19–20 Sep |
+| `GoBackN` | M2 | Due 23 Sep |
+| `SelectiveRepeat` | M3 | Due 24 Sep |
+| `RunStats`, experiment harness, plots | M4 | Due 19–23 Sep |
 
 ## A note on the wire format
 
