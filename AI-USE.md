@@ -135,7 +135,11 @@ The brief bans generating our core protocol implementation. `Packet.java` is exa
 that. M1 rewrites it, using `PacketTest` as the specification and the draft as reference
 at most.
 
-**Status:** [x] rewritten — Packet.java: M1 Shaili Seth — 2026-09-16; CorruptPacketException.java: M1 Shaili Seth — 2026-09-17
+**Status:** [ ] code merged 17 Sep (PR #6) and passing its 13 tests, but the rewrite is
+not done: the merged files are the AI draft with locals renamed and the formatting changed,
+so the logic is unchanged in substance. Measured against the draft, 95% of the code is
+character-identical once whitespace is normalised. M1 is rewriting it against `PacketTest`;
+this box stays unticked until that is done. — M1: sign and date here when complete
 
 ### 2. `Channel.java`, `NetEm.java`, `ChannelConfig.java`, `TraceLog.java`, `Calibrate.java` — owner M4
 
