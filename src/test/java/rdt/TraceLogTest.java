@@ -109,6 +109,48 @@ public final class TraceLogTest {
             Files.deleteIfExists(p);
         });
 
+        h.check("the six-argument form carries the type and the ack", () -> {
+            Path p = Files.createTempFile("tracelog", ".jsonl");
+            try (TraceLog log = new TraceLog(p)) {
+                log.record("s2c", 1, 0, 17, "pass", 19.1);
+            }
+            String line = Files.readAllLines(p).get(0);
+            assertTrue("line must name the packet type: " + line, line.contains("\"type\":1"));
+            assertTrue("line must carry the ack number: " + line, line.contains("\"ack\":17"));
+            Files.deleteIfExists(p);
+        });
+
+        h.check("a DATA line and an ACK line no longer look identical", () -> {
+            // Packet.ack() leaves seq at zero, so before type and ack existed, an ACK
+            // for packet 17 and DATA packet 0 wrote the same line. Experiment 4 labels
+            // a retransmission spurious by asking whether the original arrived, and
+            // that question is unanswerable if the two cannot be told apart.
+            Path p = Files.createTempFile("tracelog", ".jsonl");
+            try (TraceLog log = new TraceLog(p)) {
+                log.record("c2s", 0, 0, 0, "pass", 1.0);     // DATA, packet 0
+                log.record("c2s", 1, 0, 17, "pass", 1.0);    // ACK for packet 17
+            }
+            List<String> lines = Files.readAllLines(p);
+            String data = lines.get(0).substring(lines.get(0).indexOf("\"dir\""));
+            String ack = lines.get(1).substring(lines.get(1).indexOf("\"dir\""));
+            assertTrue("DATA 0 and ACK 17 must not write the same line: " + data,
+                    !data.equals(ack));
+            Files.deleteIfExists(p);
+        });
+
+        h.check("the four-argument form marks the type unknown", () -> {
+            // Channel still uses this one until the rewrite lands; -1 is not a real
+            // packet type, so these lines are visibly "written before we knew".
+            Path p = Files.createTempFile("tracelog", ".jsonl");
+            try (TraceLog log = new TraceLog(p)) {
+                log.record("c2s", 17, "drop", 0.0);
+            }
+            String line = Files.readAllLines(p).get(0);
+            assertTrue("unknown type must be written as -1: " + line, line.contains("\"type\":-1"));
+            assertTrue("unknown ack must be written as 0: " + line, line.contains("\"ack\":0"));
+            Files.deleteIfExists(p);
+        });
+
         h.done();
     }
 }

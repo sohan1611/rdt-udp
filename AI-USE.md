@@ -101,11 +101,13 @@ and merge decisions.
 **Permitted under:** reviewing our code.
 
 ### 2026-09-17 — TraceLog tests
-**What:** Claude wrote `TraceLogTest` — six cases covering the disabled path, the JSON line
-shape, three-decimal delays, locale independence, one line per record, and close being safe
-to call twice — and registered it in `build.sh` and the `Makefile`.
+**What:** Claude wrote `TraceLogTest` — nine cases covering the disabled path, the JSON line
+shape, three-decimal delays, locale independence, one line per record, close being safe to
+call twice, and the `type`/`ack` fields including that a DATA line and an ACK line no longer
+write the same text — and registered it in `build.sh` and the `Makefile`.
 **Permitted under:** generating tests.
-**Mine:** the `TraceLog` implementation the tests run against, including the Locale.ROOT fix.
+**Mine:** the `TraceLog` implementation the tests run against, including the Locale.ROOT fix
+and the `type`/`ack` fields with the four-argument overload.
 
 ---
 
@@ -150,7 +152,12 @@ you will be asked to defend:
   sharing a seed then differ only in the variable under test, which lowers variance
   between neighbouring points on a curve.
 
-**Status:** [ ] not yet rewritten. A first attempt on `m4/emulator-rewrite` (16 Sep) did not
-meet the requirement: the committed files were the AI draft with its comments removed, so
-`Channel`, `TraceLog` and `NetEm` were unchanged in substance. Being rewritten by hand; this
-box stays unticked until that is done. — M4: sign and date here when complete
+**Status:** [ ] partly done. A first attempt on `m4/emulator-rewrite` (16 Sep) did not meet
+the requirement: the committed files were the AI draft with its comments removed, so
+`Channel`, `TraceLog` and `NetEm` were unchanged in substance.
+
+`TraceLog.java` and `Channel.java` were rewritten by hand on 17 Sep — M4 Sohan Mandal.
+`TraceLog` also gained the `type` and `ack` fields the decision trace needs before
+Experiment 4 can label a retransmission spurious. `NetEm.java`, `ChannelConfig.java` and
+`Calibrate.java` are still the draft. This box stays unticked until all five are done.
+— M4: sign and date here when complete

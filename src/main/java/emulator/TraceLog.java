@@ -41,7 +41,8 @@ public final class TraceLog implements AutoCloseable {
         return out != null;
     }
 
-    public void record(String direction, long seq, String action, double delayMs) {
+    public void record(String direction, int type, long seq, long ack,
+                       String action, double delayMs) {
         if (out == null) {
             return;
         }
@@ -54,12 +55,16 @@ public final class TraceLog implements AutoCloseable {
           .append(us)
           .append(",\"dir\":\"")
           .append(direction)
-          .append("\",\"seq\":")
+          .append("\",\"type\":")
+          .append(type)
+          .append(",\"seq\":")
           .append(seq)
+          .append(",\"ack\":")
+          .append(ack)
           .append(",\"action\":\"")
           .append(action)
           .append("\",\"delayMs\":")
-          .append(String.format(Locale.ROOT,"%.3f", delayMs))
+          .append(String.format(Locale.ROOT, "%.3f", delayMs))
           .append("}\n");
 
         try {
@@ -74,6 +79,10 @@ public final class TraceLog implements AutoCloseable {
         } catch (IOException e) {
             throw new UncheckedIOException("failed writing trace", e);
         }
+    }
+
+    public void record(String direction, long seq, String action, double delayMs) {
+        record(direction, -1, seq, 0, action, delayMs);
     }
 
     public long lines() {
