@@ -51,7 +51,25 @@ Add an entry whenever AI materially helped. Use this shape:
 
 ## M1 — Framing & Session · Shaili Seth
 
-_No entries yet._
+### 2026-09-16 — Packet.java
+**What:** AI explained the existing Packet implementation, including the 20-byte header,
+encoding/decoding, validation, and RFC 1071 checksum logic, and reviewed my rewrite for
+correctness.
+
+**Permitted under:** explaining concepts; debugging; reviewing our code.
+
+**Mine:** I rewrote `Packet.java` myself, including the implementation changes, helper
+and variable naming, and formatting. I ran the tests and verified that `PacketTest`
+passed all 13 tests.
+
+### 2026-09-17 — CorruptPacketException.java
+**What:** AI reviewed my rewrite of `CorruptPacketException.java` and helped verify that
+the changes preserved its functionality.
+
+**Permitted under:** explaining concepts; reviewing our code.
+
+**Mine:** I rewrote `CorruptPacketException.java` myself, including its formatting and
+code structure, and verified the project tests after the change.
 
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
@@ -117,8 +135,7 @@ The brief bans generating our core protocol implementation. `Packet.java` is exa
 that. M1 rewrites it, using `PacketTest` as the specification and the draft as reference
 at most.
 
-**Status:** [ ] rewrite in progress on `m1/packet-rewrite` (16 Sep), 13 tests passing —
-M1: sign and date here when it merges
+**Status:** [x] rewritten — Packet.java: M1 Shaili Seth — 2026-09-16; CorruptPacketException.java: M1 Shaili Seth — 2026-09-17
 
 ### 2. `Channel.java`, `NetEm.java`, `ChannelConfig.java`, `TraceLog.java`, `Calibrate.java` — owner M4
 
