@@ -54,92 +54,92 @@ public final class Packet
     {
         return new Packet(TYPE_ACK, 0, ack, window, 0, NO_PAYLOAD);
     }
-    public byte[] encode()
+   public byte[] encode()
     {
-        byte[] result = new byte[HEADER_LEN + payload.length];
-        ByteBuffer buffer = ByteBuffer.wrap(result);
+        byte[] result=new byte[HEADER_LEN+payload.length];
+        ByteBuffer buffer=ByteBuffer.wrap(result);
         buffer.put(version);
         buffer.put(type);
         buffer.put(flags);
-        buffer.put((byte) 0);
-        buffer.putInt((int) seq);
-        buffer.putInt((int) ack);
-        buffer.putShort((short) payload.length);
-        buffer.putShort((short) window);
-        buffer.putShort((short) 0);
-        buffer.putShort((short) sackCount);
+        buffer.put((byte)0);
+        buffer.putInt((int)seq);
+        buffer.putInt((int)ack);
+        buffer.putShort((short)payload.length);
+        buffer.putShort((short)window);
+        buffer.putShort((short)0);
+        buffer.putShort((short)sackCount);
         buffer.put(payload);
-        int sum = checksum(result, 0, result.length);
-        result[CHECKSUM_OFFSET] = (byte) (sum >>> 8);
-        result[CHECKSUM_OFFSET + 1] = (byte) sum;
+        int sum=checksum(result,0,result.length);
+        result[CHECKSUM_OFFSET]=(byte)(sum>>>8);
+        result[CHECKSUM_OFFSET+1]=(byte)sum;
         return result;
     }
-    public static Packet decode(byte[] buf, int len) throws CorruptPacketException
+    public int wireLength()
     {
-        if (len < HEADER_LEN)
+    return HEADER_LEN+payload.length;
+    }
+    public static Packet decode(byte[] buf,int len)throws CorruptPacketException
+    {
+        if(len<HEADER_LEN)
         {
-            throw new CorruptPacketException("runt packet: " + len + " bytes");
+            throw new CorruptPacketException("runt packet: "+len+" bytes");
         }
-        int received = ((buf[CHECKSUM_OFFSET] & 0xFF) << 8) | (buf[CHECKSUM_OFFSET + 1] & 0xFF);
-        byte[] checkData = Arrays.copyOf(buf, len);
-        checkData[CHECKSUM_OFFSET] = 0;
-        checkData[CHECKSUM_OFFSET + 1] = 0;
-        int computed = checksum(checkData, 0, len);
-        if (computed != received)
+        int received=((buf[CHECKSUM_OFFSET]&0xFF)<<8)|(buf[CHECKSUM_OFFSET+1]&0xFF);
+        byte[] checkData=Arrays.copyOf(buf,len);
+        checkData[CHECKSUM_OFFSET]=0;
+        checkData[CHECKSUM_OFFSET+1]=0;
+        int computed=checksum(checkData,0,len);
+        if(computed!=received)
         {
-            throw new CorruptPacketException(String.format("checksum mismatch: got 0x%04X, computed 0x%04X", received, computed));
+            throw new CorruptPacketException(String.format("checksum mismatch: got 0x%04X, computed 0x%04X",received,computed));
         }
         try
         {
-            ByteBuffer buffer = ByteBuffer.wrap(buf, 0, len);
-            byte version = buffer.get();
-            if (version != VERSION)
+            ByteBuffer buffer=ByteBuffer.wrap(buf,0,len);
+            byte version=buffer.get();
+            if(version!=VERSION)
             {
-                throw new CorruptPacketException("unsupported version: " + version);
+                throw new CorruptPacketException("unsupported version: "+version);
             }
-            byte type = buffer.get();
-            byte flags = buffer.get();
+            byte type=buffer.get();
+            byte flags=buffer.get();
             buffer.get();
-            long seq = Integer.toUnsignedLong(buffer.getInt());
-            long ack = Integer.toUnsignedLong(buffer.getInt());
-            int payloadLen = Short.toUnsignedInt(buffer.getShort());
-            int window = Short.toUnsignedInt(buffer.getShort());
+            long seq=Integer.toUnsignedLong(buffer.getInt());
+            long ack=Integer.toUnsignedLong(buffer.getInt());
+            int payloadLen=Short.toUnsignedInt(buffer.getShort());
+            int window=Short.toUnsignedInt(buffer.getShort());
             buffer.getShort();
-            int sackCount = Short.toUnsignedInt(buffer.getShort());
-            if (payloadLen != len - HEADER_LEN)
+            int sackCount=Short.toUnsignedInt(buffer.getShort());
+            if(payloadLen!=len-HEADER_LEN)
             {
-                throw new CorruptPacketException("declared payload " + payloadLen + " but " + (len - HEADER_LEN) + " bytes arrived");
+                throw new CorruptPacketException("declared payload "+payloadLen+" but "+(len-HEADER_LEN)+" bytes arrived");
             }
-            byte[] payload = new byte[payloadLen];
+            byte[] payload=new byte[payloadLen];
             buffer.get(payload);
-            return new Packet(version, type, flags, seq, ack, window, sackCount, payload);
+            return new Packet(version,type,flags,seq,ack,window,sackCount,payload);
         }
-        catch (BufferUnderflowException e)
+        catch(BufferUnderflowException e)
         {
             throw new CorruptPacketException("truncated header");
         }
     }
-    public static int checksum(byte[] b, int off, int len)
+    public static int checksum(byte[] b,int off,int len)
     {
-        int sum = 0;
-        int i = off;
-        int end = off + len;
-        for (; i + 1 < end; i += 2)
+        int sum=0;
+        int i=off;
+        int end=off+len;
+        for(;i+1<end;i+=2)
         {
-            int word = ((b[i] & 0xFF) << 8) | (b[i + 1] & 0xFF);
-            sum += word;
-            sum = (sum & 0xFFFF) + (sum >>> 16);
+            int word=((b[i]&0xFF)<<8)|(b[i+1]&0xFF);
+            sum+=word;
+            sum=(sum&0xFFFF)+(sum>>>16);
         }
-        if (i < end)
+        if(i<end)
         {
-            sum += (b[i] & 0xFF) << 8;
-            sum = (sum & 0xFFFF) + (sum >>> 16);
+            sum+=(b[i]&0xFF)<<8;
+            sum=(sum&0xFFFF)+(sum>>>16);
         }
-        return ~sum & 0xFFFF;
-    }
-    public int wireLength()
-    {
-        return HEADER_LEN + payload.length;
+        return ~sum&0xFFFF;
     }
     private static void checkUnsigned32(String field, long value)
     {
