@@ -48,6 +48,7 @@ Add an entry whenever AI materially helped. Use this shape:
 **Permitted under:** <which row of the table above>
 **Mine:** <what you did yourself>
 ```
+
 ## M1 — Framing & Session · Shaili Seth
 
 ### 2026-09-16 — Packet.java
@@ -104,6 +105,19 @@ implementation code.
 **Mine:** The sprint schedule and role allocation were team decisions. Each member writes
 their own module.
 
+### 2026-09-15 — emulator rewrite guidance
+**What:** Claude set out the contract each emulator class must keep, the order to build them
+in, which test proves each step, and the traps to avoid — the fixed ten draws per packet,
+copying the datagram before corrupting it, and locale-independent number formatting.
+**Permitted under:** explaining concepts.
+**Mine:** all code.
+
+### 2026-09-16 — review of pull request #5
+**What:** Claude checked Sohini's `SeqSpace` PR against our conventions, ran the suite on her
+branch, and drafted the review comments. I posted them and made the request-changes, approve
+and merge decisions.
+**Permitted under:** reviewing our code.
+
 ---
 
 # Open items — must be cleared before submission
@@ -115,12 +129,11 @@ permitted, and they are what tell you the rewrite is correct.
 ### 1. `Packet.java`, `CorruptPacketException.java` — owner M1
 
 Claude drafted the 20-byte header encoder/decoder and the RFC 1071 checksum, plus
-
 `PacketTest` (13 tests).
 
 The brief bans generating our core protocol implementation. `Packet.java` is exactly
-
-that. M1 rewrites it, using `PacketTest` as the specification and the draft as reference at most.
+that. M1 rewrites it, using `PacketTest` as the specification and the draft as reference
+at most.
 
 **Status:** [x] rewritten — Packet.java: M1 Shaili Seth — 2026-09-16; CorruptPacketException.java: M1 Shaili Seth — 2026-09-17
 
@@ -147,4 +160,7 @@ you will be asked to defend:
   sharing a seed then differ only in the variable under test, which lowers variance
   between neighbouring points on a curve.
 
-**Status:** [ ] not yet rewritten — M4: sign and date here when done
+**Status:** [ ] not yet rewritten. A first attempt on `m4/emulator-rewrite` (16 Sep) did not
+meet the requirement: the committed files were the AI draft with its comments removed, so
+`Channel`, `TraceLog` and `NetEm` were unchanged in substance. Being rewritten by hand; this
+box stays unticked until that is done. — M4: sign and date here when complete
