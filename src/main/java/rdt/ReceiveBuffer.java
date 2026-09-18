@@ -3,7 +3,8 @@ package rdt;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReceiveBuffer {
+
+public final class ReceiveBuffer {
 
     private final int N;
     private final long M;
@@ -35,7 +36,10 @@ public class ReceiveBuffer {
             return delivered;
         }
     }
-
+/*
+ * N > M/2 is allowed because SeqSpaceTest intentionally tests
+ * configurations that are normally invalid for selective repeat.
+ */
     public ReceiveBuffer(int N, long base, long M) {
         if (N <= 0) {
             throw new IllegalArgumentException("N must be positive");
