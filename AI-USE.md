@@ -129,6 +129,16 @@ problems in my first version:
 **Permitted under:** reviewing our code.
 **Mine:** the `Calibrate` rewrite and all four fixes.
 
+### 2026-09-20 — NetEmSmokeTest fix for Linux
+**What:** On the first run under WSL2, the "drops roughly the configured fraction" test
+failed with a measured loss of 77.9% against a configured 30%. Claude traced it to the
+test, not the emulator: it sent 1,000 datagrams before reading any, and Linux's default
+212,992-byte receive buffer holds only about 220 of them, so the kernel's drops were
+counted as the emulator's. The original draft emulator failed identically. Claude
+changed the test to send in batches of 50 and read between them.
+**Permitted under:** debugging; generating tests.
+**Mine:** running the suite on the experiment host, which is what exposed it.
+
 ---
 
 # Open items — must be cleared before submission
