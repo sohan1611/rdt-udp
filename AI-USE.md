@@ -118,6 +118,20 @@ branch, and drafted the review comments. I posted them and made the request-chan
 and merge decisions.
 **Permitted under:** reviewing our code.
 
+### 2026-09-20 — RunStats tests and review
+**What:** Claude wrote `RunStatsTest` — eleven cases covering the RESULT line's shape, the
+sixteen keys in CONVENTIONS order, quoting, the goodput and throughput arithmetic, the
+timed window for wire bytes and packet counts, the retransmission and duplicate-ACK
+subsets, runs that never started or never finished, and locale independence — and
+registered it in `build.sh` and the `Makefile`.
+It also reviewed my first version of `RunStats` and found two problems:
+1. If a transfer never finished, `stop()` was never called, so `elapsed_ms` in the RESULT
+   line came out as a large negative number (-9,715,193 ms).
+2. The handshake packet was counted in `data_sent` but not in `wire_bytes`, so the two
+   fields described different sets of packets.
+**Permitted under:** generating tests; reviewing our code.
+**Mine:** `RunStats` itself, and the fixes for both problems.
+
 ---
 
 # Open items — must be cleared before submission
