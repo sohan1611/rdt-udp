@@ -14,3 +14,4 @@ traces/
 __pycache__/
 .venv/
 .DS_Store
+lib/ *.class out/
