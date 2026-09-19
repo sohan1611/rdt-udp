@@ -109,6 +109,14 @@ write the same text — and registered it in `build.sh` and the `Makefile`.
 **Mine:** the `TraceLog` implementation the tests run against, including the Locale.ROOT fix
 and the `type`/`ack` fields with the four-argument overload.
 
+### 2026-09-19 — NetEm and ChannelConfig review, NaN test
+**What:** Claude compared my NetEm and ChannelConfig changes against the draft. It found
+that my new range check accepted NaN, so `loss=NaN` silently dropped nothing, and added a
+ChannelTest case rejecting NaN for every probability key. It confirmed the test fails
+against the buggy check.
+**Permitted under:** reviewing our code; generating tests.
+**Mine:** the fix to the range check.
+
 ---
 
 # Open items — must be cleared before submission
@@ -158,6 +166,10 @@ the requirement: the committed files were the AI draft with its comments removed
 
 `TraceLog.java` and `Channel.java` were rewritten by hand on 17 Sep — M4 Sohan Mandal.
 `TraceLog` also gained the `type` and `ack` fields the decision trace needs before
-Experiment 4 can label a retransmission spurious. `NetEm.java`, `ChannelConfig.java` and
-`Calibrate.java` are still the draft. This box stays unticked until all five are done.
+Experiment 4 can label a retransmission spurious.
+
+`NetEm.java` and `ChannelConfig.java` were restructured on 19 Sep: expressions split out,
+ternaries expanded, loops reshaped, and a new range check on `reorderExtra`. They keep
+the draft's design, names and messages, so they do not yet count as rewritten.
+`Calibrate.java` is still the draft. This box stays unticked until all five are rewritten.
 — M4: sign and date here when complete
