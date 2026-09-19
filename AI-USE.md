@@ -117,6 +117,18 @@ against the buggy check.
 **Permitted under:** reviewing our code; generating tests.
 **Mine:** the fix to the range check.
 
+### 2026-09-20 — Calibrate review
+**What:** Claude reviewed my rewrite of `Calibrate` and ran it end to end. It found four
+problems in my first version:
+1. The ceiling recorded the offered rate, not the achieved rate, so a machine whose sender
+   could not keep pace would report a higher ceiling than it actually sustained.
+2. If NetEm failed to start, its non-daemon thread kept the JVM alive, so a failed
+   calibration hung instead of exiting.
+3. `close()` declared `throws Exception`, which caused two compiler warnings on every build.
+4. The class had no comment explaining why the calibration exists.
+**Permitted under:** reviewing our code.
+**Mine:** the `Calibrate` rewrite and all four fixes.
+
 ---
 
 # Open items — must be cleared before submission
@@ -164,12 +176,12 @@ you will be asked to defend:
 the requirement: the committed files were the AI draft with its comments removed, so
 `Channel`, `TraceLog` and `NetEm` were unchanged in substance.
 
-`TraceLog.java` and `Channel.java` were rewritten by hand on 17 Sep — M4 Sohan Mandal.
-`TraceLog` also gained the `type` and `ack` fields the decision trace needs before
-Experiment 4 can label a retransmission spurious.
+`TraceLog.java` and `Channel.java` were rewritten by hand on 17 Sep, and `Calibrate.java`
+on 20 Sep — M4 Sohan Mandal. `TraceLog` also gained the `type` and `ack` fields the
+decision trace needs before Experiment 4 can label a retransmission spurious.
 
 `NetEm.java` and `ChannelConfig.java` were restructured on 19 Sep: expressions split out,
 ternaries expanded, loops reshaped, and a new range check on `reorderExtra`. They keep
-the draft's design, names and messages, so they do not yet count as rewritten.
-`Calibrate.java` is still the draft. This box stays unticked until all five are rewritten.
+the draft's design, names and messages, so they do not yet count as rewritten. This box
+stays unticked until all five are rewritten.
 — M4: sign and date here when complete
