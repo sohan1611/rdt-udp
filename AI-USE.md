@@ -75,7 +75,12 @@ code structure, and verified the project tests after the change.
 
 ## M3 — Selective Repeat · Sohini Pandit
 
-_No entries yet._
+### SeqSpace and ReceiveBuffer
+
+Used ChatGPT to help understand compiler errors, Java API mismatches,
+receive-window logic, test failures, and code organization while
+implementing and debugging SeqSpace and ReceiveBuffer. I reviewed,
+tested, and made the final changes myself.
 
 ## M4 — Channel & Evidence · Sohan Mandal
 
