@@ -51,7 +51,25 @@ Add an entry whenever AI materially helped. Use this shape:
 
 ## M1 — Framing & Session · Shaili Seth
 
-_No entries yet._
+### 2026-09-16 — Packet.java
+**What:** AI explained the existing Packet implementation, including the 20-byte header,
+encoding/decoding, validation, and RFC 1071 checksum logic, and reviewed my rewrite for
+correctness.
+
+**Permitted under:** explaining concepts; debugging; reviewing our code.
+
+**Mine:** I rewrote `Packet.java` myself, including the implementation changes, helper
+and variable naming, and formatting. I ran the tests and verified that `PacketTest`
+passed all 13 tests.
+
+### 2026-09-17 — CorruptPacketException.java
+**What:** AI reviewed my rewrite of `CorruptPacketException.java` and helped verify that
+the changes preserved its functionality.
+
+**Permitted under:** explaining concepts; reviewing our code.
+
+**Mine:** I rewrote `CorruptPacketException.java` myself, including its formatting and
+code structure, and verified the project tests after the change.
 
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
@@ -117,6 +135,20 @@ against the buggy check.
 **Permitted under:** reviewing our code; generating tests.
 **Mine:** the fix to the range check.
 
+### 2026-09-20 — RunStats tests and review
+**What:** Claude wrote `RunStatsTest` — eleven cases covering the RESULT line's shape, the
+sixteen keys in CONVENTIONS order, quoting, the goodput and throughput arithmetic, the
+timed window for wire bytes and packet counts, the retransmission and duplicate-ACK
+subsets, runs that never started or never finished, and locale independence — and
+registered it in `build.sh` and the `Makefile`.
+It also reviewed my first version of `RunStats` and found two problems:
+1. If a transfer never finished, `stop()` was never called, so `elapsed_ms` in the RESULT
+   line came out as a large negative number (-9,715,193 ms).
+2. The handshake packet was counted in `data_sent` but not in `wire_bytes`, so the two
+   fields described different sets of packets.
+**Permitted under:** generating tests; reviewing our code.
+**Mine:** `RunStats` itself, and the fixes for both problems.
+
 ### 2026-09-20 — Calibrate review
 **What:** Claude reviewed my rewrite of `Calibrate` and ran it end to end. It found four
 problems in my first version:
@@ -156,8 +188,11 @@ The brief bans generating our core protocol implementation. `Packet.java` is exa
 that. M1 rewrites it, using `PacketTest` as the specification and the draft as reference
 at most.
 
-**Status:** [ ] rewrite in progress on `m1/packet-rewrite` (16 Sep), 13 tests passing —
-M1: sign and date here when it merges
+**Status:** [ ] code merged 17 Sep (PR #6) and passing its 13 tests, but the rewrite is
+not done: the merged files are the AI draft with locals renamed and the formatting changed,
+so the logic is unchanged in substance. Measured against the draft, 95% of the code is
+character-identical once whitespace is normalised. M1 is rewriting it against `PacketTest`;
+this box stays unticked until that is done. — M1: sign and date here when complete
 
 ### 2. `Channel.java`, `NetEm.java`, `ChannelConfig.java`, `TraceLog.java`, `Calibrate.java` — owner M4
 
