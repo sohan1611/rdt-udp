@@ -118,6 +118,20 @@ branch, and drafted the review comments. I posted them and made the request-chan
 and merge decisions.
 **Permitted under:** reviewing our code.
 
+### 2026-09-20 — RunStats tests and review
+**What:** Claude wrote `RunStatsTest` — eleven cases covering the RESULT line's shape, the
+sixteen keys in CONVENTIONS order, quoting, the goodput and throughput arithmetic, the
+timed window for wire bytes and packet counts, the retransmission and duplicate-ACK
+subsets, runs that never started or never finished, and locale independence — and
+registered it in `build.sh` and the `Makefile`.
+It also reviewed my first version of `RunStats` and found two problems:
+1. If a transfer never finished, `stop()` was never called, so `elapsed_ms` in the RESULT
+   line came out as a large negative number (-9,715,193 ms).
+2. The handshake packet was counted in `data_sent` but not in `wire_bytes`, so the two
+   fields described different sets of packets.
+**Permitted under:** generating tests; reviewing our code.
+**Mine:** `RunStats` itself, and the fixes for both problems.
+
 ---
 
 # Open items — must be cleared before submission
@@ -135,7 +149,11 @@ The brief bans generating our core protocol implementation. `Packet.java` is exa
 that. M1 rewrites it, using `PacketTest` as the specification and the draft as reference
 at most.
 
-**Status:** [x] rewritten — Packet.java: M1 Shaili Seth — 2026-09-16; CorruptPacketException.java: M1 Shaili Seth — 2026-09-17
+**Status:** [ ] code merged 17 Sep (PR #6) and passing its 13 tests, but the rewrite is
+not done: the merged files are the AI draft with locals renamed and the formatting changed,
+so the logic is unchanged in substance. Measured against the draft, 95% of the code is
+character-identical once whitespace is normalised. M1 is rewriting it against `PacketTest`;
+this box stays unticked until that is done. — M1: sign and date here when complete
 
 ### 2. `Channel.java`, `NetEm.java`, `ChannelConfig.java`, `TraceLog.java`, `Calibrate.java` — owner M4
 
