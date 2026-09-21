@@ -57,20 +57,29 @@ _No entries yet._
 
 ## M3 — Selective Repeat · Sohini Pandit
 
-### SeqSpace and ReceiveBuffer
+### SeqSpace and ReceiveBufer.
+## M3 — Selective Repeat · Sohini Pandit
 
-Used ChatGPT to help understand compiler errors, Java API mismatches,
-receive-window logic, test failures, and code organization while
-implementing and debugging SeqSpace and ReceiveBuffer. I reviewed,
-tested, and made the final changes myself.
+### 2026-09-16 — SeqSpace
+**What:** ChatGPT helped me understand compiler errors, Java API mismatches, sequence-number window logic, and test failures while implementing and debugging SeqSpace.
+
+**Permitted under:** explaining concepts; debugging code; reviewing code.
+
+**Mine:** I wrote and made the final changes to the SeqSpace implementation and tests myself.
+
+### 2026-09-18 — ReceiveBuffer
+**What:** ChatGPT helped me understand the ReceiveBuffer requirements, Java API mismatches, receive-window logic, ring-buffer indexing, and test failures while implementing and debugging ReceiveBuffer.
+
+**Permitted under:** explaining concepts; debugging code; reviewing code; generating tests.
+
+**Mine:** I wrote and made the final changes to the ReceiveBuffer implementation and tests myself.
 
 ## M4 — Channel & Evidence · Sohan Mandal
 
 ### 2026-08-31 — Project planning and role split
 **What:** Claude extracted the assignment PDF, compared the eight catalogue projects
 against our constraints, and drafted the project plan and team plan (schedule, work
-split, experiment design, risk register).
-**Permitted under:** explaining concepts; improving our writing.
+split, experiment design, risk register).**Permitted under:** explaining concepts; improving our writing.
 **Mine:** Choosing P3, choosing Java over Python, and the role allocation were our
 decisions. We supplied the constraint that most of the group is stronger in Java, which
 is what changed the language recommendation.
