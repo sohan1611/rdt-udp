@@ -35,6 +35,7 @@ public final class StopAndWait implements ArqProtocol
             stats.start();
 
             long seq = 1;
+
             byte[] buffer = new byte[config.getPayloadSize()];
 
             try (InputStream input = Files.newInputStream(file))
@@ -79,11 +80,10 @@ public final class StopAndWait implements ArqProtocol
                     {
                         try
                         {
-                            byte[] ackBuffer =
-                                    new byte[
-                                            Packet.HEADER_LEN
-                                                    + config.getPayloadSize()
-                                    ];
+                            byte[] ackBuffer = new byte[
+                                    Packet.HEADER_LEN
+                                            + config.getPayloadSize()
+                            ];
 
                             DatagramPacket ackDatagram =
                                     new DatagramPacket(
@@ -131,6 +131,57 @@ public final class StopAndWait implements ArqProtocol
                 }
             }
 
+            Packet finPacket = Session.createFinPacket(seq);
+            byte[] finData = finPacket.encode();
+
+            DatagramPacket finDatagram = new DatagramPacket(
+                    finData,
+                    finData.length,
+                    peer
+            );
+
+            boolean finAcknowledged = false;
+
+            while (!finAcknowledged)
+            {
+                socket.send(finDatagram);
+
+                try
+                {
+                    byte[] finAckBuffer = new byte[
+                            Packet.HEADER_LEN
+                                    + config.getPayloadSize()
+                    ];
+
+                    DatagramPacket finAckDatagram =
+                            new DatagramPacket(
+                                    finAckBuffer,
+                                    finAckBuffer.length
+                            );
+
+                    socket.receive(finAckDatagram);
+
+                    Packet finAckPacket = Packet.decode(
+                            finAckDatagram.getData(),
+                            finAckDatagram.getLength()
+                    );
+
+                    if (finAckPacket.type == Packet.TYPE_FINACK
+                            && finAckPacket.seq == seq)
+                    {
+                        finAcknowledged = true;
+                    }
+                }
+                catch (SocketTimeoutException e)
+                {
+                    stats.onTimeout();
+                }
+                catch (CorruptPacketException e)
+                {
+                    stats.onCorruptDropped();
+                }
+            }
+
             stats.stop();
 
             return stats;
@@ -156,17 +207,15 @@ public final class StopAndWait implements ArqProtocol
 
             while (true)
             {
-                byte[] buffer =
-                        new byte[
-                                Packet.HEADER_LEN
-                                        + config.getPayloadSize()
-                        ];
+                byte[] buffer = new byte[
+                        Packet.HEADER_LEN
+                                + config.getPayloadSize()
+                ];
 
-                DatagramPacket datagram =
-                        new DatagramPacket(
-                                buffer,
-                                buffer.length
-                        );
+                DatagramPacket datagram = new DatagramPacket(
+                        buffer,
+                        buffer.length
+                );
 
                 socket.receive(datagram);
 
@@ -185,6 +234,25 @@ public final class StopAndWait implements ArqProtocol
                     continue;
                 }
 
+                if (packet.type == Packet.TYPE_FIN)
+                {
+                    Packet finAckPacket =
+                            Session.createFinAckPacket(packet.seq);
+
+                    byte[] finAckData = finAckPacket.encode();
+
+                    DatagramPacket finAck = new DatagramPacket(
+                            finAckData,
+                            finAckData.length,
+                            datagram.getAddress(),
+                            datagram.getPort()
+                    );
+
+                    socket.send(finAck);
+
+                    break;
+                }
+
                 if (packet.type != Packet.TYPE_DATA)
                 {
                     continue;
@@ -197,13 +265,12 @@ public final class StopAndWait implements ArqProtocol
                     byte[] ackData =
                             Packet.ack(packet.seq, 0).encode();
 
-                    DatagramPacket ack =
-                            new DatagramPacket(
-                                    ackData,
-                                    ackData.length,
-                                    datagram.getAddress(),
-                                    datagram.getPort()
-                            );
+                    DatagramPacket ack = new DatagramPacket(
+                            ackData,
+                            ackData.length,
+                            datagram.getAddress(),
+                            datagram.getPort()
+                    );
 
                     socket.send(ack);
 
@@ -216,19 +283,20 @@ public final class StopAndWait implements ArqProtocol
                     byte[] ackData =
                             Packet.ack(packet.seq, 0).encode();
 
-                    DatagramPacket ack =
-                            new DatagramPacket(
-                                    ackData,
-                                    ackData.length,
-                                    datagram.getAddress(),
-                                    datagram.getPort()
-                            );
+                    DatagramPacket ack = new DatagramPacket(
+                            ackData,
+                            ackData.length,
+                            datagram.getAddress(),
+                            datagram.getPort()
+                    );
 
                     socket.send(ack);
 
                     stats.onAck(true);
                 }
             }
+
+            return stats;
         }
     }
 }
