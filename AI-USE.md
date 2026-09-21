@@ -77,7 +77,8 @@ code structure, and verified the project tests after the change.
 **What:** AI explained the min-heap timer design: PriorityQueue structure, lazy cancellation, System.nanoTime() deadlines, 
 and how to derive the socket timeout from the earliest deadline. It did not produce the implementation file. 
 
-**Permitted under:** explaining concepts. 
+**Permitted under:** explaining concepts.
+
 **Mine:** I wrote TimerWheel.java from scratch using the design guidance. All code, naming, and structure are my own.
 
 ### 2026-09-20 — TimerWheel package fix and TimerWheelTest rewrite 
