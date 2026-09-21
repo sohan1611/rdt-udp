@@ -18,176 +18,252 @@ public final class StopAndWait implements ArqProtocol
     public RunStats send(Path file, InetSocketAddress peer,
                          ProtocolConfig config) throws IOException
     {
-        try (DatagramSocket socket = new DatagramSocket())
+    try (DatagramSocket socket = new DatagramSocket())
+    {
+        socket.setSoTimeout(1000);
+
+        long fileBytes = Files.size(file);
+
+        RunStats stats = new RunStats(
+                "stopwait",
+                config.getWindowSize(),
+                config.getSequenceBits(),
+                config.getRtoMode(),
+                fileBytes
+        );
+
+        stats.start();
+
+        String expectedSha256 =
+                Session.parseMeta(
+                        Session.createMeta(file)
+                ).sha256;
+
+        Packet metaPacket = Session.createMetaPacket(file);
+        byte[] metaData = metaPacket.encode();
+
+        DatagramPacket metaDatagram = new DatagramPacket(
+                metaData,
+                metaData.length,
+                peer
+        );
+
+        boolean metaAcknowledged = false;
+
+        while (!metaAcknowledged)
         {
-            socket.setSoTimeout(1000);
+            socket.send(metaDatagram);
+            stats.onDataSent(metaData.length, false);
 
-            long fileBytes = Files.size(file);
-
-            RunStats stats = new RunStats(
-                    "stopwait",
-                    config.getWindowSize(),
-                    config.getSequenceBits(),
-                    config.getRtoMode(),
-                    fileBytes
-            );
-
-            stats.start();
-
-            long seq = 1;
-
-            byte[] buffer = new byte[config.getPayloadSize()];
-
-            try (InputStream input = Files.newInputStream(file))
+            try
             {
-                int bytesRead;
+                byte[] ackBuffer = new byte[
+                        Packet.HEADER_LEN
+                                + config.getPayloadSize()
+                ];
 
-                while ((bytesRead = input.read(buffer)) != -1)
-                {
-                    byte[] payload = new byte[bytesRead];
+                DatagramPacket ackDatagram =
+                        new DatagramPacket(
+                                ackBuffer,
+                                ackBuffer.length
+                        );
 
-                    System.arraycopy(
-                            buffer,
-                            0,
-                            payload,
-                            0,
-                            bytesRead
-                    );
-
-                    Packet packet = new Packet(
-                            Packet.TYPE_DATA,
-                            seq,
-                            0,
-                            0,
-                            0,
-                            payload
-                    );
-
-                    byte[] data = packet.encode();
-
-                    DatagramPacket datagram = new DatagramPacket(
-                            data,
-                            data.length,
-                            peer
-                    );
-
-                    boolean acknowledged = false;
-
-                    socket.send(datagram);
-                    stats.onDataSent(data.length, false);
-
-                    while (!acknowledged)
-                    {
-                        try
-                        {
-                            byte[] ackBuffer = new byte[
-                                    Packet.HEADER_LEN
-                                            + config.getPayloadSize()
-                            ];
-
-                            DatagramPacket ackDatagram =
-                                    new DatagramPacket(
-                                            ackBuffer,
-                                            ackBuffer.length
-                                    );
-
-                            socket.receive(ackDatagram);
-
-                            try
-                            {
-                                Packet ackPacket = Packet.decode(
-                                        ackDatagram.getData(),
-                                        ackDatagram.getLength()
-                                );
-
-                                if (ackPacket.type != Packet.TYPE_ACK)
-                                {
-                                    continue;
-                                }
-
-                                if (ackPacket.ack != seq)
-                                {
-                                    continue;
-                                }
-
-                                stats.onAck(false);
-                                acknowledged = true;
-                            }
-                            catch (CorruptPacketException e)
-                            {
-                                stats.onCorruptDropped();
-                            }
-                        }
-                        catch (SocketTimeoutException e)
-                        {
-                            stats.onTimeout();
-
-                            socket.send(datagram);
-                            stats.onDataSent(data.length, true);
-                        }
-                    }
-
-                    seq = 1 - seq;
-                }
-            }
-
-            Packet finPacket = Session.createFinPacket(seq);
-            byte[] finData = finPacket.encode();
-
-            DatagramPacket finDatagram = new DatagramPacket(
-                    finData,
-                    finData.length,
-                    peer
-            );
-
-            boolean finAcknowledged = false;
-
-            while (!finAcknowledged)
-            {
-                socket.send(finDatagram);
+                socket.receive(ackDatagram);
 
                 try
                 {
-                    byte[] finAckBuffer = new byte[
-                            Packet.HEADER_LEN
-                                    + config.getPayloadSize()
-                    ];
-
-                    DatagramPacket finAckDatagram =
-                            new DatagramPacket(
-                                    finAckBuffer,
-                                    finAckBuffer.length
-                            );
-
-                    socket.receive(finAckDatagram);
-
-                    Packet finAckPacket = Packet.decode(
-                            finAckDatagram.getData(),
-                            finAckDatagram.getLength()
+                    Packet ackPacket = Packet.decode(
+                            ackDatagram.getData(),
+                            ackDatagram.getLength()
                     );
 
-                    if (finAckPacket.type == Packet.TYPE_FINACK
-                            && finAckPacket.seq == seq)
+                    if (ackPacket.type != Packet.TYPE_ACK)
                     {
-                        finAcknowledged = true;
+                        continue;
                     }
-                }
-                catch (SocketTimeoutException e)
-                {
-                    stats.onTimeout();
+
+                    if (ackPacket.ack != 0)
+                    {
+                        continue;
+                    }
+
+                    stats.onAck(false);
+                    metaAcknowledged = true;
                 }
                 catch (CorruptPacketException e)
                 {
                     stats.onCorruptDropped();
                 }
             }
+            catch (SocketTimeoutException e)
+            {
+                stats.onTimeout();
 
-            stats.stop();
-
-            return stats;
+                socket.send(metaDatagram);
+                stats.onDataSent(metaData.length, true);
+            }
         }
-    }
 
+        long seq = 1;
+
+        byte[] buffer = new byte[config.getPayloadSize()];
+
+        try (InputStream input = Files.newInputStream(file))
+        {
+            int bytesRead;
+
+            while ((bytesRead = input.read(buffer)) != -1)
+            {
+                byte[] payload = new byte[bytesRead];
+
+                System.arraycopy(
+                        buffer,
+                        0,
+                        payload,
+                        0,
+                        bytesRead
+                );
+
+                Packet packet = new Packet(
+                        Packet.TYPE_DATA,
+                        seq,
+                        0,
+                        0,
+                        0,
+                        payload
+                );
+
+                byte[] data = packet.encode();
+
+                DatagramPacket datagram = new DatagramPacket(
+                        data,
+                        data.length,
+                        peer
+                );
+
+                boolean acknowledged = false;
+
+                socket.send(datagram);
+                stats.onDataSent(data.length, false);
+
+                while (!acknowledged)
+                {
+                    try
+                    {
+                        byte[] ackBuffer = new byte[
+                                Packet.HEADER_LEN
+                                        + config.getPayloadSize()
+                        ];
+
+                        DatagramPacket ackDatagram =
+                                new DatagramPacket(
+                                        ackBuffer,
+                                        ackBuffer.length
+                                );
+
+                        socket.receive(ackDatagram);
+
+                        try
+                        {
+                            Packet ackPacket = Packet.decode(
+                                    ackDatagram.getData(),
+                                    ackDatagram.getLength()
+                            );
+
+                            if (ackPacket.type != Packet.TYPE_ACK)
+                            {
+                                continue;
+                            }
+
+                            if (ackPacket.ack != seq)
+                            {
+                                continue;
+                            }
+
+                            stats.onAck(false);
+                            acknowledged = true;
+                        }
+                        catch (CorruptPacketException e)
+                        {
+                            stats.onCorruptDropped();
+                        }
+                    }
+                    catch (SocketTimeoutException e)
+                    {
+                        stats.onTimeout();
+
+                        socket.send(datagram);
+                        stats.onDataSent(data.length, true);
+                    }
+                }
+
+                seq = 1 - seq;
+            }
+        }
+
+        Packet finPacket = Session.createFinPacket(seq);
+        byte[] finData = finPacket.encode();
+
+        DatagramPacket finDatagram = new DatagramPacket(
+                finData,
+                finData.length,
+                peer
+        );
+
+        boolean finAcknowledged = false;
+
+        while (!finAcknowledged)
+        {
+            socket.send(finDatagram);
+
+            try
+            {
+                byte[] finAckBuffer = new byte[
+                        Packet.HEADER_LEN
+                                + config.getPayloadSize()
+                ];
+
+                DatagramPacket finAckDatagram =
+                        new DatagramPacket(
+                                finAckBuffer,
+                                finAckBuffer.length
+                        );
+
+                socket.receive(finAckDatagram);
+
+                Packet finAckPacket = Packet.decode(
+                        finAckDatagram.getData(),
+                        finAckDatagram.getLength()
+                );
+
+                if (finAckPacket.type == Packet.TYPE_FINACK
+                        && finAckPacket.seq == seq)
+                {
+                    finAcknowledged = true;
+                }
+            }
+            catch (SocketTimeoutException e)
+            {
+                stats.onTimeout();
+            }
+            catch (CorruptPacketException e)
+            {
+                stats.onCorruptDropped();
+            }
+        }
+
+        stats.setShaMatch(
+                Session.verifySha256(
+                        file,
+                        expectedSha256
+                )
+        );
+
+        stats.stop();
+
+        return stats;
+    }
+}
     @Override
     public RunStats receive(Path file, int port,
                             ProtocolConfig config) throws IOException
@@ -204,7 +280,7 @@ public final class StopAndWait implements ArqProtocol
              OutputStream output = Files.newOutputStream(file))
         {
             long expectedSeq = 1;
-
+            String expectedSha256 = null;
             while (true)
             {
                 byte[] buffer = new byte[
@@ -248,11 +324,41 @@ public final class StopAndWait implements ArqProtocol
                             datagram.getPort()
                     );
 
-                    socket.send(finAck);
+                                        socket.send(finAck);
+
+                    if (expectedSha256 != null)
+                    {
+                        stats.setShaMatch(
+                                Session.verifySha256(
+                                        file,
+                                        expectedSha256
+                                )
+                        );
+                    }
 
                     break;
                 }
+                                if (packet.type == Packet.TYPE_DATA
+                        && packet.flags == 0x01)
+                {
+                   Session.MetaInfo meta = Session.parseMeta(packet.payload);
+                        expectedSha256 = meta.sha256;
+                    byte[] ackData =
+                            Packet.ack(packet.seq, 0).encode();
 
+                    DatagramPacket ack = new DatagramPacket(
+                            ackData,
+                            ackData.length,
+                            datagram.getAddress(),
+                            datagram.getPort()
+                    );
+
+                    socket.send(ack);
+
+                    stats.onAck(false);
+
+                    continue;
+                }
                 if (packet.type != Packet.TYPE_DATA)
                 {
                     continue;
