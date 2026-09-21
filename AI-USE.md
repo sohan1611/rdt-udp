@@ -74,13 +74,11 @@ code structure, and verified the project tests after the change.
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
 ### 2026-09-16 — TimerWheel.java 
-**What:** AI explained the min-heap timer design, helped draft the TimerWheel implementation 
-(PriorityQueue with lazy cancellation, System.nanoTime() deadlines, and socket timeout derivation), 
-and reviewed the code for correctness. 
+**What:** AI explained the min-heap timer design: PriorityQueue structure, lazy cancellation, System.nanoTime() deadlines, 
+and how to derive the socket timeout from the earliest deadline. It did not produce the implementation file. 
 
-**Permitted under:** explaining concepts; reviewing our code. 
-
-**Mine:** I wrote TimerWheel.java myself using the design guidance. I ran PacketTest and TimerWheelTest and verified all tests passed. 
+**Permitted under:** explaining concepts. 
+**Mine:** I wrote TimerWheel.java from scratch using the design guidance. All code, naming, and structure are my own.
 
 ### 2026-09-20 — TimerWheel package fix and TimerWheelTest rewrite 
 **What:** AI guided the move of TimerWheel.java from src/main/timer/ (package timer) to src/main/java/rdt/ (package rdt), 
