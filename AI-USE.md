@@ -118,6 +118,23 @@ branch, and drafted the review comments. I posted them and made the request-chan
 and merge decisions.
 **Permitted under:** reviewing our code.
 
+### 2026-09-17 — TraceLog tests
+**What:** Claude wrote `TraceLogTest` — nine cases covering the disabled path, the JSON line
+shape, three-decimal delays, locale independence, one line per record, close being safe to
+call twice, and the `type`/`ack` fields including that a DATA line and an ACK line no longer
+write the same text — and registered it in `build.sh` and the `Makefile`.
+**Permitted under:** generating tests.
+**Mine:** the `TraceLog` implementation the tests run against, including the Locale.ROOT fix
+and the `type`/`ack` fields with the four-argument overload.
+
+### 2026-09-19 — NetEm and ChannelConfig review, NaN test
+**What:** Claude compared my NetEm and ChannelConfig changes against the draft. It found
+that my new range check accepted NaN, so `loss=NaN` silently dropped nothing, and added a
+ChannelTest case rejecting NaN for every probability key. It confirmed the test fails
+against the buggy check.
+**Permitted under:** reviewing our code; generating tests.
+**Mine:** the fix to the range check.
+
 ### 2026-09-20 — RunStats tests and review
 **What:** Claude wrote `RunStatsTest` — eleven cases covering the RESULT line's shape, the
 sixteen keys in CONVENTIONS order, quoting, the goodput and throughput arithmetic, the
@@ -131,6 +148,28 @@ It also reviewed my first version of `RunStats` and found two problems:
    fields described different sets of packets.
 **Permitted under:** generating tests; reviewing our code.
 **Mine:** `RunStats` itself, and the fixes for both problems.
+
+### 2026-09-20 — Calibrate review
+**What:** Claude reviewed my rewrite of `Calibrate` and ran it end to end. It found four
+problems in my first version:
+1. The ceiling recorded the offered rate, not the achieved rate, so a machine whose sender
+   could not keep pace would report a higher ceiling than it actually sustained.
+2. If NetEm failed to start, its non-daemon thread kept the JVM alive, so a failed
+   calibration hung instead of exiting.
+3. `close()` declared `throws Exception`, which caused two compiler warnings on every build.
+4. The class had no comment explaining why the calibration exists.
+**Permitted under:** reviewing our code.
+**Mine:** the `Calibrate` rewrite and all four fixes.
+
+### 2026-09-20 — NetEmSmokeTest fix for Linux
+**What:** On the first run under WSL2, the "drops roughly the configured fraction" test
+failed with a measured loss of 77.9% against a configured 30%. Claude traced it to the
+test, not the emulator: it sent 1,000 datagrams before reading any, and Linux's default
+212,992-byte receive buffer holds only about 220 of them, so the kernel's drops were
+counted as the emulator's. The original draft emulator failed identically. Claude
+changed the test to send in batches of 50 and read between them.
+**Permitted under:** debugging; generating tests.
+**Mine:** running the suite on the experiment host, which is what exposed it.
 
 ---
 
@@ -178,7 +217,16 @@ you will be asked to defend:
   sharing a seed then differ only in the variable under test, which lowers variance
   between neighbouring points on a curve.
 
-**Status:** [ ] not yet rewritten. A first attempt on `m4/emulator-rewrite` (16 Sep) did not
-meet the requirement: the committed files were the AI draft with its comments removed, so
-`Channel`, `TraceLog` and `NetEm` were unchanged in substance. Being rewritten by hand; this
-box stays unticked until that is done. — M4: sign and date here when complete
+**Status:** [ ] partly done. A first attempt on `m4/emulator-rewrite` (16 Sep) did not meet
+the requirement: the committed files were the AI draft with its comments removed, so
+`Channel`, `TraceLog` and `NetEm` were unchanged in substance.
+
+`TraceLog.java` and `Channel.java` were rewritten by hand on 17 Sep, and `Calibrate.java`
+on 20 Sep — M4 Sohan Mandal. `TraceLog` also gained the `type` and `ack` fields the
+decision trace needs before Experiment 4 can label a retransmission spurious.
+
+`NetEm.java` and `ChannelConfig.java` were restructured on 19 Sep: expressions split out,
+ternaries expanded, loops reshaped, and a new range check on `reorderExtra`. They keep
+the draft's design, names and messages, so they do not yet count as rewritten. This box
+stays unticked until all five are rewritten.
+— M4: sign and date here when complete
