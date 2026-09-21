@@ -51,9 +51,53 @@ Add an entry whenever AI materially helped. Use this shape:
 
 ## M1 — Framing & Session · Shaili Seth
 
-_No entries yet._
+### 2026-09-16 — Packet.java
+**What:** AI explained the existing Packet implementation, including the 20-byte header,
+encoding/decoding, validation, and RFC 1071 checksum logic, and reviewed my rewrite for
+correctness.
+
+**Permitted under:** explaining concepts; debugging; reviewing our code.
+
+**Mine:** I rewrote `Packet.java` myself, including the implementation changes, helper
+and variable naming, and formatting. I ran the tests and verified that `PacketTest`
+passed all 13 tests.
+
+### 2026-09-17 — CorruptPacketException.java
+**What:** AI reviewed my rewrite of `CorruptPacketException.java` and helped verify that
+the changes preserved its functionality.
+
+**Permitted under:** explaining concepts; reviewing our code.
+
+**Mine:** I rewrote `CorruptPacketException.java` myself, including its formatting and
+code structure, and verified the project tests after the change.
 
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
+
+### 2026-09-16 — TimerWheel.java 
+**What:** AI explained the min-heap timer design, helped draft the TimerWheel implementation 
+(PriorityQueue with lazy cancellation, System.nanoTime() deadlines, and socket timeout derivation), 
+and reviewed the code for correctness. 
+
+**Permitted under:** explaining concepts; reviewing our code. 
+
+**Mine:** I wrote TimerWheel.java myself using the design guidance. I ran PacketTest and TimerWheelTest and verified all tests passed. 
+
+### 2026-09-20 — TimerWheel package fix and TimerWheelTest rewrite 
+**What:** AI guided the move of TimerWheel.java from src/main/timer/ (package timer) to src/main/java/rdt/ (package rdt), 
+rewrote TimerWheelTest using the project's Harness style (matching SeqSpaceTest) without JUnit, 
+and updated build.sh and Makefile to include rdt.TimerWheelTest. 
+
+**Permitted under:** explaining concepts; reviewing our code. 
+
+**Mine:** I made all file changes, ran the tests to confirm 3/3 passing, committed on branch fix/timer-wheel-rdt, and opened the PR. 
+
+### 2026-09-21 — PR review questions (Shaili's Packet PR and PR #7) 
+**What:** AI drafted three "why" review questions for Shaili's Packet PR (seq as long, RFC 1071 checksum property, wireLength parameter)
+and three for PR #7 emulator (drawTen() fixed draws, tiebreakCounter ordering, seed XOR constant). 
+
+**Permitted under:** reviewing our code. 
+
+**Mine:** I posted all questions, read the answers, and made the approve/comment decisions independently.
 
 ## M3 — Selective Repeat · Sohini Pandit
 
@@ -114,6 +158,59 @@ branch, and drafted the review comments. I posted them and made the request-chan
 and merge decisions.
 **Permitted under:** reviewing our code.
 
+### 2026-09-17 — TraceLog tests
+**What:** Claude wrote `TraceLogTest` — nine cases covering the disabled path, the JSON line
+shape, three-decimal delays, locale independence, one line per record, close being safe to
+call twice, and the `type`/`ack` fields including that a DATA line and an ACK line no longer
+write the same text — and registered it in `build.sh` and the `Makefile`.
+**Permitted under:** generating tests.
+**Mine:** the `TraceLog` implementation the tests run against, including the Locale.ROOT fix
+and the `type`/`ack` fields with the four-argument overload.
+
+### 2026-09-19 — NetEm and ChannelConfig review, NaN test
+**What:** Claude compared my NetEm and ChannelConfig changes against the draft. It found
+that my new range check accepted NaN, so `loss=NaN` silently dropped nothing, and added a
+ChannelTest case rejecting NaN for every probability key. It confirmed the test fails
+against the buggy check.
+**Permitted under:** reviewing our code; generating tests.
+**Mine:** the fix to the range check.
+
+### 2026-09-20 — RunStats tests and review
+**What:** Claude wrote `RunStatsTest` — eleven cases covering the RESULT line's shape, the
+sixteen keys in CONVENTIONS order, quoting, the goodput and throughput arithmetic, the
+timed window for wire bytes and packet counts, the retransmission and duplicate-ACK
+subsets, runs that never started or never finished, and locale independence — and
+registered it in `build.sh` and the `Makefile`.
+It also reviewed my first version of `RunStats` and found two problems:
+1. If a transfer never finished, `stop()` was never called, so `elapsed_ms` in the RESULT
+   line came out as a large negative number (-9,715,193 ms).
+2. The handshake packet was counted in `data_sent` but not in `wire_bytes`, so the two
+   fields described different sets of packets.
+**Permitted under:** generating tests; reviewing our code.
+**Mine:** `RunStats` itself, and the fixes for both problems.
+
+### 2026-09-20 — Calibrate review
+**What:** Claude reviewed my rewrite of `Calibrate` and ran it end to end. It found four
+problems in my first version:
+1. The ceiling recorded the offered rate, not the achieved rate, so a machine whose sender
+   could not keep pace would report a higher ceiling than it actually sustained.
+2. If NetEm failed to start, its non-daemon thread kept the JVM alive, so a failed
+   calibration hung instead of exiting.
+3. `close()` declared `throws Exception`, which caused two compiler warnings on every build.
+4. The class had no comment explaining why the calibration exists.
+**Permitted under:** reviewing our code.
+**Mine:** the `Calibrate` rewrite and all four fixes.
+
+### 2026-09-20 — NetEmSmokeTest fix for Linux
+**What:** On the first run under WSL2, the "drops roughly the configured fraction" test
+failed with a measured loss of 77.9% against a configured 30%. Claude traced it to the
+test, not the emulator: it sent 1,000 datagrams before reading any, and Linux's default
+212,992-byte receive buffer holds only about 220 of them, so the kernel's drops were
+counted as the emulator's. The original draft emulator failed identically. Claude
+changed the test to send in batches of 50 and read between them.
+**Permitted under:** debugging; generating tests.
+**Mine:** running the suite on the experiment host, which is what exposed it.
+
 ---
 
 # Open items — must be cleared before submission
@@ -131,8 +228,11 @@ The brief bans generating our core protocol implementation. `Packet.java` is exa
 that. M1 rewrites it, using `PacketTest` as the specification and the draft as reference
 at most.
 
-**Status:** [ ] rewrite in progress on `m1/packet-rewrite` (16 Sep), 13 tests passing —
-M1: sign and date here when it merges
+**Status:** [ ] code merged 17 Sep (PR #6) and passing its 13 tests, but the rewrite is
+not done: the merged files are the AI draft with locals renamed and the formatting changed,
+so the logic is unchanged in substance. Measured against the draft, 95% of the code is
+character-identical once whitespace is normalised. M1 is rewriting it against `PacketTest`;
+this box stays unticked until that is done. — M1: sign and date here when complete
 
 ### 2. `Channel.java`, `NetEm.java`, `ChannelConfig.java`, `TraceLog.java`, `Calibrate.java` — owner M4
 
@@ -157,7 +257,16 @@ you will be asked to defend:
   sharing a seed then differ only in the variable under test, which lowers variance
   between neighbouring points on a curve.
 
-**Status:** [ ] not yet rewritten. A first attempt on `m4/emulator-rewrite` (16 Sep) did not
-meet the requirement: the committed files were the AI draft with its comments removed, so
-`Channel`, `TraceLog` and `NetEm` were unchanged in substance. Being rewritten by hand; this
-box stays unticked until that is done. — M4: sign and date here when complete
+**Status:** [ ] partly done. A first attempt on `m4/emulator-rewrite` (16 Sep) did not meet
+the requirement: the committed files were the AI draft with its comments removed, so
+`Channel`, `TraceLog` and `NetEm` were unchanged in substance.
+
+`TraceLog.java` and `Channel.java` were rewritten by hand on 17 Sep, and `Calibrate.java`
+on 20 Sep — M4 Sohan Mandal. `TraceLog` also gained the `type` and `ack` fields the
+decision trace needs before Experiment 4 can label a retransmission spurious.
+
+`NetEm.java` and `ChannelConfig.java` were restructured on 19 Sep: expressions split out,
+ternaries expanded, loops reshaped, and a new range check on `reorderExtra`. They keep
+the draft's design, names and messages, so they do not yet count as rewritten. This box
+stays unticked until all five are rewritten.
+— M4: sign and date here when complete
