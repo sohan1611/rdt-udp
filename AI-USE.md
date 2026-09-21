@@ -71,6 +71,29 @@ the changes preserved its functionality.
 **Mine:** I rewrote `CorruptPacketException.java` myself, including its formatting and
 code structure, and verified the project tests after the change.
 
+### 2026-09-19 — ProtocolConfig.java and CONVENTIONS.md
+
+**What:** AI explained the purpose of the shared `ProtocolConfig` settings and helped me
+review the protocol conventions needed by the ARQ implementations.
+
+**Permitted under:** explaining concepts; reviewing our code.
+
+**Mine:** I added `ProtocolConfig.java` and `docs/CONVENTIONS.md`, then committed the changes.
+
+### 2026-09-20 — Session, CLIs, ArqProtocol and Stop-and-Wait
+
+**What:** AI explained the Session-layer responsibilities, including metadata, SHA-256
+verification, and FIN/FINACK, and helped me review and debug the Sender/Receiver CLI and
+Stop-and-Wait implementation.
+
+**Permitted under:** explaining concepts; debugging; reviewing our code; boilerplate and
+plotting scripts.
+
+**Mine:** I added the Session helpers, Sender and Receiver CLI files, `ArqProtocol.java`,
+and `StopAndWait.java`. I ran the project build and verified 0 failed, then performed a
+local Sender-to-Receiver transfer test and checked the resulting statistics.
+
+
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
 ### 2026-09-16 — TimerWheel.java 
