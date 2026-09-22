@@ -121,6 +121,14 @@ and three for PR #7 emulator (drawTen() fixed draws, tiebreakCounter ordering, s
 
 **Mine:** I posted all questions, read the answers, and made the approve/comment decisions independently.
 
+### 2026-09-22 — RttEstimator.java 
+**What:** AI explained the Jacobson/Karels algorithm (SRTT, RTTVAR, RTO) and Karn's algorithm 
+(no sampling on retransmits, double RTO on timeout). It did not produce the implementation file. 
+
+**Permitted under:** explaining concepts. 
+
+**Mine:** I wrote RttEstimator.java from scratch using the design guidance. All code, naming, and structure are my own. I also wrote RttEstimatorTest with 5 hand-worked test cases and verified all pass.
+
 ## M3 — Selective Repeat · Sohini Pandit
 
 ### SeqSpace and ReceiveBufer.
