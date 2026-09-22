@@ -71,6 +71,13 @@ the changes preserved its functionality.
 **Mine:** I rewrote `CorruptPacketException.java` myself, including its formatting and
 code structure, and verified the project tests after the change.
 
+### 2026-09-21 — SHA-256 integrity and FIN/FINACK integration
+**What:** AI explained and helped me debug the META packet and SHA-256 integrity exchange, including storing the expected hash, verifying the received file, and checking the FIN/FINACK teardown. AI also reviewed the resulting Git diff and helped verify the end-to-end transfer statistics.
+
+**Permitted under:** explaining concepts; debugging; reviewing our code.
+
+**Mine:** I implemented the changes in `Session.java` and `StopAndWait.java`, ran the project build, performed an end-to-end Sender-to-Receiver test, verified `sha256_match:true` and the received file contents, and committed and pushed the changes as `13913e1`.
+
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
 ## M3 — Selective Repeat · Sohini Pandit
