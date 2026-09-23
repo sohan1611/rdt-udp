@@ -52,11 +52,20 @@ public final class NetEmSmokeTest {
 
         h.check("drops roughly the configured fraction", () -> {
             try (Fixture f = new Fixture("loss=0.3", "", 4242, null)) {
+                // Sent in batches and read between them. Sending all 1000 before
+                // reading any overflowed the receiver's socket buffer on Linux
+                // (212,992 bytes by default, about 220 of these datagrams), so the
+                // kernel's drops were counted as the emulator's.
                 int n = 1000;
-                for (int i = 0; i < n; i++) {
-                    f.send(i);
+                int batch = 50;
+                int arrived = 0;
+                for (int sent = 0; sent < n; sent += batch) {
+                    for (int i = sent; i < sent + batch; i++) {
+                        f.send(i);
+                    }
+                    arrived += f.drainReceiver(batch, 100).size();
                 }
-                int arrived = f.drainReceiver(n, 3000).size();
+                arrived += f.drainReceiver(n, 500).size();
                 double lossRate = 1.0 - (double) arrived / n;
                 assertTrue(String.format("loss %.3f should be near 0.30", lossRate),
                         Math.abs(lossRate - 0.30) < 0.06);
