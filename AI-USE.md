@@ -129,6 +129,14 @@ and three for PR #7 emulator (drawTen() fixed draws, tiebreakCounter ordering, s
 
 **Mine:** I wrote RttEstimator.java from scratch using the design guidance. All code, naming, and structure are my own. I also wrote RttEstimatorTest with 5 hand-worked test cases and verified all pass.
 
+### 2026-09-23 — GoBackN.java 
+**What:** AI explained the Go-Back-N algorithm: sliding window, cumulative ACKs, 
+single base timer, and retransmit-on-timeout. It did not produce the implementation file. 
+
+**Permitted under:** explaining concepts. 
+
+**Mine:** I wrote GoBackN.java from scratch using the design guidance. All code, naming, and structure are my own. I also wrote GoBackNTest with 4 tests and verified all pass.
+
 ## M3 — Selective Repeat · Sohini Pandit
 
 ### SeqSpace and ReceiveBufer.
