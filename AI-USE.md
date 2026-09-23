@@ -72,11 +72,21 @@ the changes preserved its functionality.
 code structure, and verified the project tests after the change.
 
 ### 2026-09-21 — SHA-256 integrity and FIN/FINACK integration
+
 **What:** AI explained and helped me debug the META packet and SHA-256 integrity exchange, including storing the expected hash, verifying the received file, and checking the FIN/FINACK teardown. AI also reviewed the resulting Git diff and helped verify the end-to-end transfer statistics.
 
 **Permitted under:** explaining concepts; debugging; reviewing our code.
 
-**Mine:** I implemented the changes in `Session.java` and `StopAndWait.java`, ran the project build, performed an end-to-end Sender-to-Receiver test, verified `sha256_match:true` and the received file contents, and committed and pushed the changes as `13913e1`.
+**Mine:** I implemented the changes in `Session.java` and `StopAndWait.java`, ran the project build, performed an end-to-end Sender-to-Receiver test, and verified the received file contents and the SHA-256 integrity result reported by the receiver. I committed and pushed the changes as `13913e1`.
+
+### 2026-09-23 — Stop-and-Wait teardown and integrity fixes
+
+**What:** AI helped me debug and review the Stop-and-Wait FIN/FINACK teardown and SHA-256 result exchange, including FINACK loss/retransmission, receiver linger, receiver-side SHA verification, and RunStats-related fixes. AI also reviewed the staged diff and helped verify the project build.
+
+**Permitted under:** explaining concepts; debugging; reviewing our code.
+
+**Mine:** I implemented the changes in `Session.java`, `StopAndWait.java`, and `Receiver.java`, ran `./build.sh` and verified 0 failed tests, reviewed the staged changes, and committed and pushed them as `ae16592`.
+
 
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
