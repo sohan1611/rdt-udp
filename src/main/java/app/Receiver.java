@@ -97,8 +97,6 @@ public final class Receiver
                 config
         );
 
-        System.out.println(stats.resultLine());
-
         if (verbose)
         {
             System.out.println("Transfer complete");

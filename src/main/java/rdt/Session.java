@@ -55,18 +55,21 @@ public final class Session
         );
     }
 
-    public static Packet createFinAckPacket(long seq)
+    public static Packet createFinAckPacket(long seq, boolean shaMatch)
     {
+        byte[] payload = Boolean.toString(shaMatch)
+            .getBytes(StandardCharsets.UTF_8);
+
         return new Packet(
-                Packet.VERSION,
-                Packet.TYPE_FINACK,
-                (byte) 0,
-                seq,
-                0,
-                0,
-                0,
-                new byte[0]
-        );
+            Packet.VERSION,
+            Packet.TYPE_FINACK,
+            (byte) 0,
+            seq,
+            0,
+            0,
+            0,
+            payload
+            );
     }
 
     public static MetaInfo parseMeta(byte[] payload) throws IOException
