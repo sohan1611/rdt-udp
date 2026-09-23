@@ -249,6 +249,18 @@ changed the test to send in batches of 50 and read between them.
 **Permitted under:** debugging; generating tests.
 **Mine:** running the suite on the experiment host, which is what exposed it.
 
+### 2026-09-24 — run_matrix.py and experiment configs
+**What:** Claude set out a stage-by-stage design for the sweep harness with example code
+for each stage, reviewed my script, and found two bugs: every run was marked as an error
+because the RESULT line's protocol, window and seqbits were treated as collisions, and
+failed runs were never retried. It also added `results/.work/` to `.gitignore`, gave
+exp4 a 2% loss so the RTO policies can differ, sped up input-file generation, and
+silenced the child processes' output.
+**Permitted under:** boilerplate and plotting scripts; reviewing our code.
+**Mine:** `run_matrix.py` as written, including the RESULT validation (16 fields, and a
+check that protocol, window and seqbits match what was requested), resume on crash, and
+the four experiment configs.
+
 ---
 
 # Open items — must be cleared before submission

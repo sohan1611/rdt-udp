@@ -7,6 +7,8 @@ traces/
 *.jsonl
 
 # committed on purpose: results/*.csv and figures/*.png are evidence
+# ...but not the harness's scratch input and output files
+results/.work/
 
 .idea/
 *.iml
