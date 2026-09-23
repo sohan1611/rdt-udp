@@ -13,7 +13,7 @@ JAVAC_OPTS := -Xlint:all -d $(BUILD_DIR)
 # Heap pinned so it never resizes mid-run; see the plan, section 8.
 RUN_OPTS   := -Xms512m -Xmx512m
 SOURCES    := $(shell find $(SRC_DIR) $(TEST_DIR) -name '*.java')
-TESTS      := rdt.PacketTest rdt.ChannelTest rdt.NetEmSmokeTest rdt.SeqSpaceTest rdt.RunStatsTest
+TESTS      := rdt.PacketTest rdt.ChannelTest rdt.NetEmSmokeTest rdt.SeqSpaceTest rdt.TimerWheelTest rdt.RttEstimatorTest rdt.ReceiveBufferTest rdt.RunStatsTest rdt.TraceLogTest
 
 .PHONY: all build test experiments figures clean
 

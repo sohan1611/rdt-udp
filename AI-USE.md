@@ -71,6 +71,28 @@ the changes preserved its functionality.
 **Mine:** I rewrote `CorruptPacketException.java` myself, including its formatting and
 code structure, and verified the project tests after the change.
 
+### 2026-09-19 — ProtocolConfig.java and CONVENTIONS.md
+
+**What:** AI explained the purpose of the shared `ProtocolConfig` settings and helped me
+review the protocol conventions needed by the ARQ implementations.
+
+**Permitted under:** explaining concepts; reviewing our code.
+
+**Mine:** I added `ProtocolConfig.java` and `docs/CONVENTIONS.md`, then committed the changes.
+
+### 2026-09-20 — Session, CLIs, ArqProtocol and Stop-and-Wait
+
+**What:** AI explained the Session-layer responsibilities, including metadata, SHA-256
+verification, and FIN/FINACK, and helped me review and debug the Sender/Receiver CLI and
+Stop-and-Wait implementation.
+
+**Permitted under:** explaining concepts; debugging; reviewing our code; boilerplate and
+plotting scripts.
+
+**Mine:** I added the Session helpers, Sender and Receiver CLI files, `ArqProtocol.java`,
+and `StopAndWait.java`. I ran the project build and verified 0 failed, then performed a
+local Sender-to-Receiver transfer test and checked the resulting statistics.
+
 ### 2026-09-21 — SHA-256 integrity and FIN/FINACK integration
 
 **What:** AI explained and helped me debug the META packet and SHA-256 integrity exchange, including storing the expected hash, verifying the received file, and checking the FIN/FINACK teardown. AI also reviewed the resulting Git diff and helped verify the end-to-end transfer statistics.
@@ -87,20 +109,74 @@ code structure, and verified the project tests after the change.
 
 **Mine:** I implemented the changes in `Session.java`, `StopAndWait.java`, and `Receiver.java`, ran `./build.sh` and verified 0 failed tests, reviewed the staged changes, and committed and pushed them as `ae16592`.
 
-
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
+
+### 2026-09-16 — TimerWheel.java 
+**What:** AI explained the min-heap timer design: PriorityQueue structure, lazy cancellation, System.nanoTime() deadlines, 
+and how to derive the socket timeout from the earliest deadline. It did not produce the implementation file. 
+
+**Permitted under:** explaining concepts.
+
+**Mine:** I wrote TimerWheel.java from scratch using the design guidance. All code, naming, and structure are my own.
+
+### 2026-09-20 — TimerWheel package fix and TimerWheelTest rewrite 
+**What:** AI guided the move of TimerWheel.java from src/main/timer/ (package timer) to src/main/java/rdt/ (package rdt), 
+rewrote TimerWheelTest using the project's Harness style (matching SeqSpaceTest) without JUnit, 
+and updated build.sh and Makefile to include rdt.TimerWheelTest. 
+
+**Permitted under:** explaining concepts; reviewing our code. 
+
+**Mine:** I made all file changes, ran the tests to confirm 3/3 passing, committed on branch fix/timer-wheel-rdt, and opened the PR. 
+
+### 2026-09-21 — PR review questions (Shaili's Packet PR and PR #7) 
+**What:** AI drafted three "why" review questions for Shaili's Packet PR (seq as long, RFC 1071 checksum property, wireLength parameter)
+and three for PR #7 emulator (drawTen() fixed draws, tiebreakCounter ordering, seed XOR constant). 
+
+**Permitted under:** reviewing our code. 
+
+**Mine:** I posted all questions, read the answers, and made the approve/comment decisions independently.
+
+### 2026-09-22 — RttEstimator.java 
+**What:** AI explained the Jacobson/Karels algorithm (SRTT, RTTVAR, RTO) and Karn's algorithm 
+(no sampling on retransmits, double RTO on timeout). It did not produce the implementation file. 
+
+**Permitted under:** explaining concepts. 
+
+**Mine:** I wrote RttEstimator.java from scratch using the design guidance. All code, naming, and structure are my own. I also wrote RttEstimatorTest with 5 hand-worked test cases and verified all pass.
+
+### 2026-09-23 — GoBackN.java 
+**What:** AI explained the Go-Back-N algorithm: sliding window, cumulative ACKs, 
+single base timer, and retransmit-on-timeout. It did not produce the implementation file. 
+
+**Permitted under:** explaining concepts. 
+
+**Mine:** I wrote GoBackN.java from scratch using the design guidance. All code, naming, and structure are my own. I also wrote GoBackNTest with 4 tests and verified all pass.
 
 ## M3 — Selective Repeat · Sohini Pandit
 
-_No entries yet._
+### SeqSpace and ReceiveBufer.
+## M3 — Selective Repeat · Sohini Pandit
+
+### 2026-09-16 — SeqSpace
+**What:** ChatGPT helped me understand compiler errors, Java API mismatches, sequence-number window logic, and test failures while implementing and debugging SeqSpace.
+
+**Permitted under:** explaining concepts; debugging code; reviewing code.
+
+**Mine:** I wrote and made the final changes to the SeqSpace implementation and tests myself.
+
+### 2026-09-18 — ReceiveBuffer
+**What:** ChatGPT helped me understand the ReceiveBuffer requirements, Java API mismatches, receive-window logic, ring-buffer indexing, and test failures while implementing and debugging ReceiveBuffer.
+
+**Permitted under:** explaining concepts; debugging code; reviewing code; generating tests.
+
+**Mine:** I wrote and made the final changes to the ReceiveBuffer implementation and tests myself.
 
 ## M4 — Channel & Evidence · Sohan Mandal
 
 ### 2026-08-31 — Project planning and role split
 **What:** Claude extracted the assignment PDF, compared the eight catalogue projects
 against our constraints, and drafted the project plan and team plan (schedule, work
-split, experiment design, risk register).
-**Permitted under:** explaining concepts; improving our writing.
+split, experiment design, risk register).**Permitted under:** explaining concepts; improving our writing.
 **Mine:** Choosing P3, choosing Java over Python, and the role allocation were our
 decisions. We supplied the constraint that most of the group is stronger in Java, which
 is what changed the language recommendation.
@@ -135,6 +211,23 @@ branch, and drafted the review comments. I posted them and made the request-chan
 and merge decisions.
 **Permitted under:** reviewing our code.
 
+### 2026-09-17 — TraceLog tests
+**What:** Claude wrote `TraceLogTest` — nine cases covering the disabled path, the JSON line
+shape, three-decimal delays, locale independence, one line per record, close being safe to
+call twice, and the `type`/`ack` fields including that a DATA line and an ACK line no longer
+write the same text — and registered it in `build.sh` and the `Makefile`.
+**Permitted under:** generating tests.
+**Mine:** the `TraceLog` implementation the tests run against, including the Locale.ROOT fix
+and the `type`/`ack` fields with the four-argument overload.
+
+### 2026-09-19 — NetEm and ChannelConfig review, NaN test
+**What:** Claude compared my NetEm and ChannelConfig changes against the draft. It found
+that my new range check accepted NaN, so `loss=NaN` silently dropped nothing, and added a
+ChannelTest case rejecting NaN for every probability key. It confirmed the test fails
+against the buggy check.
+**Permitted under:** reviewing our code; generating tests.
+**Mine:** the fix to the range check.
+
 ### 2026-09-20 — RunStats tests and review
 **What:** Claude wrote `RunStatsTest` — eleven cases covering the RESULT line's shape, the
 sixteen keys in CONVENTIONS order, quoting, the goodput and throughput arithmetic, the
@@ -148,6 +241,28 @@ It also reviewed my first version of `RunStats` and found two problems:
    fields described different sets of packets.
 **Permitted under:** generating tests; reviewing our code.
 **Mine:** `RunStats` itself, and the fixes for both problems.
+
+### 2026-09-20 — Calibrate review
+**What:** Claude reviewed my rewrite of `Calibrate` and ran it end to end. It found four
+problems in my first version:
+1. The ceiling recorded the offered rate, not the achieved rate, so a machine whose sender
+   could not keep pace would report a higher ceiling than it actually sustained.
+2. If NetEm failed to start, its non-daemon thread kept the JVM alive, so a failed
+   calibration hung instead of exiting.
+3. `close()` declared `throws Exception`, which caused two compiler warnings on every build.
+4. The class had no comment explaining why the calibration exists.
+**Permitted under:** reviewing our code.
+**Mine:** the `Calibrate` rewrite and all four fixes.
+
+### 2026-09-20 — NetEmSmokeTest fix for Linux
+**What:** On the first run under WSL2, the "drops roughly the configured fraction" test
+failed with a measured loss of 77.9% against a configured 30%. Claude traced it to the
+test, not the emulator: it sent 1,000 datagrams before reading any, and Linux's default
+212,992-byte receive buffer holds only about 220 of them, so the kernel's drops were
+counted as the emulator's. The original draft emulator failed identically. Claude
+changed the test to send in batches of 50 and read between them.
+**Permitted under:** debugging; generating tests.
+**Mine:** running the suite on the experiment host, which is what exposed it.
 
 ---
 
@@ -195,7 +310,16 @@ you will be asked to defend:
   sharing a seed then differ only in the variable under test, which lowers variance
   between neighbouring points on a curve.
 
-**Status:** [ ] not yet rewritten. A first attempt on `m4/emulator-rewrite` (16 Sep) did not
-meet the requirement: the committed files were the AI draft with its comments removed, so
-`Channel`, `TraceLog` and `NetEm` were unchanged in substance. Being rewritten by hand; this
-box stays unticked until that is done. — M4: sign and date here when complete
+**Status:** [ ] partly done. A first attempt on `m4/emulator-rewrite` (16 Sep) did not meet
+the requirement: the committed files were the AI draft with its comments removed, so
+`Channel`, `TraceLog` and `NetEm` were unchanged in substance.
+
+`TraceLog.java` and `Channel.java` were rewritten by hand on 17 Sep, and `Calibrate.java`
+on 20 Sep — M4 Sohan Mandal. `TraceLog` also gained the `type` and `ack` fields the
+decision trace needs before Experiment 4 can label a retransmission spurious.
+
+`NetEm.java` and `ChannelConfig.java` were restructured on 19 Sep: expressions split out,
+ternaries expanded, loops reshaped, and a new range check on `reorderExtra`. They keep
+the draft's design, names and messages, so they do not yet count as rewritten. This box
+stays unticked until all five are rewritten.
+— M4: sign and date here when complete
