@@ -261,6 +261,17 @@ silenced the child processes' output.
 check that protocol, window and seqbits match what was requested), resume on crash, and
 the four experiment configs.
 
+### 2026-09-24 — plots.py
+**What:** Claude set out a stage-by-stage design for the plotting script with example
+code, including the 95% confidence interval using t critical values for small samples,
+then tested my script against synthetic data for all four figure shapes. It added a log
+y-axis so Stop-and-Wait is visible next to GBN and SR, a base-2 axis for window sizes,
+unit-labelled axes (goodput in Mbit/s), shorter legend labels, and a two-line title.
+**Permitted under:** boilerplate and plotting scripts.
+**Mine:** `plots.py` as written, including the categorical bar chart for the RTO
+policies, series made from two columns for the window figure, and the figure list
+that lets `make figures` run with no arguments.
+
 ---
 
 # Open items — must be cleared before submission
