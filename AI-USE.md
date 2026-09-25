@@ -137,6 +137,15 @@ single base timer, and retransmit-on-timeout. It did not produce the implementat
 
 **Mine:** I wrote GoBackN.java from scratch using the design guidance. All code, naming, and structure are my own. I also wrote GoBackNTest with 4 tests and verified all pass.
 
+### 2026-09-25 — GoBackN.java (fixes) 
+**What:** AI explained five protocol bugs: adaptive RTO runaway under loss, 
+duplicate ACKs restarting the timer, sender hanging on last ACK loss, slot() collision at wraparound, 
+and TimerWheel double-decrement. It did not produce the fixed implementation. 
+
+**Permitted under:** explaining concepts and debugging guidance. 
+
+**Mine:** I applied all five fixes to GoBackN.java and RttEstimator.java myself. I also added the backoffResets() test, verified 6/6 and 4/4 tests pass, and pushed the updated PR. I answered both viva questions (W <= 2^k-1, GBN vs SR tradeoff) in my own words from the RFC.
+
 ## M3 — Selective Repeat · Sohini Pandit
 
 ### SeqSpace and ReceiveBufer.
