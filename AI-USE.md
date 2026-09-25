@@ -264,10 +264,12 @@ NetEm in, then reviewed my rewrites. It found two command-line crashes in NetEm:
 channel spec "perfect" was rejected by the parser, and --verbose printed a double delay with
 an integer format. It measured both files against the original draft, and added tests: a second
 RunStats.start() must not reset the clock, and ChannelConfig rejects non-numeric, infinite and
-malformed values while tolerating spaces and a trailing comma.
-**Permitted under:** explaining concepts; reviewing our code; generating tests.
+malformed values while tolerating spaces and a trailing comma. It also gave the structure and
+the figures for docs/operating-points.md, including the worst case under jitter, and converted
+its equations to GitHub's math syntax.
+**Permitted under:** explaining concepts; reviewing our code; generating tests; improving our writing.
 **Mine:** the ChannelConfig and NetEm rewrites, including both fixes, the master-seed scheme,
-the 4 MB socket buffers, and the RunStats.start() guard.
+the 4 MB socket buffers, the RunStats.start() guard, and the text of the operating-point note.
 
 ---
 
