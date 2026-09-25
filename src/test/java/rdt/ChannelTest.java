@@ -189,6 +189,16 @@ public final class ChannelTest {
                     () -> ChannelConfig.parse("bogus=1"));
         });
 
+        h.check("rejects NaN for every probability", () -> {
+            // Every comparison with NaN is false, so a check written as
+            // (v < 0 || v > 1) lets NaN through, and loss=NaN then drops nothing.
+            // A typo in an experiment config would run a lossy cell at 0% loss.
+            for (String key : new String[] {"loss", "dup", "corrupt", "reorder"}) {
+                assertThrows(key + "=NaN", IllegalArgumentException.class,
+                        () -> ChannelConfig.parse(key + "=NaN"));
+            }
+        });
+
         h.done();
     }
 
