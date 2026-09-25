@@ -10,6 +10,8 @@ public final class GoBackN {
     private static final int SEQ_BITS = 16; 
     private static final long M = 1L << SEQ_BITS; 
     private static final int MAX_PAYLOAD = 1400; 
+    private static final int MAX_RETRIES = 20; 
+    private static final int LINGER_MS = 2000; 
     private final DatagramSocket socket; 
     private final InetSocketAddress remote; 
     private final int windowSize; 
@@ -21,6 +23,8 @@ public final class GoBackN {
     private final boolean[] retransmitted; 
     private long sendBase = 0; 
     private long nextSeqNum = 0; 
+    private int head = 0; 
+    private int retryCount = 0; 
     private final TimerWheel timerWheel = new TimerWheel(); 
     private TimerWheel.TimerHandle timerHandle = null; 
     public GoBackN(DatagramSocket socket, InetSocketAddress remote, int windowSize) { 
@@ -76,18 +80,19 @@ public final class GoBackN {
             catch (SocketTimeoutException e) { 
                 onTimeout(); 
             } 
-            catch (CorruptPacketException e) { 
-                // discard corrupt packet 
-            } 
+            catch (CorruptPacketException e) { } 
             TimerWheel.TimerHandle fired; 
             while ((fired = timerWheel.poll()) != null) { 
-                onTimeout(); break; 
+                timerHandle = null; 
+                onTimeout();
+                break; 
             } 
         } 
     } 
     public byte[] receive() throws IOException { 
         ByteArrayOutputStream out = new ByteArrayOutputStream(); 
         long expectedSeq = 0; 
+        long lastAck = 0; 
         while (true) { 
             byte[] buf = new byte[Packet.HEADER_LEN + MAX_PAYLOAD]; 
             DatagramPacket dp = new DatagramPacket(buf, buf.length); 
@@ -104,18 +109,38 @@ public final class GoBackN {
             if (pkt.seq == expectedSeq) { 
                 out.write(pkt.payload, 0, pkt.payload.length); 
                 expectedSeq = inc(expectedSeq); 
+                lastAck = expectedSeq; 
                 sendAck(expectedSeq); 
                 if (pkt.type == Packet.TYPE_FIN) 
                     break; 
             } 
             else { 
-                sendAck(expectedSeq); 
+                sendAck(lastAck); 
             } 
+        } 
+        long finSeq = (expectedSeq - 1 + M) % M; 
+        socket.setSoTimeout(LINGER_MS); 
+        long deadline = System.currentTimeMillis() + LINGER_MS; 
+        while (System.currentTimeMillis() < deadline) { 
+            byte[] buf = new byte[Packet.HEADER_LEN + MAX_PAYLOAD]; 
+            DatagramPacket dp = new DatagramPacket(buf, buf.length); 
+            try { 
+                socket.receive(dp); 
+                Packet pkt = Packet.decode(dp.getData(), dp.getLength()); 
+                if ((pkt.type == Packet.TYPE_DATA || pkt.type == Packet.TYPE_FIN) && pkt.seq == finSeq) 
+                    sendAck(expectedSeq); 
+            } 
+            catch (SocketTimeoutException e) { 
+                break; 
+            } 
+            catch (CorruptPacketException e) { } 
         } 
         return out.toByteArray(); 
     } 
     private void onAck(long ackNum) { 
         if (!SeqSpace.inCurrentWindow(ackNum, sendBase, windowSize + 1, M)) 
+            return; 
+        if (ackNum == sendBase) 
             return; 
         while (sendBase != ackNum) { 
             int slot = slot(sendBase); 
@@ -124,25 +149,30 @@ public final class GoBackN {
                 if (sampleNanos > 0) 
                     rtt.update(sampleNanos); 
             } 
+            head = (head + 1) % windowSize; 
             sendBase = inc(sendBase); 
         } 
+        retryCount = 0; 
+        rtt.resetBackoff(); 
         if (timerHandle != null) 
             timerWheel.cancel(timerHandle); 
         timerHandle = (sendBase == nextSeqNum) ? null : timerWheel.schedule(rtoMs(), "gbn-base"); 
     } 
-    private void onTimeout() { 
-        if (!fixedRto) rtt.doubleRto(); 
-        if (timerHandle != null) timerWheel.cancel(timerHandle); 
+    private void onTimeout() throws IOException { 
+        if (++retryCount > MAX_RETRIES) 
+            throw new IOException("GoBackN: max retries (" + MAX_RETRIES + ") exceeded"); 
+        if (!fixedRto) 
+            rtt.doubleRto(); 
+        if (timerHandle != null) { 
+            timerWheel.cancel(timerHandle); 
+            timerHandle = null; 
+        } 
         timerHandle = timerWheel.schedule(rtoMs(), "gbn-base"); 
         long seq = sendBase; 
         while (seq != nextSeqNum) { 
             int slot = slot(seq); 
             retransmitted[slot] = true; 
-            try { 
-                doSend(window[slot]); 
-
-            } 
-            catch (IOException ignored) {} 
+            doSend(window[slot]); 
             seq = inc(seq); 
         } 
     } 
@@ -158,7 +188,7 @@ public final class GoBackN {
         return fixedRto ? fixedRtoMs : rtt.rtoMs(); 
     } 
     private int slot(long s) { 
-        return (int)(s % windowSize); 
+        return (int)((head + SeqSpace.offset(s, sendBase, M)) % windowSize); 
     } 
     private long inc(long s) { 
         return (s + 1) % M; 
