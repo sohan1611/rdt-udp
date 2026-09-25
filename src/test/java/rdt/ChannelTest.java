@@ -189,6 +189,22 @@ public final class ChannelTest {
                     () -> ChannelConfig.parse("bogus=1"));
         });
 
+        h.check("rejects values that are not finite numbers", () -> {
+            assertThrows("non-numeric delay", IllegalArgumentException.class,
+                    () -> ChannelConfig.parse("delay=abc"));
+            assertThrows("infinite delay", IllegalArgumentException.class,
+                    () -> ChannelConfig.parse("delay=Infinity"));
+            assertThrows("missing '='", IllegalArgumentException.class,
+                    () -> ChannelConfig.parse("loss"));
+        });
+
+        h.check("tolerates spaces and a trailing comma", () -> {
+            ChannelConfig c = ChannelConfig.parse(" loss = 0.1 , delay=20 ,");
+            assertTrue("loss parsed", c.lossProb == 0.1);
+            assertTrue("delay parsed", c.delayMs == 20.0);
+            assertTrue("reorderExtra keeps its default of 20 ms", c.reorderExtraMs == 20.0);
+        });
+
         h.check("rejects NaN for every probability", () -> {
             // Every comparison with NaN is false, so a check written as
             // (v < 0 || v > 1) lets NaN through, and loss=NaN then drops nothing.

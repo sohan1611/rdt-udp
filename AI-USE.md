@@ -249,6 +249,17 @@ changed the test to send in batches of 50 and read between them.
 **Permitted under:** debugging; generating tests.
 **Mine:** running the suite on the experiment host, which is what exposed it.
 
+### 2026-09-26 — ChannelConfig and NetEm rewrite: review and tests
+**What:** Claude set out the contract ChannelConfig and NetEm must keep and the order to build
+NetEm in, then reviewed my rewrites. It found two command-line crashes in NetEm: the default
+channel spec "perfect" was rejected by the parser, and --verbose printed a double delay with
+an integer format. It measured both files against the original draft, and added tests: a second
+RunStats.start() must not reset the clock, and ChannelConfig rejects non-numeric, infinite and
+malformed values while tolerating spaces and a trailing comma.
+**Permitted under:** explaining concepts; reviewing our code; generating tests.
+**Mine:** the ChannelConfig and NetEm rewrites, including both fixes, the master-seed scheme,
+the 4 MB socket buffers, and the RunStats.start() guard.
+
 ---
 
 # Open items — must be cleared before submission
@@ -295,16 +306,10 @@ you will be asked to defend:
   sharing a seed then differ only in the variable under test, which lowers variance
   between neighbouring points on a curve.
 
-**Status:** [ ] partly done. A first attempt on `m4/emulator-rewrite` (16 Sep) did not meet
-the requirement: the committed files were the AI draft with its comments removed, so
-`Channel`, `TraceLog` and `NetEm` were unchanged in substance.
-
-`TraceLog.java` and `Channel.java` were rewritten by hand on 17 Sep, and `Calibrate.java`
-on 20 Sep — M4 Sohan Mandal. `TraceLog` also gained the `type` and `ack` fields the
-decision trace needs before Experiment 4 can label a retransmission spurious.
-
-`NetEm.java` and `ChannelConfig.java` were restructured on 19 Sep: expressions split out,
-ternaries expanded, loops reshaped, and a new range check on `reorderExtra`. They keep
-the draft's design, names and messages, so they do not yet count as rewritten. This box
-stays unticked until all five are rewritten.
-— M4: sign and date here when complete
+**Status:** [x] rewritten. A first attempt on `m4/emulator-rewrite` (16 Sep) did not meet the
+requirement: the committed files were the AI draft with its comments removed. All five files
+have since been written by hand: `TraceLog.java` and `Channel.java` on 17 Sep, `Calibrate.java`
+on 20 Sep, and `ChannelConfig.java` and `NetEm.java` on 25-26 Sep. Measured against the original
+draft, 15-18% of statements are shared in the two rewritten last; the overlap is the field
+declarations other classes read, and arithmetic with one correct form.
+— M4 Sohan Mandal, 2026-09-26
