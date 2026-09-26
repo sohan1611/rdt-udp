@@ -5,13 +5,20 @@ public class ProtocolConfig
     private final String rto;
     private final int seqBits;
     private final int maxPayload;
-    public ProtocolConfig(int window, String rto, int seqBits, int maxPayload)
+    private final long baseRttMs;
+    public ProtocolConfig(int window, String rto, int seqBits, int maxPayload, long baseRttMs)
     {
         this.window = window;
         this.rto = rto;
         this.seqBits = seqBits;
         this.maxPayload = maxPayload;
+        this.baseRttMs = baseRttMs;
     }
+    public long getBaseRttMs()
+    {
+        return baseRttMs;
+    }
+
     public int getWindowSize()
     {
         return window;

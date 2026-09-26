@@ -93,6 +93,28 @@ plotting scripts.
 and `StopAndWait.java`. I ran the project build and verified 0 failed, then performed a
 local Sender-to-Receiver transfer test and checked the resulting statistics.
 
+### 2026-09-21 — SHA-256 integrity and FIN/FINACK integration
+
+**What:** AI explained and helped me debug the META packet and SHA-256 integrity exchange, including storing the expected hash, verifying the received file, and checking the FIN/FINACK teardown. AI also reviewed the resulting Git diff and helped verify the end-to-end transfer statistics.
+
+**Permitted under:** explaining concepts; debugging; reviewing our code.
+
+**Mine:** I implemented the changes in `Session.java` and `StopAndWait.java`, ran the project build, performed an end-to-end Sender-to-Receiver test, and verified the received file contents and the SHA-256 integrity result reported by the receiver. I committed and pushed the changes as `13913e1`.
+
+### 2026-09-23 — Stop-and-Wait teardown and integrity fixes
+
+**What:** AI helped me debug and review the Stop-and-Wait FIN/FINACK teardown and SHA-256 result exchange, including FINACK loss/retransmission, receiver linger, receiver-side SHA verification, and RunStats-related fixes. AI also reviewed the staged diff and helped verify the project build.
+
+**Permitted under:** explaining concepts; debugging; reviewing our code.
+
+**Mine:** I implemented the changes in `Session.java`, `StopAndWait.java`, and `Receiver.java`, ran `./build.sh` and verified 0 failed tests, reviewed the staged changes, and committed and pushed them as `ae16592`.
+
+### 2026-09-26 — Stop-and-Wait RTO and session tests
+**What:** AI helped me debug and review the Stop-and-Wait RTO changes and helped structure `HandshakeTest` and `SessionTest` from the handbook requirements.
+
+**Permitted under:** explaining concepts; debugging; reviewing code; generating tests.
+
+**Mine:** I implemented the Stop-and-Wait RTO changes, added and verified `HandshakeTest` and `SessionTest`, ran `./build.sh`, confirmed 0 failed tests, and verified HandshakeTest (3/3) and SessionTest (1/1). I committed the changes as `352185a`.
 
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
