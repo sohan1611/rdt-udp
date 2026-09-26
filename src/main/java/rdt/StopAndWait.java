@@ -3,12 +3,10 @@ package rdt;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,15 +19,32 @@ import java.nio.file.Path;
 public final class StopAndWait implements ArqProtocol
 {
     private static final int FIN_RETRIES = 3;
-
+    private final RttEstimator rtt = new RttEstimator();
+    private boolean fixedRto;
+    private long fixedRtoMs;
+    private int getRtoMs()
+        {
+        long rto = fixedRto ? fixedRtoMs : rtt.rtoMs();
+        return (int) Math.min(Integer.MAX_VALUE, rto);
+        }
     @Override
     public RunStats send(Path file, InetSocketAddress peer,
                          ProtocolConfig config) throws IOException
     {
         try (DatagramSocket socket = new DatagramSocket())
         {
-            socket.setSoTimeout(1000);
+            String rtoMode = config.getRtoMode();
 
+                if (rtoMode.startsWith("fixed:"))
+                {
+                fixedRto = true;
+                double seconds = Double.parseDouble(rtoMode.substring(6));
+                fixedRtoMs = Math.round(seconds * 1000);
+                }
+                else
+                {
+                fixedRto = false;
+                }
             long fileBytes = Files.size(file);
 
             RunStats stats = new RunStats(
@@ -68,7 +83,7 @@ public final class StopAndWait implements ArqProtocol
                                     ackBuffer,
                                     ackBuffer.length
                             );
-
+                    socket.setSoTimeout(getRtoMs());
                     socket.receive(ackDatagram);
 
                     try
@@ -110,6 +125,8 @@ public final class StopAndWait implements ArqProtocol
             {
                 int bytesRead;
 
+                stats.start();
+
                 while ((bytesRead = input.read(buffer)) != -1)
                 {
                     byte[] payload = new byte[bytesRead];
@@ -139,14 +156,10 @@ public final class StopAndWait implements ArqProtocol
                             peer
                     );
 
-                   boolean acknowledged = false;
-
-                        if (seq == 1)
-                        {
-                        stats.start();
-                        }
-
-                        socket.send(datagram);
+                    boolean acknowledged = false;
+                    long sendTime = System.nanoTime();
+                    boolean retransmitted = false;
+                    socket.send(datagram);
                     while (!acknowledged)
                     {
                         try
@@ -161,7 +174,7 @@ public final class StopAndWait implements ArqProtocol
                                             ackBuffer,
                                             ackBuffer.length
                                     );
-
+                            socket.setSoTimeout(getRtoMs());
                             socket.receive(ackDatagram);
 
                             try
@@ -180,8 +193,14 @@ public final class StopAndWait implements ArqProtocol
                                 {
                                     continue;
                                 }
-
                                 stats.onAck(false);
+
+                                if (!retransmitted)
+                                {
+                                rtt.update(System.nanoTime() - sendTime);
+                                }
+
+                                rtt.resetBackoff();
                                 acknowledged = true;
                             }
                             catch (CorruptPacketException e)
@@ -191,16 +210,24 @@ public final class StopAndWait implements ArqProtocol
                         }
                         catch (SocketTimeoutException e)
                         {
-                            stats.onTimeout();
+                        stats.onTimeout();
 
-                            socket.send(datagram);
-                            stats.onDataSent(data.length, true);
+                        if (!fixedRto)
+                        {
+                                rtt.doubleRto();
+                        }
+
+                        retransmitted = true;
+                        socket.send(datagram);
+                        stats.onDataSent(data.length, true);
                         }
                     }
 
                     seq = 1 - seq;
                 }
             }
+
+            stats.stop();
 
             Packet finPacket = Session.createFinPacket(seq);
             byte[] finData = finPacket.encode();
@@ -231,7 +258,7 @@ public final class StopAndWait implements ArqProtocol
                                     finAckBuffer,
                                     finAckBuffer.length
                             );
-
+                    socket.setSoTimeout(getRtoMs());
                     socket.receive(finAckDatagram);
 
                     Packet finAckPacket = Packet.decode(
@@ -254,9 +281,13 @@ public final class StopAndWait implements ArqProtocol
                         finAcknowledged = true;
                     }
                 }
-                catch (SocketTimeoutException e)
+               catch (SocketTimeoutException e)
                 {
-                    stats.onTimeout();
+                stats.onTimeout();
+                if (!fixedRto)
+                {
+                        rtt.doubleRto();
+                }
                 }
                 catch (CorruptPacketException e)
                 {
@@ -272,8 +303,6 @@ public final class StopAndWait implements ArqProtocol
                                 + " attempts; transfer already completed"
                 );
             }
-
-            stats.stop();
 
             return stats;
         }
@@ -468,7 +497,6 @@ public final class StopAndWait implements ArqProtocol
                     );
 
                     socket.send(ack);
-
                 }
             }
 
