@@ -258,6 +258,31 @@ changed the test to send in batches of 50 and read between them.
 **Permitted under:** debugging; generating tests.
 **Mine:** running the suite on the experiment host, which is what exposed it.
 
+### 2026-09-24 — run_matrix.py and experiment configs
+**What:** Claude set out a stage-by-stage design for the sweep harness with example code
+for each stage, reviewed my script, and found two bugs: every run was marked as an error
+because the RESULT line's protocol, window and seqbits were treated as collisions, and
+failed runs were never retried. It also added `results/.work/` to `.gitignore`, gave
+exp4 a 2% loss so the RTO policies can differ, sped up input-file generation, and
+silenced the child processes' output. On 26 Sep, at my request, it added the
+`--base-rtt-ms` flag that passes the base RTT to the sender, and documented it in
+CONVENTIONS sections 5 and 7.
+**Permitted under:** boilerplate and plotting scripts; reviewing our code.
+**Mine:** `run_matrix.py` as written, including the RESULT validation (16 fields, and a
+check that protocol, window and seqbits match what was requested), resume on crash, and
+the four experiment configs.
+
+### 2026-09-24 — plots.py
+**What:** Claude set out a stage-by-stage design for the plotting script with example
+code, including the 95% confidence interval using t critical values for small samples,
+then tested my script against synthetic data for all four figure shapes. It added a log
+y-axis so Stop-and-Wait is visible next to GBN and SR, a base-2 axis for window sizes,
+unit-labelled axes (goodput in Mbit/s), shorter legend labels, and a two-line title.
+**Permitted under:** boilerplate and plotting scripts.
+**Mine:** `plots.py` as written, including the categorical bar chart for the RTO
+policies, series made from two columns for the window figure, and the figure list
+that lets `make figures` run with no arguments.
+
 ### 2026-09-26 — ChannelConfig and NetEm rewrite: review and tests
 **What:** Claude set out the contract ChannelConfig and NetEm must keep and the order to build
 NetEm in, then reviewed my rewrites. It found two command-line crashes in NetEm: the default

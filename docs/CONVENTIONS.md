@@ -68,6 +68,7 @@ An 8 MiB file therefore contains 5,992 data packets plus the handshake.
     --protocol stopwait|gbn|sr
     --window N
     --rto adaptive|fixed:X
+    --base-rtt-ms N
     --seqbits k
     --verbose
 
@@ -103,6 +104,10 @@ With a 20 ms delay:
 
 - base RTT = 40 ms
 - RTO = 60 ms
+
+The sender cannot measure the emulator's delay, so it is told: `--base-rtt-ms N`.
+`run_matrix.py` computes it as delay up + down (jitter excluded) and passes it on every
+run. The sender uses it only for `fixed:X`; `adaptive` ignores it.
 
 ---
 

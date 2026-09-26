@@ -1,0 +1,16 @@
+{
+  "name": "smoke",
+  "file_bytes": 262144,
+  "protocols": ["stopwait"],
+  "windows": [1],
+  "rtos": ["fixed:1.5"],
+  "seqbits": 32,
+  "seeds": [1, 2],
+  "channel": {
+    "delay": 1
+  },
+  "sweep": {
+    "loss": [0.0, 0.02]
+  },
+  "timeout_s": 120
+}
