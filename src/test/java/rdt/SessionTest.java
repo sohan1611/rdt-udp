@@ -114,7 +114,8 @@ public final class SessionTest
                             1,
                             "fixed:1.0",
                             32,
-                            1400
+                            1400,
+                            40
                     );
 
             StopAndWait receiver = new StopAndWait();

@@ -19,7 +19,7 @@ import java.nio.file.Path;
 public final class StopAndWait implements ArqProtocol
 {
     private static final int FIN_RETRIES = 3;
-    private final RttEstimator rtt = new RttEstimator();
+    private final RttEstimator rtt = new RttEstimator(5);
     private boolean fixedRto;
     private long fixedRtoMs;
     private int getRtoMs()

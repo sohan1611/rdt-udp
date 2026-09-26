@@ -22,6 +22,7 @@ public final class Sender
         int window = 1;
         String rto = "adaptive";
         int seqBits = 32;
+        long baseRttMs = 0;
         boolean verbose = false;
 
         for (int i = 0; i < args.length; i++)
@@ -54,6 +55,10 @@ public final class Sender
 
                 case "--seqbits":
                     seqBits = Integer.parseInt(args[++i]);
+                    break;
+
+                case "--base-rtt-ms":
+                    baseRttMs = Long.parseLong(args[++i]);
                     break;
 
                 case "--verbose":
@@ -93,7 +98,8 @@ public final class Sender
                         window,
                         rto,
                         seqBits,
-                        1400
+                        1400,
+                        baseRttMs
                 );
 
         RunStats stats = arq.send(file, peer, config);
