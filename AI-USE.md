@@ -266,7 +266,8 @@ an integer format. It measured both files against the original draft, and added 
 RunStats.start() must not reset the clock, and ChannelConfig rejects non-numeric, infinite and
 malformed values while tolerating spaces and a trailing comma. It also gave the structure and
 the figures for docs/operating-points.md, including the worst case under jitter, and converted
-its equations to GitHub's math syntax.
+its equations to GitHub's math syntax. At my request, it restored NetEm's default command-line
+ports (9000 and 9001, from CONVENTIONS section 6) after review.
 **Permitted under:** explaining concepts; reviewing our code; generating tests; improving our writing.
 **Mine:** the ChannelConfig and NetEm rewrites, including both fixes, the master-seed scheme,
 the 4 MB socket buffers, the RunStats.start() guard, and the text of the operating-point note.

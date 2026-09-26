@@ -168,15 +168,16 @@ public final class NetEm{
     private static void usage(java.io.PrintStream out){
         out.println(
             "Usage: java -cp build/classes emulator.NetEm "+
-            "--listen PORT --to host:port "+
+            "[--listen PORT] [--to host:port] "+
             "[--seed N] [--up SPEC] [--down SPEC] [--both SPEC] "+
             "[--trace FILE] [--verbose] [--help]"
         );
     }
 
     public static void main(String[] args)throws Exception{
-        Integer listenPort=null;
-        String to=null;
+        // Defaults are the manual-testing ports from CONVENTIONS section 6.
+        int listenPort=9000;
+        String to="127.0.0.1:9001";
         long seed=1L;
         String upSpec="";
         String downSpec="";
@@ -253,12 +254,6 @@ public final class NetEm{
                     return;
                 }
             }
-        }
-
-        if(listenPort==null||to==null){
-            usage(System.err);
-            System.exit(2);
-            return;
         }
 
         String[] target=to.split(":",2);
