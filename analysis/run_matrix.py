@@ -46,6 +46,14 @@ def expand(cfg):
 def channel_spec(run):
     return ",".join(f"{key}={run[key]}" for key in NETEM_FIELDS if key in run)
 
+def base_rtt_ms(run):
+    # CONVENTIONS section 7: the base RTT is the emulator delay up plus down.
+    # The emulator is always started with --both, so both directions share one
+    # delay. Jitter is deliberately left out. The sender needs this to turn
+    # --rto fixed:X into X times the base RTT; at least 1 ms, so X never
+    # multiplies zero.
+    return max(1,round(2*float(run.get("delay",0))))
+
 def make_input(path,size):
     path=Path(path)
     size=int(size)
@@ -128,7 +136,8 @@ def run_one(run,cp,workdir):
             "--protocol",str(run["protocol"]),
             "--window",str(run["window"]),
             "--rto",str(run["rto"]),
-            "--seqbits",str(run["seqbits"])
+            "--seqbits",str(run["seqbits"]),
+            "--base-rtt-ms",str(base_rtt_ms(run))
         ]
         try:
             completed=subprocess.run(sender_cmd,capture_output=True,text=True,timeout=float(run["timeout_s"]))

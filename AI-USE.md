@@ -255,7 +255,9 @@ for each stage, reviewed my script, and found two bugs: every run was marked as 
 because the RESULT line's protocol, window and seqbits were treated as collisions, and
 failed runs were never retried. It also added `results/.work/` to `.gitignore`, gave
 exp4 a 2% loss so the RTO policies can differ, sped up input-file generation, and
-silenced the child processes' output.
+silenced the child processes' output. On 26 Sep, at my request, it added the
+`--base-rtt-ms` flag that passes the base RTT to the sender, and documented it in
+CONVENTIONS sections 5 and 7.
 **Permitted under:** boilerplate and plotting scripts; reviewing our code.
 **Mine:** `run_matrix.py` as written, including the RESULT validation (16 fields, and a
 check that protocol, window and seqbits match what was requested), resume on crash, and
