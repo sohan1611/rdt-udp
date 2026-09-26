@@ -137,6 +137,15 @@ single base timer, and retransmit-on-timeout. It did not produce the implementat
 
 **Mine:** I wrote GoBackN.java from scratch using the design guidance. All code, naming, and structure are my own. I also wrote GoBackNTest with 4 tests and verified all pass.
 
+### 2026-09-25 — GoBackN.java (fixes) 
+**What:** AI explained five protocol bugs: adaptive RTO runaway under loss, 
+duplicate ACKs restarting the timer, sender hanging on last ACK loss, slot() collision at wraparound, 
+and TimerWheel double-decrement. It did not produce the fixed implementation. 
+
+**Permitted under:** explaining concepts and debugging guidance. 
+
+**Mine:** I applied all five fixes to GoBackN.java and RttEstimator.java myself. I also added the backoffResets() test, verified 6/6 and 4/4 tests pass, and pushed the updated PR. I answered both viva questions (W <= 2^k-1, GBN vs SR tradeoff) in my own words from the RFC.
+
 ## M3 — Selective Repeat · Sohini Pandit
 
 ### SeqSpace and ReceiveBufer.
@@ -274,6 +283,20 @@ unit-labelled axes (goodput in Mbit/s), shorter legend labels, and a two-line ti
 policies, series made from two columns for the window figure, and the figure list
 that lets `make figures` run with no arguments.
 
+### 2026-09-26 — ChannelConfig and NetEm rewrite: review and tests
+**What:** Claude set out the contract ChannelConfig and NetEm must keep and the order to build
+NetEm in, then reviewed my rewrites. It found two command-line crashes in NetEm: the default
+channel spec "perfect" was rejected by the parser, and --verbose printed a double delay with
+an integer format. It measured both files against the original draft, and added tests: a second
+RunStats.start() must not reset the clock, and ChannelConfig rejects non-numeric, infinite and
+malformed values while tolerating spaces and a trailing comma. It also gave the structure and
+the figures for docs/operating-points.md, including the worst case under jitter, and converted
+its equations to GitHub's math syntax. At my request, it restored NetEm's default command-line
+ports (9000 and 9001, from CONVENTIONS section 6) after review.
+**Permitted under:** explaining concepts; reviewing our code; generating tests; improving our writing.
+**Mine:** the ChannelConfig and NetEm rewrites, including both fixes, the master-seed scheme,
+the 4 MB socket buffers, the RunStats.start() guard, and the text of the operating-point note.
+
 ---
 
 # Open items — must be cleared before submission
@@ -320,16 +343,10 @@ you will be asked to defend:
   sharing a seed then differ only in the variable under test, which lowers variance
   between neighbouring points on a curve.
 
-**Status:** [ ] partly done. A first attempt on `m4/emulator-rewrite` (16 Sep) did not meet
-the requirement: the committed files were the AI draft with its comments removed, so
-`Channel`, `TraceLog` and `NetEm` were unchanged in substance.
-
-`TraceLog.java` and `Channel.java` were rewritten by hand on 17 Sep, and `Calibrate.java`
-on 20 Sep — M4 Sohan Mandal. `TraceLog` also gained the `type` and `ack` fields the
-decision trace needs before Experiment 4 can label a retransmission spurious.
-
-`NetEm.java` and `ChannelConfig.java` were restructured on 19 Sep: expressions split out,
-ternaries expanded, loops reshaped, and a new range check on `reorderExtra`. They keep
-the draft's design, names and messages, so they do not yet count as rewritten. This box
-stays unticked until all five are rewritten.
-— M4: sign and date here when complete
+**Status:** [x] rewritten. A first attempt on `m4/emulator-rewrite` (16 Sep) did not meet the
+requirement: the committed files were the AI draft with its comments removed. All five files
+have since been written by hand: `TraceLog.java` and `Channel.java` on 17 Sep, `Calibrate.java`
+on 20 Sep, and `ChannelConfig.java` and `NetEm.java` on 25-26 Sep. Measured against the original
+draft, 15-18% of statements are shared in the two rewritten last; the overlap is the field
+declarations other classes read, and arithmetic with one correct form.
+— M4 Sohan Mandal, 2026-09-26

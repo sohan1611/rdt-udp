@@ -1,4 +1,5 @@
-package rdt; 
+package rdt;
+
 public final class RttEstimatorTest { 
     private RttEstimatorTest() {} 
     private static final class TestHarness { 
@@ -42,6 +43,15 @@ public final class RttEstimatorTest {
             for (int i = 0; i < 30; i++) 
                 e.doubleRto(); 
             check("RTO never exceeds 60 000 ms", e.rtoMs() <= 60_000L); 
+        }
+        private void backoffResets() { 
+            RttEstimator e = new RttEstimator(); 
+            e.update(100_000_000L); 
+            long base = e.rtoMs(); 
+            e.doubleRto(); 
+            e.doubleRto(); 
+            e.resetBackoff(); 
+            check("resetBackoff() restores base RTO", e.rtoMs() == base); 
         } 
         private void run() {
              firstSample(); 
@@ -49,6 +59,7 @@ public final class RttEstimatorTest {
              doubleRto(); 
              minRtoIsRespected(); 
              maxRto(); 
+             backoffResets();
              System.out.println(); 
              System.out.println("Passed: " + passed); 
              System.out.println("Failed: " + failed); 
