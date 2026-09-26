@@ -75,12 +75,37 @@ code structure, and verified the project tests after the change.
 
 ## M3 — Selective Repeat · Sohini Pandit
 
-### SeqSpace and ReceiveBuffer
+### 2026-09-16 — M3 / SeqSpace
 
-Used ChatGPT to help understand compiler errors, Java API mismatches,
-receive-window logic, test failures, and code organization while
-implementing and debugging SeqSpace and ReceiveBuffer. I reviewed,
-tested, and made the final changes myself.
+**What:** Used ChatGPT to understand sequence-number space logic, debug Java compiler errors, and resolve the duplicate-class issue involving `SeqSpace.java` and `SeqSpaceTest.java`. Also discussed modular arithmetic and sequence-number wraparound.
+
+**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
+
+**Mine:** I created and organized `SeqSpace.java` and `SeqSpaceTest.java`, corrected the class and file organization issues, checked the implementation, and committed the work as `8ea6088` (Implement sequence number space).
+
+### 2026-09-18 — M3 / ReceiveBuffer
+
+**What:** Used ChatGPT to understand the receive-window logic, ring-buffer indexing, sequence-number wraparound, and how to handle packets inside and outside the current receive window. Also used it to troubleshoot test failures and Java test-file errors.
+
+**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
+
+**Mine:** I implemented and debugged `ReceiveBuffer.java`, worked through the failing outside-window packet test, corrected the test and implementation issues, and ran the build and ReceiveBuffer tests. I checked that the tests passed before merging the ReceiveBuffer work into the Selective Repeat branch.
+
+### 2026-09-26 — M3 / Selective Repeat tests
+
+**What:** Used ChatGPT to understand and troubleshoot the Selective Repeat implementation and its tests, including sender-window behavior, ACK handling, receive-buffer integration, and build-script test execution.
+
+**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
+
+**Mine:** I worked on `SelectiveRepeat.java` and `SelectiveRepeatTest.java`, integrated the work with the existing project structure, and ran `./build.sh`. The Selective Repeat tests passed, along with the existing Packet, Channel, NetEmSmoke, SeqSpace, and ReceiveBuffer tests.
+
+### 2026-09-26 — M3 / TimerWheel integration
+
+**What:** Used ChatGPT to understand the TimerWheel integration with Selective Repeat, troubleshoot source-directory and build issues, and interpret compiler warnings and test results.
+
+**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
+
+**Mine:** I integrated TimerWheel with `SelectiveRepeat.java`, moved `TimerWheel.java` into `src/main/java/timer/` so it was included in the build, updated `build.sh` to run the Selective Repeat tests, and ran the tests. I committed and pushed the changes in commit `2720daa` (`Complete Selective Repeat timer integration`) to `m3/selective-repeat`.
 
 ## M4 — Channel & Evidence · Sohan Mandal
 
