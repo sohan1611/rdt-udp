@@ -38,8 +38,14 @@ public final class StopAndWait implements ArqProtocol
                 if (rtoMode.startsWith("fixed:"))
                 {
                 fixedRto = true;
-                double seconds = Double.parseDouble(rtoMode.substring(6));
-                fixedRtoMs = Math.round(seconds * 1000);
+                double multiplier = Double.parseDouble(rtoMode.substring(6));
+
+                    if (config.getBaseRttMs() <= 0)
+                    {
+                        throw new IllegalArgumentException("fixed RTO requires a positive base RTT");
+                    }
+
+                    fixedRtoMs = Math.round(multiplier * config.getBaseRttMs());
                 }
                 else
                 {
