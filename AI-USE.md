@@ -288,7 +288,10 @@ failed runs were never retried. It also added `results/.work/` to `.gitignore`, 
 exp4 a 2% loss so the RTO policies can differ, sped up input-file generation, and
 silenced the child processes' output. On 26 Sep, at my request, it added the
 `--base-rtt-ms` flag that passes the base RTT to the sender, and documented it in
-CONVENTIONS sections 5 and 7.
+CONVENTIONS sections 5 and 7. Also on 26 Sep, at my request, it added the harness's own
+file comparison (`file_match`, status `corrupt` on a mismatch) after finding that the
+sender reported `sha256_match` false for files that had arrived intact, and a
+`--protocols` filter so one protocol's cells can run on their own.
 **Permitted under:** boilerplate and plotting scripts; reviewing our code.
 **Mine:** `run_matrix.py` as written, including the RESULT validation (16 fields, and a
 check that protocol, window and seqbits match what was requested), resume on crash, and

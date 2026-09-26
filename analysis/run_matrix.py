@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import csv
+import hashlib
 import itertools
 import json
 import random
@@ -12,7 +13,7 @@ from pathlib import Path
 RUN_FIELDS=["experiment","protocol","window","rto","seqbits","seed"]
 CHANNEL_FIELDS=["loss","dup","corrupt","reorder","delay","jitter"]
 NETEM_FIELDS=["loss","dup","corrupt","reorder","delay","jitter","reorderExtra"]
-TAIL_FIELDS=["status","wall_s"]
+TAIL_FIELDS=["file_match","status","wall_s"]
 FIXED_FIELDS=set(RUN_FIELDS+CHANNEL_FIELDS+TAIL_FIELDS)
 
 def load_config(path):
@@ -66,6 +67,23 @@ def free_port():
     with socket.socket(socket.AF_INET,socket.SOCK_DGRAM) as sock:
         sock.bind(("127.0.0.1",0))
         return sock.getsockname()[1]
+
+def file_sha256(path):
+    h=hashlib.sha256()
+    with Path(path).open("rb") as f:
+        for block in iter(lambda:f.read(1<<20),b""):
+            h.update(block)
+    return h.hexdigest()
+
+def files_match(input_path,output_path):
+    # The harness's own integrity check, independent of what the protocol reports
+    # about itself: compare the file that was sent with the file that arrived.
+    output_path=Path(output_path)
+    if not output_path.exists():
+        return False
+    if output_path.stat().st_size!=Path(input_path).stat().st_size:
+        return False
+    return file_sha256(input_path)==file_sha256(output_path)
 
 def kill_process(proc):
     if proc is None:
@@ -196,8 +214,16 @@ def run_one(run,cp,workdir):
     finally:
         kill_process(netem)
         kill_process(receiver)
+    # Checked after the receiver has exited, so the output file is complete.
+    match=files_match(input_path,output_path)
+    if status=="ok" and not match:
+        # A transfer that finished but delivered the wrong bytes is not a valid
+        # measurement. It is recorded, and retried on the next run like any failure.
+        status="corrupt"
+        detail="received file differs from the file sent"
     row=base_row(run)
     row.update(result)
+    row["file_match"]=match
     row["status"]=status
     row["wall_s"]=round(time.monotonic()-started,3)
     if detail:
@@ -264,9 +290,17 @@ def main():
     parser.add_argument("--cp",default="build/classes")
     parser.add_argument("--out")
     parser.add_argument("--dry-run",action="store_true")
+    parser.add_argument("--protocols",
+        help="comma-separated subset of the config's protocols to run, e.g. stopwait")
     args=parser.parse_args()
     cfg=load_config(args.config)
     runs=expand(cfg)
+    if args.protocols:
+        wanted={p.strip() for p in args.protocols.split(",") if p.strip()}
+        unknown=wanted-set(cfg["protocols"])
+        if unknown:
+            parser.error("not in this config's protocols: "+",".join(sorted(unknown)))
+        runs=[run for run in runs if run["protocol"] in wanted]
     if args.dry_run:
         print(f"{len(runs)} runs")
         for i,run in enumerate(runs,1):
