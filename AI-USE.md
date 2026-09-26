@@ -109,6 +109,13 @@ local Sender-to-Receiver transfer test and checked the resulting statistics.
 
 **Mine:** I implemented the changes in `Session.java`, `StopAndWait.java`, and `Receiver.java`, ran `./build.sh` and verified 0 failed tests, reviewed the staged changes, and committed and pushed them as `ae16592`.
 
+### 2026-09-26 — Stop-and-Wait RTO and session tests
+**What:** AI helped me debug and review the Stop-and-Wait RTO changes and helped structure `HandshakeTest` and `SessionTest` from the handbook requirements.
+
+**Permitted under:** explaining concepts; debugging; reviewing code; generating tests.
+
+**Mine:** I implemented the Stop-and-Wait RTO changes, added and verified `HandshakeTest` and `SessionTest`, ran `./build.sh`, confirmed 0 failed tests, and verified HandshakeTest (3/3) and SessionTest (1/1). I committed the changes as `352185a`.
+
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
 ### 2026-09-16 — TimerWheel.java 
