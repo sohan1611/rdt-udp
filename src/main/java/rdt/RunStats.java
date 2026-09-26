@@ -3,6 +3,7 @@ import java.util.Locale;
 /**
  * data_sent counts every DATA packet sent in the timed window, including retransmissions.
  * retransmissions is the subset of those packets that were retransmitted.
+ * The first call to start() wins; later calls are ignored.
  */
 public final class RunStats {
     public final String protocol;
@@ -32,8 +33,9 @@ public final class RunStats {
     }
 
     public void start() {
-        startNanos = System.nanoTime();
-        started = true;
+    if(started)return;
+    startNanos=System.nanoTime();
+    started=true;
     }
 
     public void stop() {

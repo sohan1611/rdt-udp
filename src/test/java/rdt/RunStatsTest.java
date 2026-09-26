@@ -109,6 +109,19 @@ public final class RunStatsTest {
             assertEquals("duplicate acks", 1, s.dupAcks);
         });
 
+        h.check("a second start() does not reset the clock", () -> {
+            // Stop-and-Wait once called start() on every packet with seq 1, so each
+            // call restarted the clock and a 23 s transfer reported 93 ms. The first
+            // call must win.
+            RunStats s = new RunStats("stopwait", 1, 32, "adaptive", 1000);
+            s.start();
+            Thread.sleep(40);
+            s.start();                         // must be ignored
+            s.stop();
+            assertTrue("elapsed must span both calls, got " + s.elapsedMs() + " ms",
+                    s.elapsedMs() >= 35.0);
+        });
+
         h.check("a run that never started reports zero elapsed and zero goodput", () -> {
             String line = new RunStats("sr", 16, 32, "adaptive", 1000).resultLine();
             assertTrue("elapsed zero: " + line, number(line, "elapsed_ms") == 0.0);

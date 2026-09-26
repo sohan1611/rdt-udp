@@ -30,7 +30,7 @@ public final class Calibrate {
     private static final int BUFFER_SIZE = 4 * 1024 * 1024;
     private static final int[] RATES = {
             1_000, 2_000, 4_000, 8_000, 12_000, 16_000,
-            24_000, 32_000, 48_000, 64_000, 96_000
+            24_000, 32_000, 48_000, 64_000, 96_000, 128_000, 192_000
     };
     private static final InetAddress LOOPBACK = InetAddress.getLoopbackAddress();
     private record Step(int rate, long sent, long received,
