@@ -264,7 +264,7 @@ public final class StopAndWait implements ArqProtocol
                                     finAckBuffer,
                                     finAckBuffer.length
                             );
-                    socket.setSoTimeout(getRtoMs());
+                    socket.setSoTimeout(1000);
                     socket.receive(finAckDatagram);
 
                     Packet finAckPacket = Packet.decode(
@@ -289,11 +289,7 @@ public final class StopAndWait implements ArqProtocol
                 }
                catch (SocketTimeoutException e)
                 {
-                stats.onTimeout();
-                if (!fixedRto)
-                {
-                        rtt.doubleRto();
-                }
+                    // FINACK wait is excluded from data timeout statistics.
                 }
                 catch (CorruptPacketException e)
                 {
