@@ -215,7 +215,15 @@ def run_one(run,cp,workdir):
         kill_process(netem)
         kill_process(receiver)
     # Checked after the receiver has exited, so the output file is complete.
-    match=files_match(input_path,output_path)
+    try:
+        match=files_match(input_path,output_path)
+    except OSError as exc:
+        # Reading or hashing a file failed. That says nothing about the protocol,
+        # so the run is recorded as an error and retried, and the sweep carries on.
+        match=False
+        if status=="ok":
+            status="error"
+            detail=f"integrity check failed: {type(exc).__name__}: {exc}"
     if status=="ok" and not match:
         # A transfer that finished but delivered the wrong bytes is not a valid
         # measurement. It is recorded, and retried on the next run like any failure.
@@ -295,8 +303,10 @@ def main():
     args=parser.parse_args()
     cfg=load_config(args.config)
     runs=expand(cfg)
-    if args.protocols:
+    if args.protocols is not None:
         wanted={p.strip() for p in args.protocols.split(",") if p.strip()}
+        if not wanted:
+            parser.error("--protocols needs at least one protocol, e.g. --protocols stopwait")
         unknown=wanted-set(cfg["protocols"])
         if unknown:
             parser.error("not in this config's protocols: "+",".join(sorted(unknown)))
@@ -322,7 +332,14 @@ def main():
         if key in done:
             print(f"{prefix} -> skipped")
             continue
-        row=run_one(run,args.cp,workdir)
+        try:
+            row=run_one(run,args.cp,workdir)
+        except Exception as exc:
+            row=base_row(run)
+            row["file_match"]=False
+            row["status"]="error"
+            row["wall_s"]=0
+            row["_detail"]=f"harness error: {type(exc).__name__}: {exc}"
         append_row(out_path,row)
         done.add(key)
         detail=row.get("_detail")

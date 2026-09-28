@@ -15,7 +15,7 @@ RUN_OPTS   := -Xms512m -Xmx512m
 SOURCES    := $(shell find $(SRC_DIR) $(TEST_DIR) -name '*.java')
 TESTS      := rdt.PacketTest rdt.ChannelTest rdt.NetEmSmokeTest rdt.SeqSpaceTest rdt.TimerWheelTest rdt.RttEstimatorTest rdt.GoBackNTest rdt.ReceiveBufferTest rdt.RunStatsTest rdt.TraceLogTest rdt.HandshakeTest rdt.SessionTest
 
-.PHONY: all build test experiments figures clean
+.PHONY: all build test test-harness experiments figures clean
 
 
 all: test
@@ -32,6 +32,9 @@ test: build
 
 experiments: build
 	python3 analysis/run_matrix.py
+
+test-harness:
+	python3 analysis/test_run_matrix.py
 
 figures:
 	python3 analysis/plots.py

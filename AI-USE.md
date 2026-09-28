@@ -291,8 +291,11 @@ silenced the child processes' output. On 26 Sep, at my request, it added the
 CONVENTIONS sections 5 and 7. Also on 26 Sep, at my request, it added the harness's own
 file comparison (`file_match`, status `corrupt` on a mismatch) after finding that the
 sender reported `sha256_match` false for files that had arrived intact, and a
-`--protocols` filter so one protocol's cells can run on their own.
-**Permitted under:** boilerplate and plotting scripts; reviewing our code.
+`--protocols` filter so one protocol's cells can run on their own. On 28 Sep, after
+Shaili's review, it made an I/O error during the file check or a crashing run record an
+error instead of stopping the sweep, rejected an empty `--protocols`, and wrote
+`analysis/test_run_matrix.py` (13 tests of the harness).
+**Permitted under:** boilerplate and plotting scripts; reviewing our code; generating tests.
 **Mine:** `run_matrix.py` as written, including the RESULT validation (16 fields, and a
 check that protocol, window and seqbits match what was requested), resume on crash, and
 the four experiment configs.
