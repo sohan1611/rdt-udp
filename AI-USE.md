@@ -294,7 +294,8 @@ sender reported `sha256_match` false for files that had arrived intact, and a
 `--protocols` filter so one protocol's cells can run on their own. On 28 Sep, after
 Shaili's review, it made an I/O error during the file check or a crashing run record an
 error instead of stopping the sweep, rejected an empty `--protocols`, and wrote
-`analysis/test_run_matrix.py` (13 tests of the harness).
+`analysis/test_run_matrix.py` (13 tests of the harness). It also moved `plots.py`'s
+matplotlib import into `plot()`, so those tests run on a machine without matplotlib.
 **Permitted under:** boilerplate and plotting scripts; reviewing our code; generating tests.
 **Mine:** `run_matrix.py` as written, including the RESULT validation (16 fields, and a
 check that protocol, window and seqbits match what was requested), resume on crash, and

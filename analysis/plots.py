@@ -8,9 +8,6 @@ import statistics
 from collections import defaultdict
 from pathlib import Path
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 T95={1:12.706,2:4.303,3:3.182,4:2.776,5:2.571,6:2.447,7:2.365,8:2.306,9:2.262,10:2.228}
 
@@ -78,6 +75,11 @@ def mean_ci(values):
 
 
 def plot(groups,x,y,out,xscale="linear",logy=False):
+    # matplotlib is loaded here rather than at the top, so the harness tests can
+    # import this module on a machine without it. "Agg" draws straight to a file.
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
     fig,ax=plt.subplots(figsize=(7,4.5))
     categorical=any(not isinstance(v,(int,float)) for points in groups.values() for v in points)
 
