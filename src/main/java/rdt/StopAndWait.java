@@ -123,6 +123,7 @@ public final class StopAndWait implements ArqProtocol
                 }
             }
 
+            long M = 1L << config.getSequenceBits();
             long seq = 1;
 
             byte[] buffer = new byte[config.getPayloadSize()];
@@ -229,7 +230,7 @@ public final class StopAndWait implements ArqProtocol
                         }
                     }
 
-                    seq = 1 - seq;
+                    seq = (seq + 1) % M;
                 }
             }
 
@@ -264,7 +265,7 @@ public final class StopAndWait implements ArqProtocol
                                     finAckBuffer,
                                     finAckBuffer.length
                             );
-                    socket.setSoTimeout(getRtoMs());
+                    socket.setSoTimeout(1000);
                     socket.receive(finAckDatagram);
 
                     Packet finAckPacket = Packet.decode(
@@ -289,11 +290,7 @@ public final class StopAndWait implements ArqProtocol
                 }
                catch (SocketTimeoutException e)
                 {
-                stats.onTimeout();
-                if (!fixedRto)
-                {
-                        rtt.doubleRto();
-                }
+                    // FINACK wait is excluded from data timeout statistics.
                 }
                 catch (CorruptPacketException e)
                 {
@@ -329,6 +326,7 @@ public final class StopAndWait implements ArqProtocol
         try (DatagramSocket socket = new DatagramSocket(port);
              OutputStream output = Files.newOutputStream(file))
         {
+            long M = 1L << config.getSequenceBits();
             long expectedSeq = 1;
             String expectedSha256 = null;
 
@@ -488,9 +486,9 @@ public final class StopAndWait implements ArqProtocol
 
                     socket.send(ack);
 
-                    expectedSeq = 1 - expectedSeq;
+                    expectedSeq = (expectedSeq + 1) % M;
                 }
-                else if (packet.seq == 1 - expectedSeq)
+                else if (SeqSpace.inPreviousWindow(packet.seq, expectedSeq, 1, M))
                 {
                     byte[] ackData =
                             Packet.ack(packet.seq, 0).encode();
