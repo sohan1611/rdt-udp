@@ -101,6 +101,28 @@ class FilesMatch(unittest.TestCase):
             run_matrix.file_sha256(folder)
 
 
+class GcLogging(unittest.TestCase):
+
+    def test_full_gc_is_detected_in_either_log(self):
+        with tempfile.TemporaryDirectory() as d:
+            quiet = Path(d) / "sender.log"
+            quiet.write_text("[0.010s][info][gc] Using G1\n"
+                             "[1.2s][info][gc] GC(0) Pause Young (Normal) 25M->3M(512M) 2.1ms\n")
+            full = Path(d) / "receiver.log"
+            full.write_text("[3.4s][info][gc] GC(5) Pause Full (G1 Compaction Pause) 400M->12M(512M) 45.0ms\n")
+            self.assertFalse(run_matrix.full_gc_seen(quiet))
+            self.assertTrue(run_matrix.full_gc_seen(quiet, full))
+
+    def test_no_log_written_gives_blank_not_false(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertIsNone(run_matrix.full_gc_seen(Path(d) / "missing.log"))
+
+    def test_a_path_with_a_colon_is_not_passed_to_xlog(self):
+        self.assertEqual(run_matrix.gc_log_option(r"D:\work\gc.log"), [])
+        self.assertEqual(run_matrix.gc_log_option("results/.work/x/gc-sender.log"),
+                         ["-Xlog:gc:file=results/.work/x/gc-sender.log"])
+
+
 class ProtocolFilter(unittest.TestCase):
 
     def run_script(self, *extra):
