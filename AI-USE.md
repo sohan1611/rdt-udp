@@ -116,6 +116,13 @@ local Sender-to-Receiver transfer test and checked the resulting statistics.
 
 **Mine:** I implemented the Stop-and-Wait RTO changes, added and verified `HandshakeTest` and `SessionTest`, ran `./build.sh`, confirmed 0 failed tests, and verified HandshakeTest (3/3) and SessionTest (1/1). I committed the changes as `352185a`.
 
+### 2026-09-30 — Stop-and-Wait sequence-number handling and integration tests
+**What:** AI helped me understand and debug full sequence-number handling for Stop-and-Wait, including sequence-space wraparound, expected sequence advancement, duplicate/previous-window packets, and ACK matching. AI also helped review the Session integration tests for FINACK loss and packet reordering.
+
+**Permitted under:** explaining concepts; debugging; reviewing our code; generating tests.
+
+**Mine:** I implemented the Stop-and-Wait sequence-number changes in `StopAndWait.java`, added the Session reordering integration test, ran the project test suite, and verified the relevant tests passed. I committed and pushed the changes as `9dd92c6`.
+
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
 ### 2026-09-16 — TimerWheel.java 
