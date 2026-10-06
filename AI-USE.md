@@ -170,7 +170,6 @@ and TimerWheel double-decrement. It did not produce the fixed implementation.
 
 ## M3 — Selective Repeat · Sohini Pandit
 
-<<<<<<< HEAD
 ### 2026-09-16 — M3 / SeqSpace
 
 **What:** Used ChatGPT to understand sequence-number space logic, debug Java compiler errors, and resolve the duplicate-class issue involving `SeqSpace.java` and `SeqSpaceTest.java`. Also discussed modular arithmetic and sequence-number wraparound.
@@ -202,47 +201,14 @@ and TimerWheel double-decrement. It did not produce the fixed implementation.
 **Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
 
 **Mine:** I integrated TimerWheel with `SelectiveRepeat.java`, moved `TimerWheel.java` into `src/main/java/timer/` so it was included in the build, updated `build.sh` to run the Selective Repeat tests, and ran the tests. I committed and pushed the changes in commit `2720daa` (`Complete Selective Repeat timer integration`) to `m3/selective-repeat`.
-=======
-### SeqSpace and ReceiveBufer.
-## ### 2026-09-16 — M3 / SeqSpace
-
-**What:** Used ChatGPT to understand sequence-number space logic, debug Java compiler errors, and resolve the duplicate-class issue involving `SeqSpace.java` and `SeqSpaceTest.java`. Also discussed modular arithmetic and sequence-number wraparound.
-
-**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
-
-**Mine:** I created and organized `SeqSpace.java` and `SeqSpaceTest.java`, corrected the class and file organization issues, checked the implementation, and committed the work as `8ea6088` (Implement sequence number space).
-
-### 2026-09-18 — M3 / ReceiveBuffer
-
-**What:** Used ChatGPT to understand the receive-window logic, ring-buffer indexing, sequence-number wraparound, and how to handle packets inside and outside the current receive window. Also used it to troubleshoot test failures and Java test-file errors.
-
-**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
-
-**Mine:** I implemented and debugged `ReceiveBuffer.java`, worked through the failing outside-window packet test, corrected the test and implementation issues, and ran the build and ReceiveBuffer tests. I checked that the tests passed before merging the ReceiveBuffer work into the Selective Repeat branch.
-
-### 2026-09-26 — M3 / Selective Repeat tests
-
-**What:** Used ChatGPT to understand and troubleshoot the Selective Repeat implementation and its tests, including sender-window behavior, ACK handling, receive-buffer integration, and build-script test execution.
-
-**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
-
-**Mine:** I worked on `SelectiveRepeat.java` and `SelectiveRepeatTest.java`, integrated the work with the existing project structure, and ran `./build.sh`. The Selective Repeat tests passed, along with the existing Packet, Channel, NetEmSmoke, SeqSpace, and ReceiveBuffer tests.
-
-### 2026-09-26 — M3 / TimerWheel integration
-
-**What:** Used ChatGPT to understand the TimerWheel integration with Selective Repeat, troubleshoot source-directory and build issues, and interpret compiler warnings and test results.
-
-**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
-
-**Mine:** I integrated TimerWheel with `SelectiveRepeat.java`, moved `TimerWheel.java` into `src/main/java/timer/` so it was included in the build, updated `build.sh` to run the Selective Repeat tests, and ran the tests. I committed and pushed the changes in commit `2720daa` (`Complete Selective Repeat timer integration`) to `m3/selective-repeat`.
-M3 — Selective Repeat · Sohini Pandit
 
 ## M4 — Channel & Evidence · Sohan Mandal
 
 ### 2026-08-31 — Project planning and role split
 **What:** Claude extracted the assignment PDF, compared the eight catalogue projects
 against our constraints, and drafted the project plan and team plan (schedule, work
-split, experiment design, risk register).**Permitted under:** explaining concepts; improving our writing.
+split, experiment design, risk register).
+**Permitted under:** explaining concepts; improving our writing.
 **Mine:** Choosing P3, choosing Java over Python, and the role allocation were our
 decisions. We supplied the constraint that most of the group is stronger in Java, which
 is what changed the language recommendation.
