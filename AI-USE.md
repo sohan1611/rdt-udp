@@ -383,6 +383,16 @@ ports (9000 and 9001, from CONVENTIONS section 6) after review.
 **Mine:** the ChannelConfig and NetEm rewrites, including both fixes, the master-seed scheme,
 the 4 MB socket buffers, the RunStats.start() guard, and the text of the operating-point note.
 
+### 2026-10-06 — netem_validate.py
+**What:** At my request, Claude wrote `analysis/netem_validate.py`, which applies a Linux
+netem queue to the loopback interface and runs Stop-and-Wait straight from sender to
+receiver at each loss level of experiment 1, so the goodput curve can be compared with the
+one measured through our emulator. It refuses to start without root or while any other
+transfer is using loopback.
+**Permitted under:** boilerplate and plotting scripts.
+**Mine:** the decision to cross-validate against netem, which was in our plan from the start,
+and running the validation and interpreting the comparison.
+
 ---
 
 # Open items — must be cleared before submission
