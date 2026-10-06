@@ -4,6 +4,7 @@ import csv
 import hashlib
 import itertools
 import json
+import os
 import random
 import socket
 import subprocess
@@ -13,7 +14,7 @@ from pathlib import Path
 RUN_FIELDS=["experiment","protocol","window","rto","seqbits","seed"]
 CHANNEL_FIELDS=["loss","dup","corrupt","reorder","delay","jitter"]
 NETEM_FIELDS=["loss","dup","corrupt","reorder","delay","jitter","reorderExtra"]
-TAIL_FIELDS=["file_match","status","wall_s"]
+TAIL_FIELDS=["file_match","full_gc","status","wall_s"]
 FIXED_FIELDS=set(RUN_FIELDS+CHANNEL_FIELDS+TAIL_FIELDS)
 
 def load_config(path):
@@ -75,6 +76,27 @@ def file_sha256(path):
             h.update(block)
     return h.hexdigest()
 
+def gc_log_option(path):
+    # -Xlog splits its argument on ':', so a Windows drive letter (D:) would break
+    # it. Experiments run in WSL2 where paths have no colon; elsewhere GC logging
+    # is simply skipped and full_gc is left blank.
+    text=str(path)
+    if ":" in text:
+        return []
+    return [f"-Xlog:gc:file={text}"]
+
+def full_gc_seen(*logs):
+    """True if any log records a full collection, False if none did, None if no log was written."""
+    seen=None
+    for log in logs:
+        log=Path(log)
+        if not log.exists():
+            continue
+        seen=bool(seen)
+        if "Pause Full" in log.read_text(errors="ignore"):
+            return True
+    return seen
+
 def files_match(input_path,output_path):
     # The harness's own integrity check, independent of what the protocol reports
     # about itself: compare the file that was sent with the file that arrived.
@@ -115,6 +137,16 @@ def run_one(run,cp,workdir):
     output_path=(workdir/"out.bin").resolve()
     if output_path.exists():
         output_path.unlink()
+    # One GC log per JVM, relative to the repo so the path has no drive letter.
+    def repo_relative(path):
+        try:
+            return Path(os.path.relpath(path))
+        except ValueError:          # a different drive on Windows; left absolute
+            return Path(path)
+    gc_logs=[repo_relative(workdir/f"gc-{side}.log") for side in ("sender","receiver")]
+    for log in gc_logs:
+        if log.exists():
+            log.unlink()
     receiver=None
     netem=None
     result={}
@@ -127,7 +159,7 @@ def run_one(run,cp,workdir):
         while netem_port==receiver_port:
             netem_port=free_port()
         receiver_cmd=[
-            "java","-Xms512m","-Xmx512m","-cp",str(cp),
+            "java","-Xms512m","-Xmx512m",*gc_log_option(gc_logs[1]),"-cp",str(cp),
             "app.Receiver",
             "--port",str(receiver_port),
             "--out",str(output_path),
@@ -147,7 +179,7 @@ def run_one(run,cp,workdir):
         netem=subprocess.Popen(netem_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         time.sleep(0.5)
         sender_cmd=[
-            "java","-Xms512m","-Xmx512m","-cp",str(cp),
+            "java","-Xms512m","-Xmx512m",*gc_log_option(gc_logs[0]),"-cp",str(cp),
             "app.Sender",
             "--file",str(input_path),
             "--to",f"127.0.0.1:{netem_port}",
@@ -232,6 +264,10 @@ def run_one(run,cp,workdir):
     row=base_row(run)
     row.update(result)
     row["file_match"]=match
+    # Methodology evidence: a full GC during a timed transfer would stall it and
+    # look like network delay. Recorded per run, from both JVMs.
+    gc=full_gc_seen(*gc_logs)
+    row["full_gc"]="" if gc is None else gc
     row["status"]=status
     row["wall_s"]=round(time.monotonic()-started,3)
     if detail:
