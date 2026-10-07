@@ -388,7 +388,9 @@ the 4 MB socket buffers, the RunStats.start() guard, and the text of the operati
 netem queue to the loopback interface and runs Stop-and-Wait straight from sender to
 receiver at each loss level of experiment 1, so the goodput curve can be compared with the
 one measured through our emulator. It refuses to start without root or while any other
-transfer is using loopback.
+transfer is using loopback. After Shaili's review it also made the resume key independent
+of number formatting, added the window and seqbits columns, and made the script refuse to
+start if loopback already has a queue.
 **Permitted under:** boilerplate and plotting scripts.
 **Mine:** the decision to cross-validate against netem, which was in our plan from the start,
 and running the validation and interpreting the comparison.

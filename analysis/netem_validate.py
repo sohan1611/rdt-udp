@@ -16,6 +16,10 @@ loopback, because the queue delays and drops every loopback packet:
     sudo python3 analysis/netem_validate.py --config analysis/configs/exp1_loss.json
 
 netem cannot be seeded, so each level is repeated --repeats times instead.
+
+Assumes the interface starts with no queue of its own (WSL2's loopback has
+none: "qdisc noqueue"). The script refuses to start if one is already set,
+because on exit it deletes the root queue rather than restoring an old one.
 """
 
 import argparse
@@ -29,7 +33,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import run_matrix as rm  # noqa: E402
 
-FIELDS = (["experiment", "protocol", "rto", "repeat", "loss", "delay", "jitter"]
+FIELDS = (["experiment", "protocol", "window", "rto", "seqbits", "repeat", "loss", "delay", "jitter"]
           + ["rto_mode", "file_bytes", "elapsed_ms", "goodput_bps", "wire_bytes",
              "throughput_bps", "data_sent", "retransmissions", "timeouts", "dup_acks",
              "acks_received", "corrupt_dropped", "sha256_match"]
@@ -54,6 +58,18 @@ def set_netem(iface, delay, jitter, loss):
 
 def clear_netem(iface):
     tc("qdisc", "del", "dev", iface, "root")      # fine if nothing was set
+
+
+def existing_qdisc(iface):
+    """The interface's root queue before we touch it, or None if it has none."""
+    out = tc("qdisc", "show", "dev", iface)
+    if out.returncode != 0:
+        raise RuntimeError("tc failed: " + out.stderr.strip())
+    for line in out.stdout.splitlines():
+        words = line.split()
+        if "root" in words and words[1:2] != ["noqueue"]:
+            return line.strip()
+    return None
 
 
 def other_transfers_running():
@@ -98,12 +114,20 @@ def transfer(cp, protocol, rto, base_rtt, seqbits, window, input_path, output_pa
     return result, match, status, round(time.monotonic() - started, 3)
 
 
+def run_key(protocol, rto, loss, repeat):
+    # The same key whether the values come from the config (numbers) or the CSV
+    # (strings), so 0, 0.0 and "0" are one loss level and resuming never reruns
+    # a finished transfer.
+    return (str(protocol), str(rto), float(loss), int(repeat))
+
+
 def done_keys(path):
     if not path.exists():
         return set()
     import csv
     with path.open(newline="", encoding="utf-8") as f:
-        return {(r["protocol"], r["rto"], r["loss"], r["repeat"]) for r in csv.DictReader(f) if r["status"] == "ok"}
+        return {run_key(r["protocol"], r["rto"], r["loss"], r["repeat"])
+                for r in csv.DictReader(f) if r["status"] == "ok"}
 
 
 def append(path, row):
@@ -153,6 +177,10 @@ def main():
     if busy:
         sys.exit("another transfer or emulator is running (pids " + ", ".join(busy) + "). "
                  "A netem queue on loopback would distort it; wait until it finishes.")
+    before = existing_qdisc(args.iface)
+    if before is not None:
+        sys.exit(f"{args.iface} already has a queue ({before}). This script deletes the root "
+                 "queue when it finishes and cannot restore that one, so it will not start.")
 
     out = Path(args.out)
     work = Path("results/.work/netem")
@@ -163,7 +191,7 @@ def main():
     current = None
     try:
         for i, (p, rto, loss, rep) in enumerate(plan, 1):
-            key = (p, rto, str(loss), str(rep))
+            key = run_key(p, rto, loss, rep)
             label = f"[{i}/{len(plan)}] {p} rto={rto} loss={loss} repeat={rep}"
             if key in done:
                 print(label, "-> skipped", flush=True)
@@ -174,7 +202,8 @@ def main():
                 print(f"netem on {args.iface}: {spec}", flush=True)
             result, match, status, wall = transfer(args.cp, p, rto, base_rtt, cfg["seqbits"], window,
                                                    input_path, output_path, cfg["timeout_s"])
-            row = {"experiment": "netem_" + cfg["name"], "protocol": p, "rto": rto, "repeat": rep,
+            row = {"experiment": "netem_" + cfg["name"], "protocol": p, "window": window, "rto": rto,
+                   "seqbits": cfg["seqbits"], "repeat": rep,
                    "loss": loss, "delay": delay, "jitter": jitter, **result,
                    "file_match": match, "status": status, "wall_s": wall}
             append(out, row)
