@@ -15,7 +15,13 @@ loopback, because the queue delays and drops every loopback packet:
 
     sudo python3 analysis/netem_validate.py --config analysis/configs/exp1_loss.json
 
-netem cannot be seeded, so each level is repeated --repeats times instead.
+Each level is repeated --repeats times, and repeat N runs with netem "seed N".
+That seed covers only netem's loss and corruption draws, not its jitter, and on
+loopback data and ACKs share one queue and one random stream, so the order in
+which packets reach the queue (which jitter changes) decides which packet gets
+which draw. Seeding makes the draws repeatable, not the runs, and the kernel's
+generator is unrelated to java.util.Random, so seed N here does not drop the
+packets that seed N drops in our emulator. The comparison is statistical.
 
 Assumes the interface starts with no queue of its own (WSL2's loopback has
 none: "qdisc noqueue"). The script refuses to start if one is already set,
@@ -44,12 +50,13 @@ def tc(*args):
     return subprocess.run(["tc", *args], capture_output=True, text=True)
 
 
-def set_netem(iface, delay, jitter, loss):
+def set_netem(iface, delay, jitter, loss, seed):
     spec = ["delay", f"{delay}ms"]
     if jitter:
         spec.append(f"{jitter}ms")
     if loss:
         spec += ["loss", f"{loss * 100:g}%"]
+    spec += ["seed", str(seed)]
     out = tc("qdisc", "replace", "dev", iface, "root", "netem", *spec)
     if out.returncode != 0:
         raise RuntimeError("tc failed: " + out.stderr.strip())
@@ -188,7 +195,6 @@ def main():
     input_path, output_path = work / "input.bin", work / "out.bin"
     rm.make_input(input_path, cfg["file_bytes"])
     done = done_keys(out)
-    current = None
     try:
         for i, (p, rto, loss, rep) in enumerate(plan, 1):
             key = run_key(p, rto, loss, rep)
@@ -196,10 +202,9 @@ def main():
             if key in done:
                 print(label, "-> skipped", flush=True)
                 continue
-            if current != loss:
-                spec = set_netem(args.iface, delay, jitter, loss)
-                current = loss
-                print(f"netem on {args.iface}: {spec}", flush=True)
+            # Set before every transfer, so each one starts from its own seed.
+            spec = set_netem(args.iface, delay, jitter, loss, rep)
+            print(f"netem on {args.iface}: {spec}", flush=True)
             result, match, status, wall = transfer(args.cp, p, rto, base_rtt, cfg["seqbits"], window,
                                                    input_path, output_path, cfg["timeout_s"])
             row = {"experiment": "netem_" + cfg["name"], "protocol": p, "window": window, "rto": rto,

@@ -390,7 +390,8 @@ receiver at each loss level of experiment 1, so the goodput curve can be compare
 one measured through our emulator. It refuses to start without root or while any other
 transfer is using loopback. After Shaili's review it also made the resume key independent
 of number formatting, added the window and seqbits columns, and made the script refuse to
-start if loopback already has a queue.
+start if loopback already has a queue. It had wrongly stated that netem cannot be seeded; it
+now passes seed N to repeat N and explains why the repeats are still needed.
 **Permitted under:** boilerplate and plotting scripts.
 **Mine:** the decision to cross-validate against netem, which was in our plan from the start,
 and running the validation and interpreting the comparison.
