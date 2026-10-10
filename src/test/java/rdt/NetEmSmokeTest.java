@@ -98,6 +98,21 @@ public final class NetEmSmokeTest {
             }
         });
 
+        h.check("releases delayed packets on time, not a millisecond late", () -> {
+            // The netem cross-check (results/netem_validation.csv) found our
+            // emulator about 2 ms slower per round trip than Linux netem. This
+            // measures the emulator's own lateness: the time through a 20.5 ms
+            // channel minus the time through a 0 ms one, minus the 20.5 ms.
+            // A fractional delay matters: with jitter almost every delay is
+            // fractional, and a wait rounded up to whole milliseconds then
+            // costs about half a millisecond per packet.
+            double base = meanTransitMs("", 100);
+            double delayed = meanTransitMs("delay=20.5", 100);
+            double lateMs = delayed - base - 20.5;
+            assertTrue(String.format("packets released %.3f ms late on average; should be under 0.25",
+                    lateMs), lateMs < 0.25);
+        });
+
         h.check("delivers duplicates twice", () -> {
             try (Fixture f = new Fixture("dup=1.0", "", 3, null)) {
                 for (int i = 0; i < 50; i++) {
@@ -140,6 +155,23 @@ public final class NetEmSmokeTest {
      * A running middlebox plus a sender socket and a receiver socket, all on
      * loopback with ephemeral ports.
      */
+    /** Mean time for one packet to cross the middlebox, sent one at a time. */
+    private static double meanTransitMs(String spec, int n) throws Exception {
+        try (Fixture f = new Fixture(spec, "", 7, null)) {
+            f.send(-1);                                   // warm-up, not measured
+            f.drainReceiver(1, 2000);
+            double total = 0;
+            for (int i = 0; i < n; i++) {
+                long t0 = System.nanoTime();
+                f.send(i);
+                assertEquals("packet " + i + " arrived", 1, f.drainReceiver(1, 2000).size());
+                total += (System.nanoTime() - t0) / 1e6;
+                Thread.sleep(3);                          // packets never share the queue
+            }
+            return total / n;
+        }
+    }
+
     private static final class Fixture implements AutoCloseable {
         private final NetEm netem;
         private final Thread thread;

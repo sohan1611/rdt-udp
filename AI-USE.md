@@ -384,6 +384,20 @@ ports (9000 and 9001, from CONVENTIONS section 6) after review.
 **Mine:** the ChannelConfig and NetEm rewrites, including both fixes, the master-seed scheme,
 the 4 MB socket buffers, the RunStats.start() guard, and the text of the operating-point note.
 
+### 2026-10-11 — In-order jitter and release timing: tests
+**What:** Claude found, while testing #32, that per-packet jitter reordered back-to-back
+packets, which made GBN retransmit about 112,000 packets at 0% loss. It wrote four
+`ChannelTest` checks for the fix: back-to-back packets leave in arrival order, the recorded
+delay equals the applied delay, well-spaced packets keep their full jitter, and reordered
+packets still overtake. It also spaced the existing jitter tests' packets 1 s apart, so they
+still test the drawn delays. After the netem cross-check showed our emulator about 2 ms per
+round trip slower than Linux netem, it measured the cause (waits rounded up to whole
+milliseconds, about 1 ms late per direction) and wrote the `NetEmSmokeTest` check that
+packets are released less than 0.25 ms late.
+**Permitted under:** generating tests; reviewing our code.
+**Mine:** the decisions to make jitter keep packets in order and to fix the release timing
+rather than only document it, and the changes to `Channel.java` and `NetEm.java`.
+
 ---
 
 # Open items — must be cleared before submission

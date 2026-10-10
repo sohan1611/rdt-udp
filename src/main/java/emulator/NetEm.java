@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.concurrent.locks.LockSupport;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +56,14 @@ public final class NetEm{
             byte[] buf=new byte[65535];
             while(running){
                 releaseDue(sock);
+                if(!queue.isEmpty()){
+                    long remainingNanos=queue.peek().releaseNanos()-System.nanoTime();
+                    // Socket timeouts use whole milliseconds, so wait out the final fraction precisely.
+                    if(remainingNanos>0&&remainingNanos<1_000_000L){
+                        LockSupport.parkNanos(remainingNanos);
+                        continue;
+                    }
+                }
                 // Zero means wait forever, so use at least 1 ms; the 200 ms cap lets stop() be noticed while idle.
                 sock.setSoTimeout(nextTimeoutMs());
                 DatagramPacket packet=new DatagramPacket(buf,buf.length);
@@ -161,7 +170,6 @@ public final class NetEm{
         long delta=queue.peek().releaseNanos()-System.nanoTime();
         if(delta<=0)return 1;
         long ms=delta/1_000_000L;
-        if(delta%1_000_000L!=0)ms++;
         return (int)Math.max(1,Math.min(MAX_BLOCK_MS,ms));
     }
 
