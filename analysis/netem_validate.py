@@ -31,6 +31,7 @@ because on exit it deletes the root queue rather than restoring an old one.
 import argparse
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -77,6 +78,13 @@ def existing_qdisc(iface):
         if "root" in words and words[1:2] != ["noqueue"]:
             return line.strip()
     return None
+
+
+def stop_on_signal(signum, frame):
+    # SIGTERM (kill) or SIGHUP (terminal closed) would otherwise end Python
+    # without running the finally block below, leaving netem on loopback.
+    # Raising here unwinds normally, so the queue is always removed.
+    raise SystemExit(f"stopped by signal {signum}; removing netem")
 
 
 def other_transfers_running():
@@ -195,6 +203,8 @@ def main():
     input_path, output_path = work / "input.bin", work / "out.bin"
     rm.make_input(input_path, cfg["file_bytes"])
     done = done_keys(out)
+    signal.signal(signal.SIGTERM, stop_on_signal)
+    signal.signal(signal.SIGHUP, stop_on_signal)
     try:
         for i, (p, rto, loss, rep) in enumerate(plan, 1):
             key = run_key(p, rto, loss, rep)
