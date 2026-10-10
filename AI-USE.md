@@ -352,7 +352,8 @@ sender reported `sha256_match` false for files that had arrived intact, and a
 Shaili's review, it made an I/O error during the file check or a crashing run record an
 error instead of stopping the sweep, rejected an empty `--protocols`, and wrote
 `analysis/test_run_matrix.py` (13 tests of the harness). It also moved `plots.py`'s
-matplotlib import into `plot()`, so those tests run on a machine without matplotlib.
+matplotlib import into `plot()`, so those tests run on a machine without matplotlib. On
+6 Oct, at my request, it added per-run GC logging for both JVMs and a `full_gc` column.
 **Permitted under:** boilerplate and plotting scripts; reviewing our code; generating tests.
 **Mine:** `run_matrix.py` as written, including the RESULT validation (16 fields, and a
 check that protocol, window and seqbits match what was requested), resume on crash, and
