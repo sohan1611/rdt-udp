@@ -1,13 +1,9 @@
 package rdt;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 
-public final class SelectiveRepeat implements ArqProtocol {
+public final class SelectiveRepeat {
 
     private final int windowSize;
     private final long sequenceSpace;
@@ -23,10 +19,6 @@ public final class SelectiveRepeat implements ArqProtocol {
 
     private final TimerWheel timerWheel;
     private final ReceiveBuffer receiveBuffer;
-
-    public SelectiveRepeat() {
-        this(1, 1L << 32, 1000);
-    }
 
     public SelectiveRepeat(int windowSize, long sequenceSpace) {
         this(windowSize, sequenceSpace, 500);
@@ -302,18 +294,4 @@ public final class SelectiveRepeat implements ArqProtocol {
     private int slotForOffset(long offset) {
         return (int) ((sendHead + offset) % windowSize);
     }
-    @Override
-    public RunStats send(Path file, InetSocketAddress peer,
-                         ProtocolConfig config) throws IOException {
-        return ArqFileTransfer.send(
-                file, peer, config, "sr", ArqFileTransfer.Mode.SR);
-    }
-
-    @Override
-    public RunStats receive(Path file, int port,
-                            ProtocolConfig config) throws IOException {
-        return ArqFileTransfer.receive(
-                file, port, config, "sr", ArqFileTransfer.Mode.SR);
-    }
-
 }

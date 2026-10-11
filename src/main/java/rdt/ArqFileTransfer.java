@@ -21,7 +21,7 @@ import java.util.Map;
  * It implements the project's Session META -> DATA -> FIN/FINACK framing.
  */
 final class ArqFileTransfer {
-    enum Mode { GBN, SR }
+    enum Mode { GBN }
 
     private static final int FIN_RETRIES = 3;
     private static final int MAX_RETRIES = 20;
@@ -87,7 +87,7 @@ final class ArqFileTransfer {
 
                 long rtoMs = fixed ? fixedRtoMs : rtt.rtoMs();
                 long timeoutMs = timeoutFor(
-                        outstanding, base, rtoMs, mode);
+                        outstanding, base, rtoMs);
 
                 socket.setSoTimeout(
                         (int) Math.min(Integer.MAX_VALUE,
@@ -117,22 +117,6 @@ final class ArqFileTransfer {
 
                         for (Sent old :
                                 new ArrayList<>(outstanding.values())) {
-                            sendPacket(socket, peer, old.packet);
-                            outstanding.put(
-                                    old.packet.seq,
-                                    new Sent(old.packet, now, true));
-                            stats.onDataSent(
-                                    old.packet.wireLength(), true);
-                        }
-                    }
-                    else {
-                        if (!fixed) {
-                            rtt.doubleRto();
-                        }
-
-                        long srRto = fixed ? fixedRtoMs : rtt.rtoMs();
-                        for (Sent old :
-                                expired(outstanding, now, srRto)) {
                             sendPacket(socket, peer, old.packet);
                             outstanding.put(
                                     old.packet.seq,
@@ -193,28 +177,6 @@ final class ArqFileTransfer {
                     retries = 0;
                     rtt.resetBackoff();
                 }
-                else {
-                    Sent sent = outstanding.remove(ack.ack);
-
-                    if (sent == null) {
-                        stats.onAck(true);
-                        continue;
-                    }
-
-                    stats.onAck(false);
-
-                    if (!sent.retransmitted) {
-                        rtt.update(now - sent.sentNanos);
-                    }
-
-                    if (ack.ack == base) {
-                        base = firstOutstanding(
-                                outstanding, base, m);
-                    }
-
-                    retries = 0;
-                    rtt.resetBackoff();
-                }
             }
 
             stats.stop();
@@ -269,12 +231,7 @@ final class ArqFileTransfer {
                     0,
                     cfg.getWindowSize());
 
-            if (mode == Mode.GBN) {
-                return receiveGbn(
-                        socket, file, cfg, stats, info, m);
-            }
-
-            return receiveSr(
+            return receiveGbn(
                     socket, file, cfg, stats, info, m);
         }
     }
@@ -365,120 +322,6 @@ final class ArqFileTransfer {
                         received.datagram,
                         expected,
                         cfg.getWindowSize());
-            }
-        }
-    }
-
-    private static RunStats receiveSr(
-            DatagramSocket socket,
-            Path file,
-            ProtocolConfig cfg,
-            RunStats stats,
-            Session.MetaInfo info,
-            long m) throws IOException {
-
-        long base = 1;
-        Map<Long, Packet> buffer = new HashMap<>();
-        Set<Long> delivered = new HashSet<>();
-
-        try (var output = Files.newOutputStream(file)) {
-            while (true) {
-                Received received;
-
-                try {
-                    received = receive(socket, cfg);
-                }
-                catch (CorruptPacketException e) {
-                    stats.onCorruptDropped();
-                    continue;
-                }
-
-                Packet packet = received.packet;
-
-                if (packet.type == Packet.TYPE_DATA
-                        && packet.flags == 0x01) {
-                    // Duplicate META: re-ACK it in case the original ACK was lost.
-                    sendAck(
-                            socket,
-                            received.datagram,
-                            0,
-                            cfg.getWindowSize());
-                    continue;
-                }
-
-                if (packet.type == Packet.TYPE_FIN) {
-                    if (packet.seq == base) {                    boolean match =
-                            Session.verifySha256(
-                                    file, info.sha256);
-
-                    stats.setShaMatch(match);
-
-                    sendFinAck(
-                            socket,
-                            received.datagram,
-                            packet,
-                            match);
-
-                    lingerFin(
-                            socket,
-                            cfg,
-                            received.datagram,
-                            packet,
-                            match);
-
-                    return stats;
-                    }
-
-                    sendAck(
-                            socket,
-                            received.datagram,
-                            packet.seq,
-                            cfg.getWindowSize());
-
-                    continue;
-                }
-
-                if (packet.type != Packet.TYPE_DATA
-                        || packet.flags != 0) {
-                    continue;
-                }
-
-                if (SeqSpace.inCurrentWindow(
-                        packet.seq,
-                        base,
-                        cfg.getWindowSize(),
-                        m)) {
-
-                    buffer.putIfAbsent(packet.seq, packet);
-
-                    // SR ACK identifies the received packet.
-                    sendAck(
-                            socket,
-                            received.datagram,
-                            packet.seq,
-                            cfg.getWindowSize());
-
-                    while (buffer.containsKey(base)) {
-                        Packet ready = buffer.remove(base);
-                        output.write(ready.payload);
-                        delivered.add(ready.seq);
-                        base = inc(base, m);
-                    }
-                }
-                else if (SeqSpace.inPreviousWindow(
-                        packet.seq,
-                        base,
-                        cfg.getWindowSize(),
-                        m)
-                        || delivered.contains(packet.seq)) {
-
-                    // Re-ACK packets whose earlier ACK may have been lost.
-                    sendAck(
-                            socket,
-                            received.datagram,
-                            packet.seq,
-                            cfg.getWindowSize());
-                }
             }
         }
     }
@@ -730,11 +573,6 @@ final class ArqFileTransfer {
                     "GBN requires W <= 2^k - 1");
         }
 
-        if (mode == Mode.SR && window > m / 2) {
-            throw new IllegalArgumentException(
-                    "Selective Repeat requires W <= 2^(k-1)");
-        }
-
         if (cfg.getPayloadSize() <= 0
                 || cfg.getPayloadSize() > 1400) {
             throw new IllegalArgumentException(
@@ -765,58 +603,18 @@ final class ArqFileTransfer {
     private static long timeoutFor(
             Map<Long, Sent> outstanding,
             long base,
-            long rtoMs,
-            Mode mode) {
-
-        if (mode == Mode.GBN) {
-            Sent first = outstanding.get(base);
-
-            if (first == null) {
-                return rtoMs;
-            }
-
-            long elapsed =
-                    (System.nanoTime() - first.sentNanos)
-                            / 1_000_000L;
-
-            return Math.max(1, rtoMs - elapsed);
-        }
-
-        long now = System.nanoTime();
-        long minimum = rtoMs;
-
-        for (Sent sent : outstanding.values()) {
-            long elapsed =
-                    (now - sent.sentNanos)
-                            / 1_000_000L;
-
-            minimum =
-                    Math.min(
-                            minimum,
-                            Math.max(1, rtoMs - elapsed));
-        }
-
-        return Math.max(1, minimum);
-    }
-
-    private static List<Sent> expired(
-            Map<Long, Sent> outstanding,
-            long now,
             long rtoMs) {
 
-        List<Sent> result = new ArrayList<>();
-
-        for (Sent sent : outstanding.values()) {
-            long elapsed =
-                    (now - sent.sentNanos)
-                            / 1_000_000L;
-
-            if (elapsed >= rtoMs) {
-                result.add(sent);
-            }
+        Sent first = outstanding.get(base);
+        if (first == null) {
+            return rtoMs;
         }
 
-        return result;
+        long elapsed =
+                (System.nanoTime() - first.sentNanos)
+                        / 1_000_000L;
+
+        return Math.max(1, rtoMs - elapsed);
     }
 
     private static boolean isGbnAckValid(
@@ -833,34 +631,6 @@ final class ArqFileTransfer {
 
         return distance > 0
                 && distance <= outstanding.size();
-    }
-
-    private static long firstOutstanding(
-            Map<Long, Sent> outstanding,
-            long fallback,
-            long m) {
-
-        if (outstanding.isEmpty()) {
-            return fallback;
-        }
-
-        long best = fallback;
-        long bestDistance = Long.MAX_VALUE;
-
-        for (long seq : outstanding.keySet()) {
-            long distance =
-                    SeqSpace.offset(
-                            seq,
-                            fallback,
-                            m);
-
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                best = seq;
-            }
-        }
-
-        return best;
     }
 
     private static long inc(long value, long m) {
