@@ -1,3 +1,4 @@
+
 package rdt;
 
 import java.io.IOException;
@@ -190,8 +191,12 @@ public final class SelectiveRepeat implements ArqProtocol {
             return false;
         }
 
-        if (!fixedRto && !retransmitted[slot] && sendTimes[slot] != 0) {
+        if (!fixedRto &&
+            !retransmitted[slot] &&
+            sendTimes[slot] != 0) {
+
             rtt.update(System.nanoTime() - sendTimes[slot]);
+            rtt.resetBackoff();
         }
 
         acked[slot] = true;
@@ -201,6 +206,7 @@ public final class SelectiveRepeat implements ArqProtocol {
 
         long oldBase = sendBase;
         slideWindow();
+
         if (sendBase != oldBase) {
             rtt.resetBackoff();
         }
@@ -340,7 +346,8 @@ public final class SelectiveRepeat implements ArqProtocol {
                     slotForOffset(offset);
 
             retransmitted[slot] = true;
-            if (!fixedRto) {
+
+            if (!fixedRto && seq == sendBase) {
                 rtt.doubleRto();
             }
 
@@ -355,15 +362,21 @@ public final class SelectiveRepeat implements ArqProtocol {
 
     private void configureRto(ProtocolConfig config) {
         String mode = config.getRtoMode();
+
         if (mode != null && mode.startsWith("fixed:")) {
-            double multiplier = Double.parseDouble(mode.substring(6));
+            double multiplier =
+                    Double.parseDouble(mode.substring(6));
+
             if (config.getBaseRttMs() <= 0 || multiplier <= 0) {
                 throw new IllegalArgumentException(
                         "fixed RTO requires positive multiplier and base RTT");
             }
+
             fixedRto = true;
-            fixedRtoMs = Math.max(1L,
-                    Math.round(multiplier * config.getBaseRttMs()));
+            fixedRtoMs = Math.max(
+                    1L,
+                    Math.round(
+                            multiplier * config.getBaseRttMs()));
         } else {
             fixedRto = false;
         }
@@ -374,7 +387,9 @@ public final class SelectiveRepeat implements ArqProtocol {
     }
 
     private static int socketTimeout(long timeout) {
-        return (int) Math.max(1L, Math.min(Integer.MAX_VALUE, timeout));
+        return (int) Math.max(
+                1L,
+                Math.min(Integer.MAX_VALUE, timeout));
     }
 
     public long timeUntilNextTimerMs() {
@@ -454,8 +469,7 @@ public final class SelectiveRepeat implements ArqProtocol {
 
     private int slotForOffset(long offset) {
         return (int)
-                ((sendHead + offset) %
-                        windowSize);
+                ((sendHead + offset) % windowSize);
     }
 
     @Override
@@ -535,6 +549,7 @@ public final class SelectiveRepeat implements ArqProtocol {
                     }
 
                 } catch (SocketTimeoutException e) {
+                    // Retransmit META on timeout.
                 }
             }
 
@@ -621,15 +636,12 @@ public final class SelectiveRepeat implements ArqProtocol {
                         if (ack.type ==
                                 Packet.TYPE_ACK) {
 
-                            if (sender.receiveAck(
-                                    ack.ack)) {
-
+                            if (sender.receiveAck(ack.ack)) {
                                 stats.onAck(false);
                             }
                         }
 
                     } catch (SocketTimeoutException e) {
-
                         Packet packet;
 
                         while ((packet =
@@ -674,7 +686,8 @@ public final class SelectiveRepeat implements ArqProtocol {
 
             boolean finAck = false;
 
-            socket.setSoTimeout(socketTimeout(sender.activeRtoMs()));
+            socket.setSoTimeout(
+                    socketTimeout(sender.activeRtoMs()));
 
             while (!finAck) {
                 socket.send(finPacket);
@@ -705,6 +718,7 @@ public final class SelectiveRepeat implements ArqProtocol {
                                 Packet.TYPE_FINACK) {
 
                         finAck = true;
+
                         stats.setShaMatch(
                                 response.payload != null &&
                                 response.payload.length > 0 &&
@@ -712,6 +726,7 @@ public final class SelectiveRepeat implements ArqProtocol {
                     }
 
                 } catch (SocketTimeoutException e) {
+                    // Retransmit FIN on timeout.
                 }
             }
 
@@ -751,7 +766,6 @@ public final class SelectiveRepeat implements ArqProtocol {
             boolean gotMeta = false;
 
             while (true) {
-
                 byte[] buffer =
                         new byte[2048];
 
@@ -820,7 +834,6 @@ public final class SelectiveRepeat implements ArqProtocol {
                             receiver.receiveData(packet);
 
                     if (result.ack() != null) {
-
                         byte[] ackData =
                                 result.ack().encode();
 
@@ -833,11 +846,8 @@ public final class SelectiveRepeat implements ArqProtocol {
                         socket.send(ackPacket);
                     }
 
-                    for (Packet data :
-                            result.delivered()) {
-
-                        output.write(
-                                data.payload);
+                    for (Packet data : result.delivered()) {
+                        output.write(data.payload);
                     }
 
                     continue;
@@ -870,9 +880,7 @@ public final class SelectiveRepeat implements ArqProtocol {
 
                     socket.send(finPacket);
 
-                    stats.setShaMatch(
-                            shaMatch);
-
+                    stats.setShaMatch(shaMatch);
                     stats.stop();
 
                     return stats;
