@@ -209,6 +209,15 @@ and TimerWheel double-decrement. It did not produce the fixed implementation.
 
 **Mine:** I integrated TimerWheel with `SelectiveRepeat.java`, moved `TimerWheel.java` into `src/main/java/timer/` so it was included in the build, updated `build.sh` to run the Selective Repeat tests, and ran the tests. I committed and pushed the changes in commit `2720daa` (`Complete Selective Repeat timer integration`) to `m3/selective-repeat`.
 
+### 2026-10-11 — M3 / Adaptive RTO backoff
+
+**What:** Used ChatGPT to review adaptive retransmission-timeout backoff in `SelectiveRepeat.java`, including when to double the RTO after a timeout and when to reset backoff after receiving a fresh RTT sample.
+
+**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
+
+**Mine:** I updated `SelectiveRepeat.java` to limit adaptive RTO doubling to timeouts for the current base packet and to reset backoff when a fresh RTT sample is collected. I ran `./build.sh` and verified that all tests passed.
+
+
 ## M4 — Channel & Evidence · Sohan Mandal
 
 ### 2026-08-31 — Project planning and role split
