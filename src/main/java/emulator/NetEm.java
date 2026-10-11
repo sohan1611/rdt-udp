@@ -29,8 +29,8 @@ public final class NetEm {
     private final Channel s2c;
     private final boolean verbose;
 
-    // Shared by the receive and release threads. DelayQueue is thread-safe and
-    // hands out a packet only once its release time has come.
+    // DelayQueue safely shares packets between the receive and release threads
+    // and returns a packet only when its scheduled release time has arrived.
     private final DelayQueue<Pending> queue = new DelayQueue<>();
 
     private long order;
