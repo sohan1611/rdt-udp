@@ -107,13 +107,14 @@ final class ArqFileTransfer {
                                 protocol + ": maximum retries exceeded");
                     }
 
-                    if (!fixed) {
-                        rtt.doubleRto();
-                    }
-
                     long now = System.nanoTime();
 
                     if (mode == Mode.GBN) {
+                        // GBN retransmits every outstanding packet on timeout.
+                        if (!fixed) {
+                            rtt.doubleRto();
+                        }
+
                         for (Sent old :
                                 new ArrayList<>(outstanding.values())) {
                             sendPacket(socket, peer, old.packet);
@@ -125,6 +126,10 @@ final class ArqFileTransfer {
                         }
                     }
                     else {
+                        if (!fixed) {
+                            rtt.doubleRto();
+                        }
+
                         long srRto = fixed ? fixedRtoMs : rtt.rtoMs();
                         for (Sent old :
                                 expired(outstanding, now, srRto)) {

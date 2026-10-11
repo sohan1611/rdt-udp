@@ -42,7 +42,7 @@ public final class RttEstimatorTest {
             RttEstimator e = new RttEstimator(); 
             for (int i = 0; i < 30; i++) 
                 e.doubleRto(); 
-            check("RTO never exceeds 60 000 ms", e.rtoMs() <= 60_000L); 
+            check("RTO never exceeds 5,000 ms", e.rtoMs() <= 5_000L);
         }
         private void backoffResets() { 
             RttEstimator e = new RttEstimator(); 

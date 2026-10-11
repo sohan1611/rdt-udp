@@ -116,11 +116,6 @@ public final class Session
     {
         String actual = sha256(file);
 
-        System.err.println(
-                "SHA DEBUG: expected=" + expected
-                + " actual=" + actual
-                + " match=" + actual.equalsIgnoreCase(expected));
-
         return actual.equalsIgnoreCase(expected);
     }
 
