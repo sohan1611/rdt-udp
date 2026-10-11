@@ -43,8 +43,8 @@ The `ack` field always contains a sequence number that was received.
 
 - Stop-and-Wait acknowledges exactly that packet.
 - Selective Repeat acknowledges exactly that packet.
-- Go-Back-N uses cumulative ACKs: ACK `n` means everything through `n`
-  arrived in order.
+- Go-Back-N uses cumulative ACKs: ACK `n` means sequence numbers through
+  `n-1` arrived in order, and `n` is the next expected sequence number.
 
 Each ARQ protocol restates its ACK rule in its class comment.
 
