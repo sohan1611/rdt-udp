@@ -224,12 +224,14 @@ and TimerWheel double-decrement. It did not produce the fixed implementation.
 **Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
 
 **Mine:** I integrated TimerWheel with `SelectiveRepeat.java`, moved `TimerWheel.java` into `src/main/java/timer/` so it was included in the build, updated `build.sh` to run the Selective Repeat tests, and ran the tests. I committed and pushed the changes in commit `2720daa` (`Complete Selective Repeat timer integration`) to `m3/selective-repeat`.
+
 ## M4 — Channel & Evidence · Sohan Mandal
 
 ### 2026-08-31 — Project planning and role split
 **What:** Claude extracted the assignment PDF, compared the eight catalogue projects
 against our constraints, and drafted the project plan and team plan (schedule, work
-split, experiment design, risk register).**Permitted under:** explaining concepts; improving our writing.
+split, experiment design, risk register).
+**Permitted under:** explaining concepts; improving our writing.
 **Mine:** Choosing P3, choosing Java over Python, and the role allocation were our
 decisions. We supplied the constraint that most of the group is stronger in Java, which
 is what changed the language recommendation.
@@ -363,6 +365,20 @@ ports (9000 and 9001, from CONVENTIONS section 6) after review.
 **Permitted under:** explaining concepts; reviewing our code; generating tests; improving our writing.
 **Mine:** the ChannelConfig and NetEm rewrites, including both fixes, the master-seed scheme,
 the 4 MB socket buffers, the RunStats.start() guard, and the text of the operating-point note.
+
+### 2026-10-06 — netem_validate.py
+**What:** At my request, Claude wrote `analysis/netem_validate.py`, which applies a Linux
+netem queue to the loopback interface and runs Stop-and-Wait straight from sender to
+receiver at each loss level of experiment 1, so the goodput curve can be compared with the
+one measured through our emulator. It refuses to start without root or while any other
+transfer is using loopback. After Shaili's review it also made the resume key independent
+of number formatting, added the window and seqbits columns, and made the script refuse to
+start if loopback already has a queue. It had wrongly stated that netem cannot be seeded; it
+now passes seed N to repeat N and explains why the repeats are still needed, and removes the
+queue when killed or when its terminal is closed, not only on Ctrl+C.
+**Permitted under:** boilerplate and plotting scripts.
+**Mine:** the decision to cross-validate against netem, which was in our plan from the start,
+and running the validation and interpreting the comparison.
 
 ---
 
