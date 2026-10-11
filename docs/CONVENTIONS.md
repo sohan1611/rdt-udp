@@ -166,3 +166,5 @@ The harness adds the run settings itself:
 - `reorder`
 - `delay`
 - `jitter`
+
+The harness also compares the sent and received files itself and records `file_match`. A run that finishes but delivers different bytes gets status `corrupt`, so it is never plotted and is retried. `file_match`, not the sender's `sha256_match`, is the integrity evidence.

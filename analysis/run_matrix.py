@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import argparse
 import csv
+import hashlib
 import itertools
 import json
+import os
 import random
 import socket
 import subprocess
@@ -12,7 +14,7 @@ from pathlib import Path
 RUN_FIELDS=["experiment","protocol","window","rto","seqbits","seed"]
 CHANNEL_FIELDS=["loss","dup","corrupt","reorder","delay","jitter"]
 NETEM_FIELDS=["loss","dup","corrupt","reorder","delay","jitter","reorderExtra"]
-TAIL_FIELDS=["status","wall_s"]
+TAIL_FIELDS=["file_match","full_gc","status","wall_s"]
 FIXED_FIELDS=set(RUN_FIELDS+CHANNEL_FIELDS+TAIL_FIELDS)
 
 def load_config(path):
@@ -67,6 +69,44 @@ def free_port():
         sock.bind(("127.0.0.1",0))
         return sock.getsockname()[1]
 
+def file_sha256(path):
+    h=hashlib.sha256()
+    with Path(path).open("rb") as f:
+        for block in iter(lambda:f.read(1<<20),b""):
+            h.update(block)
+    return h.hexdigest()
+
+def gc_log_option(path):
+    # -Xlog splits its argument on ':', so a Windows drive letter (D:) would break
+    # it. Experiments run in WSL2 where paths have no colon; elsewhere GC logging
+    # is simply skipped and full_gc is left blank.
+    text=str(path)
+    if ":" in text:
+        return []
+    return [f"-Xlog:gc:file={text}"]
+
+def full_gc_seen(*logs):
+    """True if any log records a full collection, False if none did, None if no log was written."""
+    seen=None
+    for log in logs:
+        log=Path(log)
+        if not log.exists():
+            continue
+        seen=bool(seen)
+        if "Pause Full" in log.read_text(errors="ignore"):
+            return True
+    return seen
+
+def files_match(input_path,output_path):
+    # The harness's own integrity check, independent of what the protocol reports
+    # about itself: compare the file that was sent with the file that arrived.
+    output_path=Path(output_path)
+    if not output_path.exists():
+        return False
+    if output_path.stat().st_size!=Path(input_path).stat().st_size:
+        return False
+    return file_sha256(input_path)==file_sha256(output_path)
+
 def kill_process(proc):
     if proc is None:
         return
@@ -97,6 +137,16 @@ def run_one(run,cp,workdir):
     output_path=(workdir/"out.bin").resolve()
     if output_path.exists():
         output_path.unlink()
+    # One GC log per JVM, relative to the repo so the path has no drive letter.
+    def repo_relative(path):
+        try:
+            return Path(os.path.relpath(path))
+        except ValueError:          # a different drive on Windows; left absolute
+            return Path(path)
+    gc_logs=[repo_relative(workdir/f"gc-{side}.log") for side in ("sender","receiver")]
+    for log in gc_logs:
+        if log.exists():
+            log.unlink()
     receiver=None
     netem=None
     result={}
@@ -109,7 +159,7 @@ def run_one(run,cp,workdir):
         while netem_port==receiver_port:
             netem_port=free_port()
         receiver_cmd=[
-            "java","-Xms512m","-Xmx512m","-cp",str(cp),
+            "java","-Xms512m","-Xmx512m",*gc_log_option(gc_logs[1]),"-cp",str(cp),
             "app.Receiver",
             "--port",str(receiver_port),
             "--out",str(output_path),
@@ -129,7 +179,7 @@ def run_one(run,cp,workdir):
         netem=subprocess.Popen(netem_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         time.sleep(0.5)
         sender_cmd=[
-            "java","-Xms512m","-Xmx512m","-cp",str(cp),
+            "java","-Xms512m","-Xmx512m",*gc_log_option(gc_logs[0]),"-cp",str(cp),
             "app.Sender",
             "--file",str(input_path),
             "--to",f"127.0.0.1:{netem_port}",
@@ -196,8 +246,28 @@ def run_one(run,cp,workdir):
     finally:
         kill_process(netem)
         kill_process(receiver)
+    # Checked after the receiver has exited, so the output file is complete.
+    try:
+        match=files_match(input_path,output_path)
+    except OSError as exc:
+        # Reading or hashing a file failed. That says nothing about the protocol,
+        # so the run is recorded as an error and retried, and the sweep carries on.
+        match=False
+        if status=="ok":
+            status="error"
+            detail=f"integrity check failed: {type(exc).__name__}: {exc}"
+    if status=="ok" and not match:
+        # A transfer that finished but delivered the wrong bytes is not a valid
+        # measurement. It is recorded, and retried on the next run like any failure.
+        status="corrupt"
+        detail="received file differs from the file sent"
     row=base_row(run)
     row.update(result)
+    row["file_match"]=match
+    # Methodology evidence: a full GC during a timed transfer would stall it and
+    # look like network delay. Recorded per run, from both JVMs.
+    gc=full_gc_seen(*gc_logs)
+    row["full_gc"]="" if gc is None else gc
     row["status"]=status
     row["wall_s"]=round(time.monotonic()-started,3)
     if detail:
@@ -264,9 +334,19 @@ def main():
     parser.add_argument("--cp",default="build/classes")
     parser.add_argument("--out")
     parser.add_argument("--dry-run",action="store_true")
+    parser.add_argument("--protocols",
+        help="comma-separated subset of the config's protocols to run, e.g. stopwait")
     args=parser.parse_args()
     cfg=load_config(args.config)
     runs=expand(cfg)
+    if args.protocols is not None:
+        wanted={p.strip() for p in args.protocols.split(",") if p.strip()}
+        if not wanted:
+            parser.error("--protocols needs at least one protocol, e.g. --protocols stopwait")
+        unknown=wanted-set(cfg["protocols"])
+        if unknown:
+            parser.error("not in this config's protocols: "+",".join(sorted(unknown)))
+        runs=[run for run in runs if run["protocol"] in wanted]
     if args.dry_run:
         print(f"{len(runs)} runs")
         for i,run in enumerate(runs,1):
@@ -288,7 +368,14 @@ def main():
         if key in done:
             print(f"{prefix} -> skipped")
             continue
-        row=run_one(run,args.cp,workdir)
+        try:
+            row=run_one(run,args.cp,workdir)
+        except Exception as exc:
+            row=base_row(run)
+            row["file_match"]=False
+            row["status"]="error"
+            row["wall_s"]=0
+            row["_detail"]=f"harness error: {type(exc).__name__}: {exc}"
         append_row(out_path,row)
         done.add(key)
         detail=row.get("_detail")

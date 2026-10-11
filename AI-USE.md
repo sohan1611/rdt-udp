@@ -116,6 +116,13 @@ local Sender-to-Receiver transfer test and checked the resulting statistics.
 
 **Mine:** I implemented the Stop-and-Wait RTO changes, added and verified `HandshakeTest` and `SessionTest`, ran `./build.sh`, confirmed 0 failed tests, and verified HandshakeTest (3/3) and SessionTest (1/1). I committed the changes as `352185a`.
 
+### 2026-09-30 — Stop-and-Wait sequence-number handling and integration tests
+**What:** AI helped me understand and debug full sequence-number handling for Stop-and-Wait, including sequence-space wraparound, expected sequence advancement, duplicate/previous-window packets, and ACK matching. AI also helped review the Session integration tests for FINACK loss and packet reordering.
+
+**Permitted under:** explaining concepts; debugging; reviewing our code; generating tests.
+
+**Mine:** I implemented the Stop-and-Wait sequence-number changes in `StopAndWait.java`, added the Session reordering integration test, ran the project test suite, and verified the relevant tests passed. I committed and pushed the changes as `9dd92c6`.
+
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
 ### 2026-09-16 — TimerWheel.java 
@@ -170,7 +177,6 @@ and TimerWheel double-decrement. It did not produce the fixed implementation.
 
 ## M3 — Selective Repeat · Sohini Pandit
 
-<<<<<<< HEAD
 ### 2026-09-16 — M3 / SeqSpace
 
 **What:** Used ChatGPT to understand sequence-number space logic, debug Java compiler errors, and resolve the duplicate-class issue involving `SeqSpace.java` and `SeqSpaceTest.java`. Also discussed modular arithmetic and sequence-number wraparound.
@@ -202,47 +208,14 @@ and TimerWheel double-decrement. It did not produce the fixed implementation.
 **Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
 
 **Mine:** I integrated TimerWheel with `SelectiveRepeat.java`, moved `TimerWheel.java` into `src/main/java/timer/` so it was included in the build, updated `build.sh` to run the Selective Repeat tests, and ran the tests. I committed and pushed the changes in commit `2720daa` (`Complete Selective Repeat timer integration`) to `m3/selective-repeat`.
-=======
-### SeqSpace and ReceiveBufer.
-## ### 2026-09-16 — M3 / SeqSpace
-
-**What:** Used ChatGPT to understand sequence-number space logic, debug Java compiler errors, and resolve the duplicate-class issue involving `SeqSpace.java` and `SeqSpaceTest.java`. Also discussed modular arithmetic and sequence-number wraparound.
-
-**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
-
-**Mine:** I created and organized `SeqSpace.java` and `SeqSpaceTest.java`, corrected the class and file organization issues, checked the implementation, and committed the work as `8ea6088` (Implement sequence number space).
-
-### 2026-09-18 — M3 / ReceiveBuffer
-
-**What:** Used ChatGPT to understand the receive-window logic, ring-buffer indexing, sequence-number wraparound, and how to handle packets inside and outside the current receive window. Also used it to troubleshoot test failures and Java test-file errors.
-
-**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
-
-**Mine:** I implemented and debugged `ReceiveBuffer.java`, worked through the failing outside-window packet test, corrected the test and implementation issues, and ran the build and ReceiveBuffer tests. I checked that the tests passed before merging the ReceiveBuffer work into the Selective Repeat branch.
-
-### 2026-09-26 — M3 / Selective Repeat tests
-
-**What:** Used ChatGPT to understand and troubleshoot the Selective Repeat implementation and its tests, including sender-window behavior, ACK handling, receive-buffer integration, and build-script test execution.
-
-**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
-
-**Mine:** I worked on `SelectiveRepeat.java` and `SelectiveRepeatTest.java`, integrated the work with the existing project structure, and ran `./build.sh`. The Selective Repeat tests passed, along with the existing Packet, Channel, NetEmSmoke, SeqSpace, and ReceiveBuffer tests.
-
-### 2026-09-26 — M3 / TimerWheel integration
-
-**What:** Used ChatGPT to understand the TimerWheel integration with Selective Repeat, troubleshoot source-directory and build issues, and interpret compiler warnings and test results.
-
-**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
-
-**Mine:** I integrated TimerWheel with `SelectiveRepeat.java`, moved `TimerWheel.java` into `src/main/java/timer/` so it was included in the build, updated `build.sh` to run the Selective Repeat tests, and ran the tests. I committed and pushed the changes in commit `2720daa` (`Complete Selective Repeat timer integration`) to `m3/selective-repeat`.
-M3 — Selective Repeat · Sohini Pandit
 
 ## M4 — Channel & Evidence · Sohan Mandal
 
 ### 2026-08-31 — Project planning and role split
 **What:** Claude extracted the assignment PDF, compared the eight catalogue projects
 against our constraints, and drafted the project plan and team plan (schedule, work
-split, experiment design, risk register).**Permitted under:** explaining concepts; improving our writing.
+split, experiment design, risk register).
+**Permitted under:** explaining concepts; improving our writing.
 **Mine:** Choosing P3, choosing Java over Python, and the role allocation were our
 decisions. We supplied the constraint that most of the group is stronger in Java, which
 is what changed the language recommendation.
@@ -338,8 +311,16 @@ failed runs were never retried. It also added `results/.work/` to `.gitignore`, 
 exp4 a 2% loss so the RTO policies can differ, sped up input-file generation, and
 silenced the child processes' output. On 26 Sep, at my request, it added the
 `--base-rtt-ms` flag that passes the base RTT to the sender, and documented it in
-CONVENTIONS sections 5 and 7.
-**Permitted under:** boilerplate and plotting scripts; reviewing our code.
+CONVENTIONS sections 5 and 7. Also on 26 Sep, at my request, it added the harness's own
+file comparison (`file_match`, status `corrupt` on a mismatch) after finding that the
+sender reported `sha256_match` false for files that had arrived intact, and a
+`--protocols` filter so one protocol's cells can run on their own. On 28 Sep, after
+Shaili's review, it made an I/O error during the file check or a crashing run record an
+error instead of stopping the sweep, rejected an empty `--protocols`, and wrote
+`analysis/test_run_matrix.py` (13 tests of the harness). It also moved `plots.py`'s
+matplotlib import into `plot()`, so those tests run on a machine without matplotlib. On
+6 Oct, at my request, it added per-run GC logging for both JVMs and a `full_gc` column.
+**Permitted under:** boilerplate and plotting scripts; reviewing our code; generating tests.
 **Mine:** `run_matrix.py` as written, including the RESULT validation (16 fields, and a
 check that protocol, window and seqbits match what was requested), resume on crash, and
 the four experiment configs.
@@ -368,6 +349,20 @@ ports (9000 and 9001, from CONVENTIONS section 6) after review.
 **Permitted under:** explaining concepts; reviewing our code; generating tests; improving our writing.
 **Mine:** the ChannelConfig and NetEm rewrites, including both fixes, the master-seed scheme,
 the 4 MB socket buffers, the RunStats.start() guard, and the text of the operating-point note.
+
+### 2026-10-06 — netem_validate.py
+**What:** At my request, Claude wrote `analysis/netem_validate.py`, which applies a Linux
+netem queue to the loopback interface and runs Stop-and-Wait straight from sender to
+receiver at each loss level of experiment 1, so the goodput curve can be compared with the
+one measured through our emulator. It refuses to start without root or while any other
+transfer is using loopback. After Shaili's review it also made the resume key independent
+of number formatting, added the window and seqbits columns, and made the script refuse to
+start if loopback already has a queue. It had wrongly stated that netem cannot be seeded; it
+now passes seed N to repeat N and explains why the repeats are still needed, and removes the
+queue when killed or when its terminal is closed, not only on Ctrl+C.
+**Permitted under:** boilerplate and plotting scripts.
+**Mine:** the decision to cross-validate against netem, which was in our plan from the start,
+and running the validation and interpreting the comparison.
 
 ---
 
