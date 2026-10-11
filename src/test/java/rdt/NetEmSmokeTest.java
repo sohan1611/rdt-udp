@@ -109,8 +109,29 @@ public final class NetEmSmokeTest {
             double base = meanTransitMs("", 100);
             double delayed = meanTransitMs("delay=20.5", 100);
             double lateMs = delayed - base - 20.5;
-            assertTrue(String.format("packets released %.3f ms late on average; should be under 0.25",
-                    lateMs), lateMs < 0.25);
+            System.out.printf("         single-packet lateness: %.3f ms%n", lateMs);
+            // The old millisecond-rounding loop measured 0.7-1.0 ms here; the
+            // margin above the fixed code's ~0.1 ms keeps a busy machine from
+            // failing the test.
+            assertTrue(String.format("packets released %.3f ms late on average; should be under 0.4",
+                    lateMs), lateMs < 0.4);
+        });
+
+        h.check("stays on time under bursts", () -> {
+            // While NetEm waits out the last fraction of a millisecond before a
+            // release, it is not reading new packets. Here bursts of 32
+            // back-to-back packets (one GBN window) arrive every 2 ms while
+            // earlier ones are still queued, so releases are almost always
+            // imminent when packets arrive. Lateness is each packet's transit
+            // minus the configured 20.5 ms and minus the base transit.
+            double base = meanTransitMs("", 50);
+            double[] late = burstLatenessMs("delay=20.5", 20.5, 40, 32, 2, base);
+            System.out.printf("         burst lateness: mean %.3f ms, p99 %.3f ms, max %.3f ms%n",
+                    late[0], late[1], late[2]);
+            assertTrue(String.format("mean lateness %.3f ms should be under 0.25", late[0]),
+                    late[0] < 0.25);
+            assertTrue(String.format("p99 lateness %.3f ms should be under 1.0", late[1]),
+                    late[1] < 1.0);
         });
 
         h.check("delivers duplicates twice", () -> {
@@ -169,6 +190,58 @@ public final class NetEmSmokeTest {
                 Thread.sleep(3);                          // packets never share the queue
             }
             return total / n;
+        }
+    }
+
+    /**
+     * Sends {@code bursts} bursts of {@code size} back-to-back packets, {@code gapMs}
+     * apart, and returns {mean, p99, max} of each packet's lateness in ms.
+     */
+    private static double[] burstLatenessMs(String spec, double delayMs, int bursts, int size,
+                                            int gapMs, double baseMs) throws Exception {
+        try (Fixture f = new Fixture(spec, "", 8, null)) {
+            int n = bursts * size;
+            long[] sent = new long[n];
+            long[] got = new long[n];
+            Thread reader = new Thread(() -> {
+                byte[] buf = new byte[64];
+                int seen = 0;
+                long deadline = System.nanoTime() + 10_000_000_000L;
+                while (seen < n && System.nanoTime() < deadline) {
+                    DatagramPacket p = new DatagramPacket(buf, buf.length);
+                    try {
+                        f.receiver.receive(p);
+                    } catch (IOException e) {
+                        continue;                       // socket timeout: keep waiting
+                    }
+                    int v = Fixture.decode(p.getData());
+                    if (v >= 0 && v < n && got[v] == 0) {
+                        got[v] = System.nanoTime();
+                        seen++;
+                    }
+                }
+            }, "burst-reader");
+            reader.start();
+            for (int b = 0; b < bursts; b++) {
+                for (int i = 0; i < size; i++) {
+                    int v = b * size + i;
+                    sent[v] = System.nanoTime();
+                    f.send(v);
+                }
+                Thread.sleep(gapMs);
+            }
+            reader.join(15_000);
+            double[] late = new double[n];
+            for (int v = 0; v < n; v++) {
+                assertTrue("packet " + v + " arrived", got[v] != 0);
+                late[v] = (got[v] - sent[v]) / 1e6 - delayMs - baseMs;
+            }
+            java.util.Arrays.sort(late);
+            double sum = 0;
+            for (double x : late) {
+                sum += x;
+            }
+            return new double[] {sum / n, late[(int) (n * 0.99)], late[n - 1]};
         }
     }
 

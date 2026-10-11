@@ -407,10 +407,13 @@ packets still overtake. It also spaced the existing jitter tests' packets 1 s ap
 still test the drawn delays. After the netem cross-check showed our emulator about 2 ms per
 round trip slower than Linux netem, it measured the cause (waits rounded up to whole
 milliseconds, about 1 ms late per direction) and wrote the `NetEmSmokeTest` check that
-packets are released less than 0.25 ms late.
+single packets are released on time. After Shaili's and Sinjan's review it wrote the burst
+test (32-packet bursts every 2 ms), which showed the first fix made bursts worse, measured a
+two-thread design on a scratch copy before I wrote it, and tidied my step-label comments.
 **Permitted under:** generating tests; reviewing our code.
 **Mine:** the decisions to make jitter keep packets in order and to fix the release timing
-rather than only document it, and the changes to `Channel.java` and `NetEm.java`.
+rather than only document it, and the changes to `Channel.java` and `NetEm.java`, including
+the two-thread rewrite (receive thread plus `DelayQueue` release thread).
 
 ---
 
