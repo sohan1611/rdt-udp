@@ -473,8 +473,20 @@ public final class NetEm {
             verbose
         );
 
+        Thread mainThread = Thread.currentThread();
+
+        // Wait for run() to finish so the finally block can close the trace
+        // and flush its last buffered lines before the JVM exits.
         Runtime.getRuntime().addShutdownHook(
-            new Thread(netem::stop)
+            new Thread(() -> {
+                netem.stop();
+
+                try {
+                    mainThread.join(2000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            })
         );
 
         try {

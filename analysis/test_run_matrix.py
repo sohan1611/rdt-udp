@@ -123,6 +123,57 @@ class GcLogging(unittest.TestCase):
                          ["-Xlog:gc:file=results/.work/x/gc-sender.log"])
 
 
+class Tracing(unittest.TestCase):
+
+    def runs(self):
+        with tempfile.TemporaryDirectory() as d:
+            cfg = run_matrix.load_config(write_config(d))
+        cfg["rtos"] = ["fixed:1.5", "adaptive"]
+        return run_matrix.expand(cfg)
+
+    def test_every_run_gets_its_own_trace_file(self):
+        runs = self.runs()
+        names = [run_matrix.trace_name(r) for r in runs]
+        self.assertEqual(len(set(names)), len(runs))
+
+    def test_trace_names_have_no_colon(self):
+        for run in self.runs():
+            name = run_matrix.trace_name(run)
+            self.assertNotIn(":", name)
+            self.assertTrue(name.endswith(".jsonl"))
+
+    def test_emulator_gets_trace_only_when_asked(self):
+        run = self.runs()[0]
+        plain = run_matrix.netem_command(run, "cp", 5000, 6000)
+        self.assertNotIn("--trace", plain)
+        traced = run_matrix.netem_command(run, "cp", 5000, 6000, "/x/t.jsonl")
+        self.assertEqual(traced[-2:], ["--trace", "/x/t.jsonl"])
+        self.assertEqual(traced[:-2], plain)
+
+    def test_sweep_passes_a_trace_folder_only_with_the_flag(self):
+        with tempfile.TemporaryDirectory() as d:
+            cfg = write_config(d, protocols=("stopwait",), seeds=(1,))
+            out = Path(d) / "out.csv"
+            seen = []
+            real = run_matrix.run_one
+
+            def fake(run, cp, workdir, trace_dir=None):
+                seen.append(trace_dir)
+                return fake_row(run, "ok")
+            run_matrix.run_one = fake
+            old = sys.argv
+            try:
+                for extra in ([], ["--trace"]):
+                    out.unlink(missing_ok=True)
+                    sys.argv = ["run_matrix.py", "--config", str(cfg), "--out", str(out), *extra]
+                    run_matrix.main()
+            finally:
+                sys.argv = old
+                run_matrix.run_one = real
+        self.assertEqual(seen[:2], [None, None])
+        self.assertEqual([Path(t).name for t in seen[2:]], ["traces", "traces"])
+
+
 class ProtocolFilter(unittest.TestCase):
 
     def run_script(self, *extra):
@@ -169,7 +220,7 @@ class ResumeAndSubsets(unittest.TestCase):
         self.dir.cleanup()
 
     def sweep(self, status_for, *extra):
-        def fake(run, cp, workdir):
+        def fake(run, cp, workdir, trace_dir=None):
             self.calls.append((run["protocol"], run["loss"], run["seed"]))
             return fake_row(run, status_for(run))
         run_matrix.run_one = fake
@@ -213,7 +264,7 @@ class ResumeAndSubsets(unittest.TestCase):
         self.assertEqual(self.calls, [])
 
     def test_one_crashing_run_does_not_stop_the_sweep(self):
-        def fake(run, cp, workdir):
+        def fake(run, cp, workdir, trace_dir=None):
             self.calls.append(run["seed"])
             if run["seed"] == 1 and run["loss"] == 0.0:
                 raise RuntimeError("simulated harness failure")

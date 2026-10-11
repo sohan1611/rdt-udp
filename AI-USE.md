@@ -415,6 +415,15 @@ two-thread design on a scratch copy before I wrote it, and tidied my step-label 
 rather than only document it, and the changes to `Channel.java` and `NetEm.java`, including
 the two-thread rewrite (receive thread plus `DelayQueue` release thread).
 
+### 2026-10-11 — run_matrix.py: --trace and complete traces
+**What:** At my request, Claude added a `--trace` option to `run_matrix.py`, which keeps the
+emulator's JSONL trace of every run (needed to label spurious retransmissions in
+experiment 4), with four tests. It found that traces lost up to 255 final lines because the
+harness killed NetEm outright, changed the harness to stop it with SIGTERM first, and
+checked that traces now end with the FIN/FINACK exchange.
+**Permitted under:** boilerplate and plotting scripts; generating tests.
+**Mine:** the NetEm shutdown hook that waits for `run()` so the trace is closed.
+
 ---
 
 # Open items — must be cleared before submission
