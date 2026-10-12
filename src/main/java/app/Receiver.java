@@ -6,6 +6,7 @@ import rdt.ArqProtocol;
 import rdt.ProtocolConfig;
 import rdt.RunStats;
 import rdt.StopAndWait;
+import rdt.GoBackN;
 
 public final class Receiver
 {
@@ -75,6 +76,10 @@ public final class Receiver
         {
             case "stopwait":
                 arq = new StopAndWait();
+                break;
+
+            case "gbn":
+                arq = new GoBackN();
                 break;
 
             default:

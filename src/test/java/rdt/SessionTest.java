@@ -36,6 +36,11 @@ public final class SessionTest
                 SessionTest::transferWithReordering
         );
 
+        h.check(
+                "GBN transfer survives packet loss",
+                SessionTest::transferWithGbnPacketLoss
+        );
+
         h.done();
     }
 
@@ -366,4 +371,152 @@ public final class SessionTest
             Files.deleteIfExists(tracePath);
         }
     }
+
+    private static void transferWithGbnPacketLoss() throws Exception
+    {
+        Path input = Files.createTempFile("rdt-gbn-input", ".bin");
+        Path output = Files.createTempFile("rdt-gbn-output", ".bin");
+        Path tracePath = Files.createTempFile("rdt-gbn-trace", ".jsonl");
+
+        NetEm netem = null;
+        TraceLog trace = null;
+        Thread netemThread = null;
+        Thread receiverThread = null;
+
+        try
+        {
+            byte[] data = new byte[1400 * 8 + 317];
+            for (int i = 0; i < data.length; i++)
+            {
+                data[i] = (byte) ((i * 31 + i / 7) & 0xff);
+            }
+
+            Files.write(input, data);
+            Files.deleteIfExists(output);
+
+            DatagramSocket socket = new DatagramSocket(0);
+            int receiverPort = socket.getLocalPort();
+            socket.close();
+
+            trace = new TraceLog(tracePath);
+            netem = new NetEm(
+                    new InetSocketAddress("127.0.0.1", 0),
+                    new InetSocketAddress("127.0.0.1", receiverPort),
+                    ChannelConfig.parse("loss=0.2,delay=10"),
+                    ChannelConfig.parse("loss=0.2,delay=10"),
+                    4242L,
+                    trace,
+                    false
+            );
+
+            NetEm activeNetem = netem;
+            netemThread = new Thread(() ->
+            {
+                try
+                {
+                    activeNetem.run();
+                }
+                catch (IOException e)
+                {
+                    throw new RuntimeException(e);
+                }
+            }, "session-gbn-netem");
+
+            netemThread.setDaemon(true);
+            netemThread.start();
+
+            if (!netem.awaitReady(5000))
+            {
+                throw new AssertionError("NetEm did not become ready");
+            }
+
+            ProtocolConfig config = new ProtocolConfig(
+                    4, "fixed:1.0", 32, 1400, 40
+            );
+
+            final Throwable[] receiverFailure = new Throwable[1];
+
+            receiverThread = new Thread(() ->
+            {
+                try
+                {
+                    app.Receiver.main(new String[] {
+                            "--port", Integer.toString(receiverPort),
+                            "--out", output.toString(),
+                            "--protocol", "gbn",
+                            "--window", "4",
+                            "--rto", "fixed:1.0",
+                            "--seqbits", "32"
+                    });
+                }
+                catch (Throwable e)
+                {
+                    receiverFailure[0] = e;
+                }
+            }, "session-gbn-receiver");
+
+            receiverThread.setDaemon(true);
+            receiverThread.start();
+
+            app.Sender.main(new String[] {
+                    "--file", input.toString(),
+                    "--to", "127.0.0.1:" + netem.boundPort(),
+                    "--protocol", "gbn",
+                    "--window", "4",
+                    "--rto", "fixed:1.0",
+                    "--seqbits", "32",
+                    "--base-rtt-ms", "40"
+            });
+
+            receiverThread.join(60000);
+            if (receiverThread.isAlive())
+            {
+                throw new AssertionError("GBN receiver did not finish");
+            }
+
+            if (netem != null) netem.stop();
+            if (netemThread != null) netemThread.join(3000);
+            if (trace != null)
+            {
+                trace.close();
+                trace = null;
+            }
+
+            if (receiverFailure[0] != null)
+            {
+                throw new AssertionError(
+                        "GBN application receiver failed",
+                        receiverFailure[0]
+                );
+            }
+
+            Harness.assertTrue("GBN output file exists", Files.exists(output));
+            Harness.assertEquals(
+                    "GBN packet-loss transfer preserves exact contents",
+                    data,
+                    Files.readAllBytes(output)
+            );
+
+            java.util.List<String> traceLines =
+                    Files.readAllLines(tracePath);
+            Harness.assertTrue(
+                    "GBN integration test must observe an actual packet drop",
+                    traceLines.stream().anyMatch(
+                            line -> line.contains("\"drop\"")
+                    )
+            );
+        }
+        finally
+        {
+            if (netem != null) netem.stop();
+            if (receiverThread != null) receiverThread.join(3000);
+            if (netemThread != null) netemThread.join(3000);
+            if (trace != null) trace.close();
+
+            Files.deleteIfExists(input);
+            Files.deleteIfExists(output);
+            Files.deleteIfExists(tracePath);
+        }
+    }
+
 }

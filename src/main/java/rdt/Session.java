@@ -114,7 +114,9 @@ public final class Session
     public static boolean verifySha256(Path file, String expected)
             throws IOException
     {
-        return sha256(file).equalsIgnoreCase(expected);
+        String actual = sha256(file);
+
+        return actual.equalsIgnoreCase(expected);
     }
 
     public static final class MetaInfo
