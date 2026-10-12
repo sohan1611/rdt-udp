@@ -330,6 +330,7 @@ public final class NetEmSmokeTest {
         void stopAndJoin() throws Exception {
             netem.stop();
             thread.join(3000);
+            assertTrue("NetEm's run() should have returned after stop()", !thread.isAlive());
             trace.close();
         }
 

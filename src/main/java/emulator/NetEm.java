@@ -149,7 +149,9 @@ public final class NetEm {
                 handle(packet);
             }
 
-            // Stop the release thread before closing the socket.
+            // Stop the release thread before closing the socket. Packets still
+            // queued are dropped on purpose: NetEm is only stopped once the
+            // sender and receiver have finished, so nobody is waiting for them.
             running = false;
 
             try {
