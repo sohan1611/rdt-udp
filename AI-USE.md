@@ -123,6 +123,15 @@ local Sender-to-Receiver transfer test and checked the resulting statistics.
 
 **Mine:** I implemented the Stop-and-Wait sequence-number changes in `StopAndWait.java`, added the Session reordering integration test, ran the project test suite, and verified the relevant tests passed. I committed and pushed the changes as `9dd92c6`.
 
+### 2026-10-13 — Stop-and-Wait data transmission statistics
+
+**What:** AI helped identify and review a missing statistics update for initial DATA transmissions in `StopAndWait.java`, which caused `data_sent` and `wire_bytes` to be undercounted.
+
+**Permitted under:** debugging; reviewing our code.
+
+**Mine:** I added `stats.onDataSent(data.length, false);` immediately after the initial DATA send, preserving the existing retransmission accounting. I ran `./build.sh`; the Packet and Channel tests passed, but two NetEmSmokeTest timing tests failed on this run.
+
+
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
 ### 2026-09-16 — TimerWheel.java 
