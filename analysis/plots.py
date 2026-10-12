@@ -21,6 +21,14 @@ FIGURES=[
     ("results/exp4_rto.csv","rto","retransmissions","figures/fig4_retx_vs_rto.png","linear",False,"protocol"),
 ]
 
+# Figure 5 compares two sources on one plot: Stop-and-Wait through our emulator
+# (experiment 1, 10 seeds) and the same transfers through Linux netem (5 repeats).
+# mean_ci picks the t value from each sample size, so the two intervals are each right.
+VALIDATION=[
+    ("results/exp1_loss.csv","custom emulator (10 seeds)",{"protocol":"stopwait"}),
+    ("results/netem_validation.csv","Linux netem (5 repeats)",{"protocol":"stopwait"}),
+]
+
 # column -> (axis label, factor applied to the value before plotting)
 LABELS={
     "goodput_bps":("Goodput (Mbit/s)",1e-6),
@@ -139,6 +147,29 @@ def plot(groups,x,y,out,xscale="linear",logy=False):
     print("wrote",out)
 
 
+def validation_groups(sources=None):
+    """{label: {loss: [goodput in Mbit/s, ...]}} for every source that exists."""
+    out={}
+    for path,label,match in sources or VALIDATION:
+        if not Path(path).exists():
+            continue
+        rows=[r for r in load_ok_rows(path) if all(r.get(k)==v for k,v in match.items())]
+        points={}
+        for r in rows:
+            points.setdefault(float(r["loss"]),[]).append(float(r["goodput_bps"])*factor("goodput_bps"))
+        if points:
+            out[label]=points
+    return out
+
+
+def make_validation_figure(out="figures/fig5_emulator_vs_netem.png"):
+    groups=validation_groups()
+    if len(groups)<2:
+        print("skip",out)
+        return
+    plot(groups,"loss","goodput_bps",out,"symlog",False)
+
+
 def make_figure(csv_path,x,y,out,xscale,logy,by):
     if not Path(csv_path).exists():
         print("skip",csv_path)
@@ -174,6 +205,7 @@ def main():
 
     for csv_path,x,y,out,xscale,logy,by in FIGURES:
         make_figure(csv_path,x,y,out,xscale,logy,by)
+    make_validation_figure()
 
 
 if __name__=="__main__":
