@@ -175,6 +175,22 @@ and TimerWheel double-decrement. It did not produce the fixed implementation.
 
 **Mine:** I applied all five fixes to GoBackN.java and RttEstimator.java myself. I also added the backoffResets() test, verified 6/6 and 4/4 tests pass, and pushed the updated PR. I answered both viva questions (W <= 2^k-1, GBN vs SR tradeoff) in my own words from the RFC.
 
+### 2026-09-30 to 2026-10-08 — ARQ integration, reliability fixes, and experiment validation
+
+**What:** Used AI for explanations, debugging assistance, code review, and help interpreting build and experiment results during ARQ integration and reliability testing.
+
+**Permitted under:** Course AI-use policy for learning, debugging, review assistance, and testing support.
+
+**Mine:** I integrated and reviewed the ARQ changes, ran `./build.sh`, and validated the experiment configurations and results before committing the changes.
+
+### 2026-10-11 — GBN reliability fixes and packet-loss testing
+
+**What:** Used AI to review GBN timeout backoff behavior, examine RTO cap handling, troubleshoot packet-loss testing, and review test results and Git changes.
+
+**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
+
+**Mine:** I reviewed and applied the GBN timeout-handling changes, removed the SHA debug output, added the GBN packet-loss test, and ran `./build.sh`. I reviewed the changes before preparing the PR commit.
+
 ## M3 — Selective Repeat · Sohini Pandit
 
 ### 2026-09-16 — M3 / SeqSpace
