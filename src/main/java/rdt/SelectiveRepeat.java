@@ -43,7 +43,6 @@ public final class SelectiveRepeat implements ArqProtocol {
             int windowSize,
             long sequenceSpace,
             long timeoutMs) {
-
         this(windowSize, sequenceSpace, timeoutMs, 0);
     }
 
@@ -80,16 +79,13 @@ public final class SelectiveRepeat implements ArqProtocol {
 
         this.sendBase =
                 Math.floorMod(initialSequence, sequenceSpace);
-
         this.nextSeq =
                 Math.floorMod(initialSequence, sequenceSpace);
-
         this.sendHead = 0;
 
         this.sent = new Packet[windowSize];
         this.acked = new boolean[windowSize];
-        this.timers =
-                new TimerWheel.TimerHandle[windowSize];
+        this.timers = new TimerWheel.TimerHandle[windowSize];
         this.sendTimes = new long[windowSize];
         this.retransmitted = new boolean[windowSize];
 
@@ -134,9 +130,7 @@ public final class SelectiveRepeat implements ArqProtocol {
         }
 
         long seq = nextSeq;
-
-        Packet packet =
-                Packet.data(seq, payload);
+        Packet packet = Packet.data(seq, payload);
 
         int slot =
                 slotForOffset(
@@ -156,45 +150,30 @@ public final class SelectiveRepeat implements ArqProtocol {
                         "retransmit:seq=" + seq);
 
         nextSeq =
-                Math.floorMod(
-                        nextSeq + 1,
-                        sequenceSpace);
+                Math.floorMod(nextSeq + 1, sequenceSpace);
 
         return packet;
     }
 
     public boolean receiveAck(long ack) {
-        ack =
-                Math.floorMod(
-                        ack,
-                        sequenceSpace);
+        ack = Math.floorMod(ack, sequenceSpace);
 
         if (!SeqSpace.inCurrentWindow(
-                ack,
-                sendBase,
-                windowSize,
-                sequenceSpace)) {
+                ack, sendBase, windowSize, sequenceSpace)) {
             return false;
         }
 
         long offset =
-                SeqSpace.offset(
-                        ack,
-                        sendBase,
-                        sequenceSpace);
+                SeqSpace.offset(ack, sendBase, sequenceSpace);
+        int slot = slotForOffset(offset);
 
-        int slot =
-                slotForOffset(offset);
-
-        if (sent[slot] == null ||
-            acked[slot]) {
+        if (sent[slot] == null || acked[slot]) {
             return false;
         }
 
-        if (!fixedRto &&
-            !retransmitted[slot] &&
-            sendTimes[slot] != 0) {
-
+        if (!fixedRto
+                && !retransmitted[slot]
+                && sendTimes[slot] != 0) {
             rtt.update(System.nanoTime() - sendTimes[slot]);
             rtt.resetBackoff();
         }
@@ -218,8 +197,7 @@ public final class SelectiveRepeat implements ArqProtocol {
         while (sendBase != nextSeq) {
             int slot = sendHead;
 
-            if (sent[slot] == null ||
-                !acked[slot]) {
+            if (sent[slot] == null || !acked[slot]) {
                 break;
             }
 
@@ -231,41 +209,25 @@ public final class SelectiveRepeat implements ArqProtocol {
             timerWheel.cancel(timers[slot]);
             timers[slot] = null;
 
-            sendHead =
-                    (sendHead + 1) % windowSize;
-
+            sendHead = (sendHead + 1) % windowSize;
             sendBase =
-                    Math.floorMod(
-                            sendBase + 1,
-                            sequenceSpace);
+                    Math.floorMod(sendBase + 1, sequenceSpace);
         }
     }
 
     public Packet outstandingPacket(long seq) {
-        seq =
-                Math.floorMod(
-                        seq,
-                        sequenceSpace);
+        seq = Math.floorMod(seq, sequenceSpace);
 
         if (!SeqSpace.inCurrentWindow(
-                seq,
-                sendBase,
-                windowSize,
-                sequenceSpace)) {
+                seq, sendBase, windowSize, sequenceSpace)) {
             return null;
         }
 
         long offset =
-                SeqSpace.offset(
-                        seq,
-                        sendBase,
-                        sequenceSpace);
+                SeqSpace.offset(seq, sendBase, sequenceSpace);
+        int slot = slotForOffset(offset);
 
-        int slot =
-                slotForOffset(offset);
-
-        if (sent[slot] == null ||
-            acked[slot]) {
+        if (sent[slot] == null || acked[slot]) {
             return null;
         }
 
@@ -273,30 +235,19 @@ public final class SelectiveRepeat implements ArqProtocol {
     }
 
     public List<Packet> outstandingPackets() {
-        List<Packet> packets =
-                new ArrayList<>();
-
+        List<Packet> packets = new ArrayList<>();
         long seq = sendBase;
 
         while (seq != nextSeq) {
             long offset =
-                    SeqSpace.offset(
-                            seq,
-                            sendBase,
-                            sequenceSpace);
+                    SeqSpace.offset(seq, sendBase, sequenceSpace);
+            int slot = slotForOffset(offset);
 
-            int slot =
-                    slotForOffset(offset);
-
-            if (sent[slot] != null &&
-                !acked[slot]) {
+            if (sent[slot] != null && !acked[slot]) {
                 packets.add(sent[slot]);
             }
 
-            seq =
-                    Math.floorMod(
-                            seq + 1,
-                            sequenceSpace);
+            seq = Math.floorMod(seq + 1, sequenceSpace);
         }
 
         return packets;
@@ -304,8 +255,7 @@ public final class SelectiveRepeat implements ArqProtocol {
 
     public Packet pollExpiredRetransmission() {
         while (true) {
-            TimerWheel.TimerHandle fired =
-                    timerWheel.poll();
+            TimerWheel.TimerHandle fired = timerWheel.poll();
 
             if (fired == null) {
                 return null;
@@ -313,37 +263,28 @@ public final class SelectiveRepeat implements ArqProtocol {
 
             String tag = fired.tag();
 
-            if (tag == null ||
-                !tag.startsWith("retransmit:seq=")) {
+            if (tag == null || !tag.startsWith("retransmit:seq=")) {
                 continue;
             }
 
             long seq;
 
             try {
-                seq =
-                        Long.parseLong(
-                                tag.substring(
-                                        "retransmit:seq=".length()));
+                seq = Long.parseLong(
+                        tag.substring("retransmit:seq=".length()));
             } catch (NumberFormatException e) {
                 continue;
             }
 
-            Packet packet =
-                    outstandingPacket(seq);
+            Packet packet = outstandingPacket(seq);
 
             if (packet == null) {
                 continue;
             }
 
             long offset =
-                    SeqSpace.offset(
-                            seq,
-                            sendBase,
-                            sequenceSpace);
-
-            int slot =
-                    slotForOffset(offset);
+                    SeqSpace.offset(seq, sendBase, sequenceSpace);
+            int slot = slotForOffset(offset);
 
             retransmitted[slot] = true;
 
@@ -375,8 +316,7 @@ public final class SelectiveRepeat implements ArqProtocol {
             fixedRto = true;
             fixedRtoMs = Math.max(
                     1L,
-                    Math.round(
-                            multiplier * config.getBaseRttMs()));
+                    Math.round(multiplier * config.getBaseRttMs()));
         } else {
             fixedRto = false;
         }
@@ -409,7 +349,6 @@ public final class SelectiveRepeat implements ArqProtocol {
                 ReceiveBuffer.Status status,
                 List<Packet> delivered,
                 Packet ack) {
-
             this.status = status;
             this.delivered = delivered;
             this.ack = ack;
@@ -439,28 +378,17 @@ public final class SelectiveRepeat implements ArqProtocol {
                     "packet must be a DATA packet");
         }
 
-        ReceiveBuffer.Result result =
-                receiveBuffer.accept(packet);
-
+        ReceiveBuffer.Result result = receiveBuffer.accept(packet);
         Packet ack = null;
 
-        if (result.status() ==
-                    ReceiveBuffer.Status.ACCEPTED ||
-            result.status() ==
-                    ReceiveBuffer.Status.DUPLICATE ||
-            result.status() ==
-                    ReceiveBuffer.Status.PREVIOUS_WINDOW) {
-
-            ack =
-                    Packet.ack(
-                            packet.seq,
-                            windowSize);
+        if (result.status() == ReceiveBuffer.Status.ACCEPTED
+                || result.status() == ReceiveBuffer.Status.DUPLICATE
+                || result.status() == ReceiveBuffer.Status.PREVIOUS_WINDOW) {
+            ack = Packet.ack(packet.seq, windowSize);
         }
 
         return new ReceiveResult(
-                result.status(),
-                result.delivered(),
-                ack);
+                result.status(), result.delivered(), ack);
     }
 
     public long receiveBase() {
@@ -468,26 +396,20 @@ public final class SelectiveRepeat implements ArqProtocol {
     }
 
     private int slotForOffset(long offset) {
-        return (int)
-                ((sendHead + offset) % windowSize);
+        return (int) ((sendHead + offset) % windowSize);
     }
 
     @Override
     public RunStats send(
             Path file,
             InetSocketAddress peer,
-            ProtocolConfig config)
-            throws IOException {
+            ProtocolConfig config) throws IOException {
 
         SelectiveRepeat sender =
                 new SelectiveRepeat(
-                        windowSize,
-                        sequenceSpace,
-                        timeoutMs,
-                        1);
+                        windowSize, sequenceSpace, timeoutMs, 1);
 
         sender.configureRto(config);
-        long rto = sender.activeRtoMs();
 
         RunStats stats =
                 new RunStats(
@@ -497,22 +419,14 @@ public final class SelectiveRepeat implements ArqProtocol {
                         config.getRtoMode(),
                         Files.size(file));
 
-        try (DatagramSocket socket =
-                     new DatagramSocket()) {
+        try (DatagramSocket socket = new DatagramSocket()) {
+            socket.setSoTimeout(socketTimeout(sender.activeRtoMs()));
 
-            socket.setSoTimeout(socketTimeout(rto));
-
-            Packet meta =
-                    Session.createMetaPacket(file);
-
-            byte[] metaData =
-                    meta.encode();
+            Packet meta = Session.createMetaPacket(file);
+            byte[] metaData = meta.encode();
 
             DatagramPacket metaPacket =
-                    new DatagramPacket(
-                            metaData,
-                            metaData.length,
-                            peer);
+                    new DatagramPacket(metaData, metaData.length, peer);
 
             boolean metaAck = false;
 
@@ -520,34 +434,24 @@ public final class SelectiveRepeat implements ArqProtocol {
                 socket.send(metaPacket);
 
                 try {
-                    byte[] buffer =
-                            new byte[2048];
-
+                    byte[] buffer = new byte[2048];
                     DatagramPacket received =
-                            new DatagramPacket(
-                                    buffer,
-                                    buffer.length);
+                            new DatagramPacket(buffer, buffer.length);
 
                     socket.receive(received);
 
                     Packet ack;
 
                     try {
-                        ack =
-                                Packet.decode(
-                                        received.getData(),
-                                        received.getLength());
+                        ack = Packet.decode(
+                                received.getData(), received.getLength());
                     } catch (CorruptPacketException e) {
                         continue;
                     }
 
-                    if (ack.type ==
-                                Packet.TYPE_ACK &&
-                        ack.ack == 0) {
-
+                    if (ack.type == Packet.TYPE_ACK && ack.ack == 0) {
                         metaAck = true;
                     }
-
                 } catch (SocketTimeoutException e) {
                     // Retransmit META on timeout.
                 }
@@ -555,54 +459,35 @@ public final class SelectiveRepeat implements ArqProtocol {
 
             stats.start();
 
-            try (InputStream input =
-                         Files.newInputStream(file)) {
-
+            try (InputStream input = Files.newInputStream(file)) {
                 boolean finished = false;
 
-                while (!finished ||
-                       sender.sendBase() !=
-                               sender.nextSeq()) {
-
-                    while (!finished &&
-                           sender.windowHasSpace()) {
-
+                while (!finished || sender.sendBase() != sender.nextSeq()) {
+                    while (!finished && sender.windowHasSpace()) {
                         byte[] data =
-                                input.readNBytes(
-                                        config.getPayloadSize());
+                                input.readNBytes(config.getPayloadSize());
 
                         if (data.length == 0) {
                             finished = true;
                             break;
                         }
 
-                        Packet packet =
-                                sender.createDataPacket(data);
-
-                        byte[] bytes =
-                                packet.encode();
+                        Packet packet = sender.createDataPacket(data);
+                        byte[] bytes = packet.encode();
 
                         DatagramPacket datagram =
-                                new DatagramPacket(
-                                        bytes,
-                                        bytes.length,
-                                        peer);
+                                new DatagramPacket(bytes, bytes.length, peer);
 
                         socket.send(datagram);
-
-                        stats.onDataSent(
-                                bytes.length,
-                                false);
+                        stats.onDataSent(bytes.length, false);
                     }
 
-                    if (finished &&
-                        sender.sendBase() ==
-                                sender.nextSeq()) {
+                    if (finished
+                            && sender.sendBase() == sender.nextSeq()) {
                         break;
                     }
 
-                    long wait =
-                            sender.timeUntilNextTimerMs();
+                    long wait = sender.timeUntilNextTimerMs();
 
                     if (wait <= 0) {
                         wait = 1;
@@ -611,58 +496,38 @@ public final class SelectiveRepeat implements ArqProtocol {
                     socket.setSoTimeout(socketTimeout(wait));
 
                     try {
-                        byte[] buffer =
-                                new byte[2048];
-
+                        byte[] buffer = new byte[2048];
                         DatagramPacket received =
-                                new DatagramPacket(
-                                        buffer,
-                                        buffer.length);
+                                new DatagramPacket(buffer, buffer.length);
 
                         socket.receive(received);
 
                         Packet ack;
 
                         try {
-                            ack =
-                                    Packet.decode(
-                                            received.getData(),
-                                            received.getLength());
+                            ack = Packet.decode(
+                                    received.getData(), received.getLength());
                         } catch (CorruptPacketException e) {
                             stats.onCorruptDropped();
                             continue;
                         }
 
-                        if (ack.type ==
-                                Packet.TYPE_ACK) {
-
-                            if (sender.receiveAck(ack.ack)) {
-                                stats.onAck(false);
-                            }
+                        if (ack.type == Packet.TYPE_ACK
+                                && sender.receiveAck(ack.ack)) {
+                            stats.onAck(false);
                         }
-
                     } catch (SocketTimeoutException e) {
                         Packet packet;
 
                         while ((packet =
-                                sender.pollExpiredRetransmission())
-                                != null) {
-
-                            byte[] bytes =
-                                    packet.encode();
+                                sender.pollExpiredRetransmission()) != null) {
+                            byte[] bytes = packet.encode();
 
                             DatagramPacket datagram =
-                                    new DatagramPacket(
-                                            bytes,
-                                            bytes.length,
-                                            peer);
+                                    new DatagramPacket(bytes, bytes.length, peer);
 
                             socket.send(datagram);
-
-                            stats.onDataSent(
-                                    bytes.length,
-                                    true);
-
+                            stats.onDataSent(bytes.length, true);
                             stats.onTimeout();
                         }
                     }
@@ -671,63 +536,59 @@ public final class SelectiveRepeat implements ArqProtocol {
 
             stats.stop();
 
-            Packet fin =
-                    Session.createFinPacket(
-                            sender.nextSeq());
-
-            byte[] finData =
-                    fin.encode();
+            Packet fin = Session.createFinPacket(sender.nextSeq());
+            byte[] finData = fin.encode();
 
             DatagramPacket finPacket =
-                    new DatagramPacket(
-                            finData,
-                            finData.length,
-                            peer);
+                    new DatagramPacket(finData, finData.length, peer);
 
+            // Send FIN a bounded number of times so a lost FINACK
+            // cannot leave the sender waiting forever.
             boolean finAck = false;
+            int finAttempts = 0;
+            final int maxFinAttempts = 3;
 
-            socket.setSoTimeout(
-                    socketTimeout(sender.activeRtoMs()));
+            socket.setSoTimeout(socketTimeout(sender.activeRtoMs()));
 
-            while (!finAck) {
+            while (!finAck && finAttempts < maxFinAttempts) {
                 socket.send(finPacket);
+                finAttempts++;
 
                 try {
-                    byte[] buffer =
-                            new byte[2048];
-
+                    byte[] buffer = new byte[2048];
                     DatagramPacket received =
-                            new DatagramPacket(
-                                    buffer,
-                                    buffer.length);
+                            new DatagramPacket(buffer, buffer.length);
 
                     socket.receive(received);
 
                     Packet response;
 
                     try {
-                        response =
-                                Packet.decode(
-                                        received.getData(),
-                                        received.getLength());
+                        response = Packet.decode(
+                                received.getData(), received.getLength());
                     } catch (CorruptPacketException e) {
                         continue;
                     }
 
-                    if (response.type ==
-                                Packet.TYPE_FINACK) {
-
+                    if (response.type == Packet.TYPE_FINACK
+                            && response.seq == fin.seq) {
                         finAck = true;
 
                         stats.setShaMatch(
-                                response.payload != null &&
-                                response.payload.length > 0 &&
-                                response.payload[0] != 0);
+                                response.payload != null
+                                && response.payload.length > 0
+                                && response.payload[0] != 0);
                     }
-
                 } catch (SocketTimeoutException e) {
-                    // Retransmit FIN on timeout.
+                    // Try FIN again, until the attempt limit is reached.
                 }
+            }
+
+            if (!finAck) {
+                System.err.println(
+                        "FINACK not received after "
+                                + maxFinAttempts
+                                + " attempts; transfer may have completed");
             }
 
             return stats;
@@ -738,8 +599,7 @@ public final class SelectiveRepeat implements ArqProtocol {
     public RunStats receive(
             Path file,
             int port,
-            ProtocolConfig config)
-            throws IOException {
+            ProtocolConfig config) throws IOException {
 
         RunStats stats =
                 new RunStats(
@@ -751,38 +611,27 @@ public final class SelectiveRepeat implements ArqProtocol {
 
         SelectiveRepeat receiver =
                 new SelectiveRepeat(
-                        windowSize,
-                        sequenceSpace,
-                        timeoutMs,
-                        1);
+                        windowSize, sequenceSpace, timeoutMs, 1);
 
         String expectedSha = null;
 
-        try (DatagramSocket socket =
-                     new DatagramSocket(port);
-             OutputStream output =
-                     Files.newOutputStream(file)) {
+        try (DatagramSocket socket = new DatagramSocket(port);
+             OutputStream output = Files.newOutputStream(file)) {
 
             boolean gotMeta = false;
 
             while (true) {
-                byte[] buffer =
-                        new byte[2048];
-
+                byte[] buffer = new byte[2048];
                 DatagramPacket received =
-                        new DatagramPacket(
-                                buffer,
-                                buffer.length);
+                        new DatagramPacket(buffer, buffer.length);
 
                 socket.receive(received);
 
                 Packet packet;
 
                 try {
-                    packet =
-                            Packet.decode(
-                                    received.getData(),
-                                    received.getLength());
+                    packet = Packet.decode(
+                            received.getData(), received.getLength());
                 } catch (CorruptPacketException e) {
                     stats.onCorruptDropped();
                     continue;
@@ -790,58 +639,40 @@ public final class SelectiveRepeat implements ArqProtocol {
 
                 InetSocketAddress sender =
                         new InetSocketAddress(
-                                received.getAddress(),
-                                received.getPort());
+                                received.getAddress(), received.getPort());
 
-                if (!gotMeta &&
-                    packet.type ==
-                            Packet.TYPE_DATA &&
-                    packet.seq == 0) {
+                if (!gotMeta
+                        && packet.type == Packet.TYPE_DATA
+                        && packet.seq == 0) {
 
                     Session.MetaInfo meta =
-                            Session.parseMeta(
-                                    packet.payload);
+                            Session.parseMeta(packet.payload);
 
                     expectedSha = meta.sha256;
 
-                    Packet ack =
-                            Packet.ack(
-                                    0,
-                                    windowSize);
-
-                    byte[] ackData =
-                            ack.encode();
+                    Packet ack = Packet.ack(0, windowSize);
+                    byte[] ackData = ack.encode();
 
                     DatagramPacket ackPacket =
                             new DatagramPacket(
-                                    ackData,
-                                    ackData.length,
-                                    sender);
+                                    ackData, ackData.length, sender);
 
                     socket.send(ackPacket);
 
                     gotMeta = true;
                     stats.start();
-
                     continue;
                 }
 
-                if (gotMeta &&
-                    packet.type ==
-                            Packet.TYPE_DATA) {
-
-                    ReceiveResult result =
-                            receiver.receiveData(packet);
+                if (gotMeta && packet.type == Packet.TYPE_DATA) {
+                    ReceiveResult result = receiver.receiveData(packet);
 
                     if (result.ack() != null) {
-                        byte[] ackData =
-                                result.ack().encode();
+                        byte[] ackData = result.ack().encode();
 
                         DatagramPacket ackPacket =
                                 new DatagramPacket(
-                                        ackData,
-                                        ackData.length,
-                                        sender);
+                                        ackData, ackData.length, sender);
 
                         socket.send(ackPacket);
                     }
@@ -853,32 +684,86 @@ public final class SelectiveRepeat implements ArqProtocol {
                     continue;
                 }
 
-                if (gotMeta &&
-                    packet.type ==
-                            Packet.TYPE_FIN) {
-
+                if (gotMeta && packet.type == Packet.TYPE_FIN) {
                     output.flush();
 
                     boolean shaMatch =
-                            Session.verifySha256(
-                                    file,
-                                    expectedSha);
+                            Session.verifySha256(file, expectedSha);
 
                     Packet finAck =
-                            Session.createFinAckPacket(
-                                    packet.seq,
-                                    shaMatch);
+                            Session.createFinAckPacket(packet.seq, shaMatch);
 
-                    byte[] finData =
-                            finAck.encode();
+                    byte[] finData = finAck.encode();
 
                     DatagramPacket finPacket =
                             new DatagramPacket(
-                                    finData,
-                                    finData.length,
-                                    sender);
+                                    finData, finData.length, sender);
 
+                    // Send the first FINACK.
                     socket.send(finPacket);
+
+                    // Linger for a bounded period so retransmitted FIN
+                    // packets can receive another FINACK.
+                    long lingerMs = Math.min(
+                            3L * receiver.activeRtoMs(),
+                            Integer.MAX_VALUE);
+
+                    long lingerDeadline =
+                            System.nanoTime() + lingerMs * 1_000_000L;
+
+                    while (true) {
+                        long remainingNanos =
+                                lingerDeadline - System.nanoTime();
+
+                        if (remainingNanos <= 0) {
+                            break;
+                        }
+
+                        long remainingMs =
+                                Math.max(
+                                        1L,
+                                        (remainingNanos + 999_999L)
+                                                / 1_000_000L);
+
+                        socket.setSoTimeout(socketTimeout(remainingMs));
+
+                        byte[] lingerBuffer = new byte[2048];
+
+                        DatagramPacket lingerDatagram =
+                                new DatagramPacket(
+                                        lingerBuffer,
+                                        lingerBuffer.length);
+
+                        try {
+                            socket.receive(lingerDatagram);
+
+                            // Only handle packets from the original sender.
+                            if (!lingerDatagram.getAddress().equals(
+                                        sender.getAddress())
+                                    || lingerDatagram.getPort()
+                                        != sender.getPort()) {
+                                continue;
+                            }
+
+                            Packet lingerPacket;
+
+                            try {
+                                lingerPacket = Packet.decode(
+                                        lingerDatagram.getData(),
+                                        lingerDatagram.getLength());
+                            } catch (CorruptPacketException e) {
+                                stats.onCorruptDropped();
+                                continue;
+                            }
+
+                            if (lingerPacket.type == Packet.TYPE_FIN
+                                    && lingerPacket.seq == packet.seq) {
+                                socket.send(finPacket);
+                            }
+                        } catch (SocketTimeoutException e) {
+                            // Re-check the deadline and exit when it expires.
+                        }
+                    }
 
                     stats.setShaMatch(shaMatch);
                     stats.stop();
