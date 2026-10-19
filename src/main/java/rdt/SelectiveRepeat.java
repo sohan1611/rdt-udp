@@ -1,10 +1,19 @@
+
 package rdt;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-
-public final class SelectiveRepeat {
-
+public final class SelectiveRepeat implements ArqProtocol {
     private final int windowSize;
     private final long sequenceSpace;
     private final long timeoutMs;
@@ -16,29 +25,48 @@ public final class SelectiveRepeat {
     private final Packet[] sent;
     private final boolean[] acked;
     private final TimerWheel.TimerHandle[] timers;
+    private final long[] sendTimes;
+    private final boolean[] retransmitted;
+
+    private final RttEstimator rtt = new RttEstimator(5);
+    private boolean fixedRto = true;
+    private long fixedRtoMs;
 
     private final TimerWheel timerWheel;
     private final ReceiveBuffer receiveBuffer;
 
     public SelectiveRepeat(int windowSize, long sequenceSpace) {
-        this(windowSize, sequenceSpace, 500);
+        this(windowSize, sequenceSpace, 500, 0);
     }
 
     public SelectiveRepeat(
-            int windowSize, long sequenceSpace, long timeoutMs) {
+            int windowSize,
+            long sequenceSpace,
+            long timeoutMs) {
+        this(windowSize, sequenceSpace, timeoutMs, 0);
+    }
+
+    private SelectiveRepeat(
+            int windowSize,
+            long sequenceSpace,
+            long timeoutMs,
+            long initialSequence) {
 
         if (windowSize <= 0) {
             throw new IllegalArgumentException(
                     "windowSize must be positive");
         }
+
         if (sequenceSpace <= 0) {
             throw new IllegalArgumentException(
                     "sequenceSpace must be positive");
         }
+
         if (windowSize > sequenceSpace / 2) {
             throw new IllegalArgumentException(
                     "Selective Repeat requires windowSize <= sequenceSpace/2");
         }
+
         if (timeoutMs <= 0) {
             throw new IllegalArgumentException(
                     "timeoutMs must be positive");
@@ -47,18 +75,27 @@ public final class SelectiveRepeat {
         this.windowSize = windowSize;
         this.sequenceSpace = sequenceSpace;
         this.timeoutMs = timeoutMs;
+        this.fixedRtoMs = timeoutMs;
 
-        this.sendBase = 0;
-        this.nextSeq = 0;
+        this.sendBase =
+                Math.floorMod(initialSequence, sequenceSpace);
+        this.nextSeq =
+                Math.floorMod(initialSequence, sequenceSpace);
         this.sendHead = 0;
 
         this.sent = new Packet[windowSize];
         this.acked = new boolean[windowSize];
         this.timers = new TimerWheel.TimerHandle[windowSize];
+        this.sendTimes = new long[windowSize];
+        this.retransmitted = new boolean[windowSize];
 
         this.timerWheel = new TimerWheel();
-        this.receiveBuffer = new ReceiveBuffer(
-                windowSize, 0, sequenceSpace);
+
+        this.receiveBuffer =
+                new ReceiveBuffer(
+                        windowSize,
+                        this.sendBase,
+                        sequenceSpace);
     }
 
     public long sendBase() {
@@ -79,7 +116,11 @@ public final class SelectiveRepeat {
 
     public boolean windowHasSpace() {
         long outstanding =
-                SeqSpace.offset(nextSeq, sendBase, sequenceSpace);
+                SeqSpace.offset(
+                        nextSeq,
+                        sendBase,
+                        sequenceSpace);
+
         return outstanding < windowSize;
     }
 
@@ -91,16 +132,25 @@ public final class SelectiveRepeat {
         long seq = nextSeq;
         Packet packet = Packet.data(seq, payload);
 
-        int slot = slotForOffset(
-                SeqSpace.offset(seq, sendBase, sequenceSpace));
+        int slot =
+                slotForOffset(
+                        SeqSpace.offset(
+                                seq,
+                                sendBase,
+                                sequenceSpace));
 
         sent[slot] = packet;
         acked[slot] = false;
-        timers[slot] = timerWheel.schedule(
-                timeoutMs, "retransmit:seq=" + seq);
+        sendTimes[slot] = System.nanoTime();
+        retransmitted[slot] = false;
 
-        nextSeq = Math.floorMod(
-                nextSeq + 1, sequenceSpace);
+        timers[slot] =
+                timerWheel.schedule(
+                        activeRtoMs(),
+                        "retransmit:seq=" + seq);
+
+        nextSeq =
+                Math.floorMod(nextSeq + 1, sequenceSpace);
 
         return packet;
     }
@@ -115,18 +165,31 @@ public final class SelectiveRepeat {
 
         long offset =
                 SeqSpace.offset(ack, sendBase, sequenceSpace);
-
         int slot = slotForOffset(offset);
 
         if (sent[slot] == null || acked[slot]) {
             return false;
         }
 
+        if (!fixedRto
+                && !retransmitted[slot]
+                && sendTimes[slot] != 0) {
+            rtt.update(System.nanoTime() - sendTimes[slot]);
+            rtt.resetBackoff();
+        }
+
         acked[slot] = true;
+
         timerWheel.cancel(timers[slot]);
         timers[slot] = null;
 
+        long oldBase = sendBase;
         slideWindow();
+
+        if (sendBase != oldBase) {
+            rtt.resetBackoff();
+        }
+
         return true;
     }
 
@@ -140,12 +203,15 @@ public final class SelectiveRepeat {
 
             sent[slot] = null;
             acked[slot] = false;
+            sendTimes[slot] = 0;
+            retransmitted[slot] = false;
+
             timerWheel.cancel(timers[slot]);
             timers[slot] = null;
 
             sendHead = (sendHead + 1) % windowSize;
-            sendBase = Math.floorMod(
-                    sendBase + 1, sequenceSpace);
+            sendBase =
+                    Math.floorMod(sendBase + 1, sequenceSpace);
         }
     }
 
@@ -170,8 +236,8 @@ public final class SelectiveRepeat {
 
     public List<Packet> outstandingPackets() {
         List<Packet> packets = new ArrayList<>();
-
         long seq = sendBase;
+
         while (seq != nextSeq) {
             long offset =
                     SeqSpace.offset(seq, sendBase, sequenceSpace);
@@ -181,46 +247,89 @@ public final class SelectiveRepeat {
                 packets.add(sent[slot]);
             }
 
-            seq = Math.floorMod(
-                    seq + 1, sequenceSpace);
+            seq = Math.floorMod(seq + 1, sequenceSpace);
         }
 
         return packets;
     }
+
     public Packet pollExpiredRetransmission() {
-        TimerWheel.TimerHandle fired = timerWheel.poll();
+        while (true) {
+            TimerWheel.TimerHandle fired = timerWheel.poll();
 
-        if (fired == null || fired.tag() == null) {
-            return null;
+            if (fired == null) {
+                return null;
+            }
+
+            String tag = fired.tag();
+
+            if (tag == null || !tag.startsWith("retransmit:seq=")) {
+                continue;
+            }
+
+            long seq;
+
+            try {
+                seq = Long.parseLong(
+                        tag.substring("retransmit:seq=".length()));
+            } catch (NumberFormatException e) {
+                continue;
+            }
+
+            Packet packet = outstandingPacket(seq);
+
+            if (packet == null) {
+                continue;
+            }
+
+            long offset =
+                    SeqSpace.offset(seq, sendBase, sequenceSpace);
+            int slot = slotForOffset(offset);
+
+            retransmitted[slot] = true;
+
+            if (!fixedRto && seq == sendBase) {
+                rtt.doubleRto();
+            }
+
+            timers[slot] =
+                    timerWheel.schedule(
+                            activeRtoMs(),
+                            "retransmit:seq=" + seq);
+
+            return packet;
         }
+    }
 
-        String prefix = "retransmit:seq=";
-        String tag = fired.tag();
+    private void configureRto(ProtocolConfig config) {
+        String mode = config.getRtoMode();
 
-        if (!tag.startsWith(prefix)) {
-            return null;
+        if (mode != null && mode.startsWith("fixed:")) {
+            double multiplier =
+                    Double.parseDouble(mode.substring(6));
+
+            if (config.getBaseRttMs() <= 0 || multiplier <= 0) {
+                throw new IllegalArgumentException(
+                        "fixed RTO requires positive multiplier and base RTT");
+            }
+
+            fixedRto = true;
+            fixedRtoMs = Math.max(
+                    1L,
+                    Math.round(multiplier * config.getBaseRttMs()));
+        } else {
+            fixedRto = false;
         }
+    }
 
-        long seq;
-        try {
-            seq = Long.parseLong(tag.substring(prefix.length()));
-        } catch (NumberFormatException e) {
-            return null;
-        }
+    private long activeRtoMs() {
+        return fixedRto ? fixedRtoMs : rtt.rtoMs();
+    }
 
-        Packet packet = outstandingPacket(seq);
-        if (packet == null) {
-            return null;
-        }
-
-        long offset =
-                SeqSpace.offset(seq, sendBase, sequenceSpace);
-        int slot = slotForOffset(offset);
-
-        timers[slot] = timerWheel.schedule(
-                timeoutMs, "retransmit:seq=" + seq);
-
-        return packet;
+    private static int socketTimeout(long timeout) {
+        return (int) Math.max(
+                1L,
+                Math.min(Integer.MAX_VALUE, timeout));
     }
 
     public long timeUntilNextTimerMs() {
@@ -269,22 +378,17 @@ public final class SelectiveRepeat {
                     "packet must be a DATA packet");
         }
 
-        ReceiveBuffer.Result result =
-                receiveBuffer.accept(packet);
-
+        ReceiveBuffer.Result result = receiveBuffer.accept(packet);
         Packet ack = null;
 
         if (result.status() == ReceiveBuffer.Status.ACCEPTED
                 || result.status() == ReceiveBuffer.Status.DUPLICATE
-                || result.status()
-                        == ReceiveBuffer.Status.PREVIOUS_WINDOW) {
+                || result.status() == ReceiveBuffer.Status.PREVIOUS_WINDOW) {
             ack = Packet.ack(packet.seq, windowSize);
         }
 
         return new ReceiveResult(
-                result.status(),
-                result.delivered(),
-                ack);
+                result.status(), result.delivered(), ack);
     }
 
     public long receiveBase() {
@@ -293,5 +397,380 @@ public final class SelectiveRepeat {
 
     private int slotForOffset(long offset) {
         return (int) ((sendHead + offset) % windowSize);
+    }
+
+    @Override
+    public RunStats send(
+            Path file,
+            InetSocketAddress peer,
+            ProtocolConfig config) throws IOException {
+
+        SelectiveRepeat sender =
+                new SelectiveRepeat(
+                        windowSize, sequenceSpace, timeoutMs, 1);
+
+        sender.configureRto(config);
+
+        RunStats stats =
+                new RunStats(
+                        "sr",
+                        windowSize,
+                        config.getSequenceBits(),
+                        config.getRtoMode(),
+                        Files.size(file));
+
+        try (DatagramSocket socket = new DatagramSocket()) {
+            socket.setSoTimeout(socketTimeout(sender.activeRtoMs()));
+
+            Packet meta = Session.createMetaPacket(file);
+            byte[] metaData = meta.encode();
+
+            DatagramPacket metaPacket =
+                    new DatagramPacket(metaData, metaData.length, peer);
+
+            boolean metaAck = false;
+
+            while (!metaAck) {
+                socket.send(metaPacket);
+
+                try {
+                    byte[] buffer = new byte[2048];
+                    DatagramPacket received =
+                            new DatagramPacket(buffer, buffer.length);
+
+                    socket.receive(received);
+
+                    Packet ack;
+
+                    try {
+                        ack = Packet.decode(
+                                received.getData(), received.getLength());
+                    } catch (CorruptPacketException e) {
+                        continue;
+                    }
+
+                    if (ack.type == Packet.TYPE_ACK && ack.ack == 0) {
+                        metaAck = true;
+                    }
+                } catch (SocketTimeoutException e) {
+                    // Retransmit META on timeout.
+                }
+            }
+
+            stats.start();
+
+            try (InputStream input = Files.newInputStream(file)) {
+                boolean finished = false;
+
+                while (!finished || sender.sendBase() != sender.nextSeq()) {
+                    while (!finished && sender.windowHasSpace()) {
+                        byte[] data =
+                                input.readNBytes(config.getPayloadSize());
+
+                        if (data.length == 0) {
+                            finished = true;
+                            break;
+                        }
+
+                        Packet packet = sender.createDataPacket(data);
+                        byte[] bytes = packet.encode();
+
+                        DatagramPacket datagram =
+                                new DatagramPacket(bytes, bytes.length, peer);
+
+                        socket.send(datagram);
+                        stats.onDataSent(bytes.length, false);
+                    }
+
+                    if (finished
+                            && sender.sendBase() == sender.nextSeq()) {
+                        break;
+                    }
+
+                    long wait = sender.timeUntilNextTimerMs();
+
+                    if (wait <= 0) {
+                        wait = 1;
+                    }
+
+                    socket.setSoTimeout(socketTimeout(wait));
+
+                    try {
+                        byte[] buffer = new byte[2048];
+                        DatagramPacket received =
+                                new DatagramPacket(buffer, buffer.length);
+
+                        socket.receive(received);
+
+                        Packet ack;
+
+                        try {
+                            ack = Packet.decode(
+                                    received.getData(), received.getLength());
+                        } catch (CorruptPacketException e) {
+                            stats.onCorruptDropped();
+                            continue;
+                        }
+
+                        if (ack.type == Packet.TYPE_ACK
+                                && sender.receiveAck(ack.ack)) {
+                            stats.onAck(false);
+                        }
+                    } catch (SocketTimeoutException e) {
+                        Packet packet;
+
+                        while ((packet =
+                                sender.pollExpiredRetransmission()) != null) {
+                            byte[] bytes = packet.encode();
+
+                            DatagramPacket datagram =
+                                    new DatagramPacket(bytes, bytes.length, peer);
+
+                            socket.send(datagram);
+                            stats.onDataSent(bytes.length, true);
+                            stats.onTimeout();
+                        }
+                    }
+                }
+            }
+
+            stats.stop();
+
+            Packet fin = Session.createFinPacket(sender.nextSeq());
+            byte[] finData = fin.encode();
+
+            DatagramPacket finPacket =
+                    new DatagramPacket(finData, finData.length, peer);
+
+            // Send FIN a bounded number of times so a lost FINACK
+            // cannot leave the sender waiting forever.
+            boolean finAck = false;
+            int finAttempts = 0;
+            final int maxFinAttempts = 3;
+
+            socket.setSoTimeout(socketTimeout(sender.activeRtoMs()));
+
+            while (!finAck && finAttempts < maxFinAttempts) {
+                socket.send(finPacket);
+                finAttempts++;
+
+                try {
+                    byte[] buffer = new byte[2048];
+                    DatagramPacket received =
+                            new DatagramPacket(buffer, buffer.length);
+
+                    socket.receive(received);
+
+                    Packet response;
+
+                    try {
+                        response = Packet.decode(
+                                received.getData(), received.getLength());
+                    } catch (CorruptPacketException e) {
+                        continue;
+                    }
+
+                    if (response.type == Packet.TYPE_FINACK
+                            && response.seq == fin.seq) {
+                        finAck = true;
+
+                        stats.setShaMatch(
+                                response.payload != null
+                                && response.payload.length > 0
+                                && response.payload[0] != 0);
+                    }
+                } catch (SocketTimeoutException e) {
+                    // Try FIN again, until the attempt limit is reached.
+                }
+            }
+
+            if (!finAck) {
+                System.err.println(
+                        "FINACK not received after "
+                                + maxFinAttempts
+                                + " attempts; transfer may have completed");
+            }
+
+            return stats;
+        }
+    }
+
+    @Override
+    public RunStats receive(
+            Path file,
+            int port,
+            ProtocolConfig config) throws IOException {
+
+        RunStats stats =
+                new RunStats(
+                        "sr",
+                        windowSize,
+                        config.getSequenceBits(),
+                        config.getRtoMode(),
+                        0);
+
+        SelectiveRepeat receiver =
+                new SelectiveRepeat(
+                        windowSize, sequenceSpace, timeoutMs, 1);
+
+        String expectedSha = null;
+
+        try (DatagramSocket socket = new DatagramSocket(port);
+             OutputStream output = Files.newOutputStream(file)) {
+
+            boolean gotMeta = false;
+
+            while (true) {
+                byte[] buffer = new byte[2048];
+                DatagramPacket received =
+                        new DatagramPacket(buffer, buffer.length);
+
+                socket.receive(received);
+
+                Packet packet;
+
+                try {
+                    packet = Packet.decode(
+                            received.getData(), received.getLength());
+                } catch (CorruptPacketException e) {
+                    stats.onCorruptDropped();
+                    continue;
+                }
+
+                InetSocketAddress sender =
+                        new InetSocketAddress(
+                                received.getAddress(), received.getPort());
+
+                if (!gotMeta
+                        && packet.type == Packet.TYPE_DATA
+                        && packet.seq == 0) {
+
+                    Session.MetaInfo meta =
+                            Session.parseMeta(packet.payload);
+
+                    expectedSha = meta.sha256;
+
+                    Packet ack = Packet.ack(0, windowSize);
+                    byte[] ackData = ack.encode();
+
+                    DatagramPacket ackPacket =
+                            new DatagramPacket(
+                                    ackData, ackData.length, sender);
+
+                    socket.send(ackPacket);
+
+                    gotMeta = true;
+                    stats.start();
+                    continue;
+                }
+
+                if (gotMeta && packet.type == Packet.TYPE_DATA) {
+                    ReceiveResult result = receiver.receiveData(packet);
+
+                    if (result.ack() != null) {
+                        byte[] ackData = result.ack().encode();
+
+                        DatagramPacket ackPacket =
+                                new DatagramPacket(
+                                        ackData, ackData.length, sender);
+
+                        socket.send(ackPacket);
+                    }
+
+                    for (Packet data : result.delivered()) {
+                        output.write(data.payload);
+                    }
+
+                    continue;
+                }
+
+                if (gotMeta && packet.type == Packet.TYPE_FIN) {
+                    output.flush();
+
+                    boolean shaMatch =
+                            Session.verifySha256(file, expectedSha);
+
+                    Packet finAck =
+                            Session.createFinAckPacket(packet.seq, shaMatch);
+
+                    byte[] finData = finAck.encode();
+
+                    DatagramPacket finPacket =
+                            new DatagramPacket(
+                                    finData, finData.length, sender);
+
+                    // Send the first FINACK.
+                    socket.send(finPacket);
+
+                    // Linger for a bounded period so retransmitted FIN
+                    // packets can receive another FINACK.
+                    long lingerMs = Math.min(
+                            3L * receiver.activeRtoMs(),
+                            Integer.MAX_VALUE);
+
+                    long lingerDeadline =
+                            System.nanoTime() + lingerMs * 1_000_000L;
+
+                    while (true) {
+                        long remainingNanos =
+                                lingerDeadline - System.nanoTime();
+
+                        if (remainingNanos <= 0) {
+                            break;
+                        }
+
+                        long remainingMs =
+                                Math.max(
+                                        1L,
+                                        (remainingNanos + 999_999L)
+                                                / 1_000_000L);
+
+                        socket.setSoTimeout(socketTimeout(remainingMs));
+
+                        byte[] lingerBuffer = new byte[2048];
+
+                        DatagramPacket lingerDatagram =
+                                new DatagramPacket(
+                                        lingerBuffer,
+                                        lingerBuffer.length);
+
+                        try {
+                            socket.receive(lingerDatagram);
+
+                            // Only handle packets from the original sender.
+                            if (!lingerDatagram.getAddress().equals(
+                                        sender.getAddress())
+                                    || lingerDatagram.getPort()
+                                        != sender.getPort()) {
+                                continue;
+                            }
+
+                            Packet lingerPacket;
+
+                            try {
+                                lingerPacket = Packet.decode(
+                                        lingerDatagram.getData(),
+                                        lingerDatagram.getLength());
+                            } catch (CorruptPacketException e) {
+                                stats.onCorruptDropped();
+                                continue;
+                            }
+
+                            if (lingerPacket.type == Packet.TYPE_FIN
+                                    && lingerPacket.seq == packet.seq) {
+                                socket.send(finPacket);
+                            }
+                        } catch (SocketTimeoutException e) {
+                            // Re-check the deadline and exit when it expires.
+                        }
+                    }
+
+                    stats.setShaMatch(shaMatch);
+                    stats.stop();
+
+                    return stats;
+                }
+            }
+        }
     }
 }

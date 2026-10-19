@@ -2,7 +2,7 @@ package app;
 
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
-
+import rdt.SelectiveRepeat;
 import rdt.ArqProtocol;
 import rdt.ProtocolConfig;
 import rdt.RunStats;
@@ -82,15 +82,21 @@ public final class Sender
 
         ArqProtocol arq;
 
-        switch (protocol)
-        {
-            case "stopwait":
-                arq = new StopAndWait();
-                break;
+        switch (protocol) {
+    case "stopwait":
+        arq = new StopAndWait();
+        break;
 
             case "gbn":
                 arq = new GoBackN();
                 break;
+
+            case "sr":
+                arq = new SelectiveRepeat(
+                window,
+                1L << seqBits);
+                break;
+
 
             default:
                 throw new IllegalArgumentException(
