@@ -167,6 +167,7 @@ public final class StopAndWait implements ArqProtocol
                     long sendTime = System.nanoTime();
                     boolean retransmitted = false;
                     socket.send(datagram);
+                    stats.onDataSent(data.length, false);
                     while (!acknowledged)
                     {
                         try

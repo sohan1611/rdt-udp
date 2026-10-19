@@ -6,6 +6,7 @@ import rdt.ArqProtocol;
 import rdt.ProtocolConfig;
 import rdt.RunStats;
 import rdt.StopAndWait;
+import rdt.GoBackN;
 
 public final class Receiver
 {
@@ -76,17 +77,22 @@ public final class Receiver
         arq = new StopAndWait();
         break;
 
-    case "sr":
-        arq = new SelectiveRepeat(
+            case "gbn":
+                arq = new GoBackN();
+                break;
+
+            case "sr":
+                arq = new SelectiveRepeat(
                 window,
                 1L << seqBits);
-        break;
+                break;
 
-    default:
-        throw new IllegalArgumentException(
-                "Unsupported protocol: " + protocol);
-}
-       
+
+            default:
+                throw new IllegalArgumentException(
+                        "Unsupported protocol: " + protocol
+                );
+        }
 
         ProtocolConfig config =
                 new ProtocolConfig(

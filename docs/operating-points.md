@@ -10,13 +10,13 @@ Every experiment must run well below the emulator's measured capacity. Otherwise
 |---|---|
 | Host | WSL2, Linux 6.18, 32 cores, Java 21.0.12, 512 MB heap |
 | Payload | 1400 bytes |
-| Ceiling (≥ 99% delivered) | **96,000 pkt/s** |
-| First failing rate | 128,000 pkt/s, only 72.5% delivered |
-| Budget (50% of ceiling) | **48,000 pkt/s** |
+| Ceiling (≥ 99% delivered) | **64,000 pkt/s** |
+| First failing rate | 96,000 pkt/s, only 89.8–91.5% delivered (two runs) |
+| Budget (50% of ceiling) | **32,000 pkt/s** |
 
 The calibration used a perfect channel with no configured loss or delay, discarded a warm-up step, and held each tested packet rate for 2 seconds.
 
-The previous emulator reached a ceiling of 64,000 pkt/s. Increasing the UDP socket buffers to 4 MB raised the measured ceiling to 96,000 pkt/s.
+The previous emulator reached a ceiling of 64,000 pkt/s. Increasing the UDP socket buffers to 4 MB raised the measured ceiling to 96,000 pkt/s. To achieve precise release timing, NetEm now receives and releases on separate threads that hand packets through a `DelayQueue`; two measurements confirmed that the handoff reduced the ceiling from 96,000 to 64,000 pkt/s, so all budgets below use the new 32,000 pkt/s value, a worthwhile trade-off because precise timing matters more than raw throughput when even the most demanding planned experiment stays well below capacity (see **Planned operating points**).
 
 ## Why use only 50% of the ceiling?
 
@@ -38,15 +38,15 @@ $$
 RTT=20\text{ ms}+20\text{ ms}=40\text{ ms}=0.04\text{ s}
 $$
 
-The emulator carries traffic in both directions. Each successfully received data packet generates an ACK, so the emulator processes approximately twice the data-packet rate. This total bidirectional packet rate must be compared with the 48,000 pkt/s operating budget.
+The emulator carries traffic in both directions. Each successfully received data packet generates an ACK, so the emulator processes approximately twice the data-packet rate. This total bidirectional packet rate must be compared with the 32,000 pkt/s operating budget.
 
-| Experiment | Protocol | W | Data rate W / 0.04 | With ACKs (×2) | Share of 48,000 budget |
+| Experiment | Protocol | W | Data rate W / 0.04 | With ACKs (×2) | Share of 32,000 budget |
 |---|---|---:|---:|---:|---:|
-| 1, 3, 4 | Stop-and-Wait | 1 | 25 pkt/s | 50 pkt/s | 0.1% |
-| 1, 3, 4 | GBN / SR | 32 | 800 pkt/s | 1,600 pkt/s | 3.3% |
-| 2 (largest window) | GBN / SR | 128 | 3,200 pkt/s | 6,400 pkt/s | **13.3%** |
+| 1, 3, 4 | Stop-and-Wait | 1 | 25 pkt/s | 50 pkt/s | **0.16%** |
+| 1, 3, 4 | GBN / SR | 32 | 800 pkt/s | 1,600 pkt/s | **5.0%** |
+| 2 (largest window) | GBN / SR | 128 | 3,200 pkt/s | 6,400 pkt/s | **20.0%** |
 
-With `jitter=5`, each one-way delay varies between 15 and 25 ms, so the shortest RTT is 30 ms. The true worst case is therefore 128 / 0.03 ≈ 4,267 data pkt/s, or about 8,533 pkt/s with ACKs: 17.8% of the budget, still well within it.
+With `jitter=5`, each one-way delay varies between 15 and 25 ms, so the shortest RTT is 30 ms. The true worst case is therefore 128 / 0.03 ≈ 4,267 data pkt/s, or about 8,533 pkt/s with ACKs: 26.7% of the budget, still well within it.
 
 For the largest window:
 
@@ -60,10 +60,10 @@ $$
 3200\times2=6400\text{ pkt/s}
 $$
 
-Relative to the 48,000 pkt/s operating budget:
+Relative to the 32,000 pkt/s operating budget:
 
 $$
-\frac{6400}{48000}=0.133\approx13.3\%
+\frac{6400}{32000}=0.2=20\%
 $$
 
 The corresponding worst-case data bandwidth is approximately:
@@ -74,7 +74,7 @@ $$
 
 where 1420 bytes is the 1400-byte payload plus a 20-byte header.
 
-The most demanding planned experiment therefore uses about 13% of the operating budget, or about 7% of the measured 96,000 pkt/s ceiling. Under these planned operating points, the emulator has substantial capacity headroom and should not be the limiting factor in the experimental results.
+The most demanding planned experiment therefore uses about 20% of the operating budget, or about 10% of the measured 64,000 pkt/s ceiling. Under these planned operating points, the emulator has substantial capacity headroom and should not be the limiting factor in the experimental results.
 
 ## Cautions
 

@@ -3,7 +3,7 @@ public final class RttEstimator {
     private static final double ALPHA = 1.0 / 8.0; 
     private static final double BETA = 1.0 / 4.0; 
     private static final double G_MS = 1.0; 
-    private static final long MAX_RTO_MS = 60_000L; 
+    private static final long MAX_RTO_MS = 5_000L;
     private final long minRtoMs; private double srtt = -1; 
     private double rttvar = -1; private long rto; 
     private int backoffShift = 0; 
