@@ -123,6 +123,15 @@ local Sender-to-Receiver transfer test and checked the resulting statistics.
 
 **Mine:** I implemented the Stop-and-Wait sequence-number changes in `StopAndWait.java`, added the Session reordering integration test, ran the project test suite, and verified the relevant tests passed. I committed and pushed the changes as `9dd92c6`.
 
+### 2026-10-13 — Stop-and-Wait data transmission statistics
+
+**What:** AI helped identify and review a missing statistics update for initial DATA transmissions in `StopAndWait.java`, which caused `data_sent` and `wire_bytes` to be undercounted.
+
+**Permitted under:** debugging; reviewing our code.
+
+**Mine:** I added `stats.onDataSent(data.length, false);` immediately after the initial DATA send, preserving the existing retransmission accounting. I ran `./build.sh`; the Packet and Channel tests passed, but two NetEmSmokeTest timing tests failed on this run.
+
+
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
 ### 2026-09-16 — TimerWheel.java 
@@ -224,6 +233,23 @@ and TimerWheel double-decrement. It did not produce the fixed implementation.
 **Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
 
 **Mine:** I integrated TimerWheel with `SelectiveRepeat.java`, moved `TimerWheel.java` into `src/main/java/timer/` so it was included in the build, updated `build.sh` to run the Selective Repeat tests, and ran the tests. I committed and pushed the changes in commit `2720daa` (`Complete Selective Repeat timer integration`) to `m3/selective-repeat`.
+
+### 2026-10-06 — M3 / Selective Repeat file-transfer integration
+
+**What:** Used ChatGPT to help understand and debug the integration of Selective Repeat file transfer into the application's sender and receiver entry points.
+
+**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
+
+**Mine:** I integrated `SelectiveRepeat` with the application file-transfer interface in `Sender.java` and `Receiver.java`. The integration was committed as `be8e912` (`Integrate Selective Repeat file transfer`).
+
+### 2026-10-11 — M3 / Adaptive RTO backoff
+
+**What:** Used ChatGPT to review adaptive retransmission-timeout backoff in `SelectiveRepeat.java`, including when to double the RTO after a timeout and when to reset backoff after receiving a fresh RTT sample.
+
+**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
+
+**Mine:** I updated `SelectiveRepeat.java` to limit adaptive RTO doubling to timeouts for the current base packet and to reset backoff when a fresh RTT sample is collected. I ran `./build.sh` and verified that all tests passed.
+
 
 ## M4 — Channel & Evidence · Sohan Mandal
 
