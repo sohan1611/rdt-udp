@@ -442,6 +442,7 @@ redraws every figure, `make experiments` runs all four configs) and gave figure 
 **Mine:** the decision to measure spurious retransmissions for the secondary claim, the
 choice to use early-timer retransmissions as the RTO metric, and the interpretation of the
 results.
+
 ### 2026-10-21 — Experiment runs, results and report checks
 **What:** At my request, Claude ran the final experiments (890 runs), the netem validation
 and `spurious.py`, drew the figures, and computed the summary tables and model checks used
