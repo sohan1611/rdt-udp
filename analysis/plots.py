@@ -122,7 +122,9 @@ def plot(groups,x,y,out,xscale="linear",logy=False):
         for series in sorted(groups):
             xs=sorted(groups[series])
             stats=[mean_ci(groups[series][v]) for v in xs]
-            ax.errorbar(xs,[m for m,_ in stats],yerr=[h for _,h in stats],marker="o",capsize=3,label=series)
+            # Counts and rates cannot be negative, so the lower bar stops at zero.
+            lower=[min(h,m) if m>=0 else h for m,h in stats]
+            ax.errorbar(xs,[m for m,_ in stats],yerr=[lower,[h for _,h in stats]],marker="o",capsize=3,label=series)
 
         if xscale=="symlog":
             ax.set_xscale("symlog",linthresh=0.001)      # linear near 0, log beyond
@@ -138,6 +140,7 @@ def plot(groups,x,y,out,xscale="linear",logy=False):
         values=[v for points in groups.values() for vs in points.values() for v in vs]
         if min(values)<=0:
             ax.set_yscale("symlog",linthresh=1)
+            ax.set_ylim(bottom=0)
         else:
             ax.set_yscale("log",nonpositive="clip")
 
