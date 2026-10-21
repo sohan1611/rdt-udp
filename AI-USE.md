@@ -432,6 +432,16 @@ checked that traces now end with the FIN/FINACK exchange.
 **Permitted under:** boilerplate and plotting scripts; generating tests.
 **Mine:** the NetEm shutdown hook that waits for `run()` so the trace is closed.
 
+### 2026-10-21 — Experiment runs, results and report checks
+**What:** At my request, Claude ran the final experiments (890 runs), the netem validation
+and `spurious.py`, drew the figures, and computed the summary tables and model checks used
+in the results chapter. It fact-checked `methodology.md` and `results.md` against the data
+(I fixed the errors it found) and repaired their formatting after an editor damaged them,
+restoring formulas and tables without changing my wording.
+**Permitted under:** boilerplate and plotting scripts; reviewing our code; improving our writing.
+**Mine:** the text of both chapters, the interpretation of the results, and the decisions on
+reruns and on reporting the secondary claim as only partly confirmed.
+
 ---
 
 # Open items — must be cleared before submission
