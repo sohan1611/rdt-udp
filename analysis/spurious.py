@@ -20,12 +20,14 @@ Then every copy after the first is a retransmission, sent at time t, and is:
   necessary         no earlier copy was the accepted one. The data really had to
                     be sent again (lost, corrupted, or discarded out of order).
   spurious_early    an earlier copy was accepted, and either it had not yet
-                    arrived at t, or an ACK covering s was already on its way back.
+                    arrived at t, an ACK covering s was still on its way back, or
+                    the receiver had not sent a covering ACK at all before t.
                     The timer fired too early: this is the part an RTO policy
                     controls.
-  spurious_ack_lost an earlier copy was accepted before t, but every ACK covering
-                    s sent before t was dropped or corrupted. Unavoidable: the
-                    sender could not have known.
+  spurious_ack_lost an earlier copy was accepted before t, at least one ACK
+                    covering s was sent before t, and every such ACK was dropped
+                    or corrupted. Only with that evidence is the loss counted;
+                    unavoidable, since the sender could not have known.
   after_ack         an ACK covering s had already reached the sender before t.
                     A correct sender never does this; any count here is a bug.
 
@@ -149,10 +151,14 @@ def classify(records, protocol, ack_rule):
             covering = [(s, a) for s, a, ack in acks if covers(ack, seq) and s < t]
             if any(a is not None and a <= t for s, a in covering):
                 counts["after_ack"] += 1
-            elif good[1] > t or any(a is not None for s, a in covering):
-                counts["spurious_early"] += 1
-            else:
+            elif covering and all(a is None for s, a in covering) and good[1] <= t:
+                # Evidence of loss: the receiver did send a covering ACK before t,
+                # and every one of them was dropped or corrupted.
                 counts["spurious_ack_lost"] += 1
+            else:
+                # The data had not arrived yet, an ACK was still in flight, or the
+                # receiver had not answered at all before t: the timer fired early.
+                counts["spurious_early"] += 1
     counts["data_packets"] = len(copies)
     return counts
 
