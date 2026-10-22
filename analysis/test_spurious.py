@@ -63,6 +63,17 @@ class StopAndWait(unittest.TestCase):
         c = counts([data(0, 1), ack(20_000, 1, "drop", 0.0), data(RTO_US, 1), ack(RTO_US + 20_000, 1)])
         self.assertEqual((c["spurious_ack_lost"], c["spurious_early"]), (1, 0))
 
+    def test_no_ack_sent_yet_is_early_not_ack_lost(self):
+        # The data arrived at 20 ms, but the trace records no covering ACK sent
+        # before the 60 ms resend (here it leaves only at 61 ms). Nothing was lost;
+        # the timer fired before the receiver answered.
+        c = counts([data(0, 1), data(RTO_US, 1), ack(61_000, 1)])
+        self.assertEqual((c["spurious_early"], c["spurious_ack_lost"]), (1, 0))
+
+    def test_no_ack_at_all_is_not_counted_as_ack_lost(self):
+        c = counts([data(0, 1), data(RTO_US, 1)])
+        self.assertEqual(c["spurious_ack_lost"], 0)
+
     def test_retransmitting_after_the_ack_arrived_is_flagged(self):
         c = counts([data(0, 1), ack(20_000, 1), data(RTO_US, 1)])
         self.assertEqual(c["after_ack"], 1)
@@ -91,8 +102,10 @@ class GoBackN(unittest.TestCase):
         # Packet 1 arrives; its ACK is in flight when the timer fires.
         recs = [data(0, 1), ack(20_000, 2, delay=45.0), data(RTO_US, 1)]
         self.assertEqual(counts(recs, "gbn", "next")["spurious_early"], 1)      # ack 2 > 1 covers 1
-        self.assertEqual(counts(recs, "gbn", "exact")["spurious_ack_lost"], 1)  # ack 2 does not cover 1
-        recs_lost_ack = [data(0, 1), ack(20_000, 1, "drop", 0.0), data(RTO_US, 1)]
+        # Under "exact", ack 2 does not cover 1, so no covering ACK was ever sent:
+        # no evidence of a lost ACK, so the timer simply fired early.
+        self.assertEqual(counts(recs, "gbn", "exact")["spurious_early"], 1)
+        recs_lost_ack = [data(0, 1), ack(20_000, 2, "drop", 0.0), data(RTO_US, 1)]   # next expected 2: covers 1, dropped
         self.assertEqual(counts(recs_lost_ack, "gbn", "next")["spurious_ack_lost"], 1)
 
 
