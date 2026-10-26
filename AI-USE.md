@@ -251,6 +251,23 @@ and TimerWheel double-decrement. It did not produce the fixed implementation.
 **Mine:** I updated `SelectiveRepeat.java` to limit adaptive RTO doubling to timeouts for the current base packet and to reset backoff when a fresh RTT sample is collected. I ran `./build.sh` and verified that all tests passed.
 
 
+### 2026-10-11 — M3 / RTO handling
+
+**What:** AI assistance was used to understand, debug, and review the Selective Repeat retransmission timeout (RTO) handling. The work removed the hard-coded 500 ms timeout, added fixed RTO calculation using the configured base RTT, and included adaptive RTO handling with `RttEstimator` and Karn's rule.
+
+**Permitted under:** Explanation, debugging assistance, and code review support.
+
+**Mine:** I worked on the Selective Repeat RTO handling. I replaced the hard-coded timeout with configurable RTO behavior, worked on adaptive RTT estimation and Karn's rule, and checked the timeout behavior against the project requirements. (commit `53a60bd`)
+
+
+### 2026-10-14 — M3 / FIN retries
+
+**What:** AI assistance was used to understand, debug, and review the Selective Repeat FIN completion behavior. The fix introduced bounded FIN retries at the sender and receiver linger behavior after FINACK, allowing the receiver to respond to repeated FIN packets.
+
+**Permitted under:** Explanation, debugging assistance, and code review support.
+
+**Mine:** I worked on fixing the Selective Repeat FIN hang. I added a bounded number of FIN attempts at the sender and receiver linger behavior so that repeated FIN packets can receive FINACK responses. I checked the transfer completion behavior and committed the fix. (commit `d1c24c1`)
+
 ## M4 — Channel & Evidence · Sohan Mandal
 
 ### 2026-08-31 — Project planning and role split
