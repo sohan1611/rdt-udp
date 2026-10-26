@@ -17,6 +17,7 @@ public final class Harness {
     private final String suite;
     private final List<String> failures = new ArrayList<>();
     private int run;
+    private int skipped;
 
     public Harness(String suite) {
         this.suite = suite;
@@ -34,9 +35,19 @@ public final class Harness {
         }
     }
 
+    /**
+     * Records a test that was deliberately not run, with the reason. Skips are
+     * counted separately, so a summary never reports them as passed.
+     */
+    public void skip(String name, String reason) {
+        skipped++;
+        System.out.printf("  skip %s%n         %s%n", name, reason);
+    }
+
     /** Prints the summary and exits non-zero if anything failed. */
     public void done() {
-        System.out.printf("%n%s: %d run, %d failed%n", suite, run, failures.size());
+        String skips = skipped > 0 ? ", " + skipped + " skipped" : "";
+        System.out.printf("%n%s: %d run, %d failed%s%n", suite, run, failures.size(), skips);
         if (!failures.isEmpty()) {
             System.exit(1);
         }
