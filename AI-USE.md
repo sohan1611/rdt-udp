@@ -200,6 +200,14 @@ and TimerWheel double-decrement. It did not produce the fixed implementation.
 
 **Mine:** I reviewed and applied the GBN timeout-handling changes, removed the SHA debug output, added the GBN packet-loss test, and ran `./build.sh`. I reviewed the changes before preparing the PR commit.
 
+### 2026-10-26 — Experiment 4 design note
+
+**What:** Used AI to help draft and organize `docs/exp4-design.md`, explaining trace-based retransmission classification and the interpretation of Experiment 4 results.
+
+**Permitted under:** Improving writing; explaining concepts.
+
+**Mine:** Reviewed the design note, added it to the repository, checked the formatting, committed it, and included it in PR #38.
+
 ## M3 — Selective Repeat · Sohini Pandit
 
 ### 2026-09-16 — M3 / SeqSpace
