@@ -184,17 +184,17 @@ seeds per point.*
 |---|---|---:|---:|---:|---:|
 | S&W | fixed:1.2 | 262 kbit/s | 130 (+34) | 129 | 123 |
 | S&W | fixed:1.5 / 2 / 3 | 260 / 255 / 246 kbit/s | 0 | 128 | 123 |
-| S&W | adaptive | 261 kbit/s | 19 (+3) | 128 | 123 |
-| GBN | fixed:1.2 | 5.17 Mbit/s | 3,026 (+358) | 11 | 3,742 |
-| GBN | fixed:1.5 | 4.32 Mbit/s | 55 | 7 | 5,282 |
-| GBN | fixed:3 | 2.62 Mbit/s | 0 | 16 | 5,314 |
-| GBN | adaptive | 4.63 Mbit/s | 675 (+55) | 17 | 4,974 |
+| S&W | adaptive | 261 kbit/s | 20 (+3) | 128 | 123 |
+| GBN | fixed:1.2 | 5.17 Mbit/s | 3,035 (+358) | 2 | 3,742 |
+| GBN | fixed:1.5 | 4.32 Mbit/s | 60 | 2 | 5,282 |
+| GBN | fixed:3 | 2.62 Mbit/s | 16 | 0 | 5,314 |
+| GBN | adaptive | 4.63 Mbit/s | 690 (+55) | 2 | 4,974 |
 | SR | fixed:1.2 | 5.21 Mbit/s | 1,440 (+336) | 132 | 123 |
 | SR | fixed:1.5 | 4.86 Mbit/s | 0 | 128 | 123 |
 | SR | fixed:3 | 3.24 Mbit/s | 0 | 128 | 123 |
 | SR | adaptive | 4.59 Mbit/s | 57 (+27) | 127 | 123 |
 
-The results partially confirmed the prediction that adaptive RTO would reduce unnecessary retransmissions. Compared with the aggressive `fixed:1.2` policy, adaptive RTO substantially reduced early-timer events: from 130 to 19 for S&W, 3,026 to 675 for GBN, and 1,440 to 57 for SR, excluding the separately reported after-ACK cases. However, adaptive RTO did not always outperform every fixed policy on this measure. The more conservative `fixed:1.5` and `fixed:3` policies produced few or no early-timer retransmissions, but at the cost of longer recovery delays which reduced goodput. Lost-ACK retransmissions were relatively stable across policies for S&W and SR (about 128 per run) because changing the timeout could not recover a missing acknowledgement without retransmission. GBN's much larger necessary-retransmission counts were due to its receiver discarding out-of-order packets, forcing later packets to be retransmitted even if their original copies had reached the receiver.
+The results partially confirmed the prediction that adaptive RTO would reduce unnecessary retransmissions. Compared with the aggressive `fixed:1.2` policy, adaptive RTO substantially reduced early-timer events: from 130 to 20 for S&W, 3,035 to 690 for GBN, and 1,440 to 57 for SR, excluding the separately reported after-ACK cases. However, adaptive RTO did not always outperform every fixed policy on this measure. The more conservative `fixed:1.5` and `fixed:3` policies produced few or no early-timer retransmissions, but at the cost of longer recovery delays which reduced goodput. Lost-ACK retransmissions were relatively stable across policies for S&W and SR (about 128 per run) because changing the timeout could not recover a missing acknowledgement without retransmission. GBN's much larger necessary-retransmission counts were due to its receiver discarding out-of-order packets, forcing later packets to be retransmitted even if their original copies had reached the receiver.
 
 The shortest timeout still delivered the highest goodput for all three protocols, for example 5.21 Mbit/s with SR's `fixed:1.2` compared with 4.86 Mbit/s at `fixed:1.5` and 3.24 Mbit/s at `fixed:3`. At `fixed:1.2`, the RTO was 48 ms, below the maximum unimpeded RTT of 50 ms, so legitimate exchanges could trigger premature timeouts that adaptive RTO could reduce. By contrast, the fixed policies from `fixed:1.5` to `fixed:3` used 60–120 ms timeouts, already above the maximum unimpeded RTT, leaving few early retransmissions for adaptive RTO to eliminate; their main cost was slower recovery from genuine losses. The longer timeout prevented premature retransmissions but delayed recovery from genuine losses, with about 33% lower goodput at `fixed:3` than at `fixed:1.5`. Adaptive RTO provided an intermediate trade-off with neither the highest goodput nor the fewest unnecessary retransmissions. The correction to the emulator had also materially changed these results: S&W at `fixed:1.2` produced 416 retransmissions with the corrected emulator, compared with 645 previously, and so approximately 230 of the earlier retransmissions were associated with emulator scheduling lateness. These results illustrate that preferred RTO policy depends on whether the goal is maximum useful-data rate or reduced retransmission overhead.
 
