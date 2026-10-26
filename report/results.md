@@ -21,7 +21,7 @@ $\pm5$ ms jitter, and 10 seeds per experimental cell. Plotted centres are
 arithmetic means of successful runs; error bars show two-sided **95%
 confidence intervals** using Student's $t$ distribution. Failed and corrupt
 runs were excluded and rerun. All reported results use the corrected-emulator
-datasets.
+datasets. All 890 final experiment runs completed with status `ok` and matching sent and received files (`file_match` true), so no run was excluded from the figures.
 
 ## 4.1 Experiment 1: goodput versus packet loss
 
@@ -51,7 +51,7 @@ and ACK-loss effects. The loss levels were 0, 0.1, 0.5, 1, 2, 5, 10, and 20%.
 
 ![Figure 1: Mean goodput versus loss](../figures/fig1_goodput_vs_loss.png)
 
-*Figure 1. Mean goodput of Stop-and-Wait, GBN, and SR against configured packet
+*Figure 1. Experiment 1 ($W = 32$, `fixed:1.5`, 8 MiB, delay 20 ms ± 5 ms). Mean goodput of Stop-and-Wait, GBN, and SR against configured packet
 loss, with $W=32$ for the windowed protocols. Error bars show 95% confidence
 intervals over 10 successful seeds per point.*
 
@@ -99,7 +99,7 @@ from a larger window. The tested window sizes were 1, 2, 4, 8, 16, 32,
 
 ![Figure 2: Mean goodput versus window size](../figures/fig2_goodput_vs_window.png)
 
-*Figure 2. Mean GBN and SR goodput versus $W$, separately at 1% and 5% loss.
+*Figure 2. Experiment 2 (loss 1% and 5%, `fixed:1.5`). Mean GBN and SR goodput versus $W$, separately at 1% and 5% loss.
 Error bars show 95% confidence intervals over 10 successful seeds per point.*
 
 **Results and discussion.** Experiment 2 investigated the effect of window size on GBN and SR's performance at 1% and 5% packet loss (Figure 2). With a window size of one both behaved like Stop-and-Wait, achieving approximately 0.27 Mbit/s at 1% loss. That confirmed correctness because neither windowed protocol could have more than one unacknowledged packet outstanding. Increasing the window initially improved goodput for both protocols by allowing multiple packets to remain in flight. The ideal reference goodput was calculated using W × 1,400 bytes × 8 / 41 ms, representing the maximum application-data rate possible with a given window and reference RTT, without loss-affected delays.
@@ -137,7 +137,7 @@ count should rise less sharply. The tested reorder probabilities were
 
 ![Figure 3: Retransmissions versus reordering](../figures/fig3_retx_vs_reorder.png)
 
-*Figure 3. Mean retransmission count for Stop-and-Wait, GBN, and SR versus
+*Figure 3. Experiment 3 (no loss, $W = 32$, `fixed:1.5`); symmetric-log axis. Mean retransmission count for Stop-and-Wait, GBN, and SR versus
 configured reordering probability, with $W=32$ for GBN and SR. Error bars
 show 95% confidence intervals over 10 successful seeds per point.*
 
@@ -174,29 +174,29 @@ release loop added around 2 ms per round trip, enough to influence the
 
 ![Figure 4: RTO policy and retransmissions](../figures/fig4_retx_vs_rto.png)
 
-*Figure 4. Mean total retransmissions by RTO policy for Stop-and-Wait, GBN,
+*Figure 4. Experiment 4 (2% loss, $W = 32$). Mean total retransmissions by RTO policy for Stop-and-Wait, GBN,
 and SR at 2% loss. Error bars show 95% confidence intervals over 10 successful
 seeds per point.*
 
-**Results and discussion.** Experiment 4 compared fixed and adaptive retransmission timeout policies under 2% packet loss (Figure 4). Retransmissions were classified using emulator traces into necessary retransmissions, early-timer retransmissions, lost-ACK retransmissions and retransmissions occurring after the relevant ACK had arrived. Necessary retransmissions represented packets which required recovery, and lost-ACK retransmissions occurred because the sender had not received the acknowledgement confirming successful delivery. Early-timer retransmissions occurred when the original transmission had succeeded, but the timeout expired before its ACK arrived. The additional after-ACK cases were associated with near-simultaneous timer and ACK processing, often separated by fractions of a millisecond, and were included when measuring RTO-related overhead. The table reports early-timer counts with these after-ACK cases included in parentheses.
+**Results and discussion.** Experiment 4 compared fixed and adaptive retransmission timeout policies under 2% packet loss (Figure 4). Retransmissions were classified using emulator traces into necessary retransmissions, early-timer retransmissions, lost-ACK retransmissions and retransmissions occurring after the relevant ACK had arrived. The `spurious.py` script replayed each emulator trace and, for every retransmission, identified which packet copy the receiver actually accepted. It then checked whether a covering ACK had been sent and was still in flight, had been sent and subsequently dropped, or had never been sent; the `ACK lost` category was assigned only when a covering ACK had been sent and dropped. Necessary retransmissions represented packets which required recovery, and lost-ACK retransmissions occurred because the sender had not received the acknowledgement confirming successful delivery. Early-timer retransmissions occurred when the original transmission had succeeded, but the timeout expired before its ACK arrived. The additional after-ACK cases were associated with near-simultaneous timer and ACK processing, often separated by fractions of a millisecond, and were included when measuring RTO-related overhead. The table reports early-timer counts with these after-ACK cases included in parentheses.
 
 | Protocol | Policy | Goodput | Early timer (+ after ACK) | ACK lost | Necessary |
 |---|---|---:|---:|---:|---:|
 | S&W | fixed:1.2 | 262 kbit/s | 130 (+34) | 129 | 123 |
 | S&W | fixed:1.5 / 2 / 3 | 260 / 255 / 246 kbit/s | 0 | 128 | 123 |
-| S&W | adaptive | 261 kbit/s | 20 (+3) | 128 | 123 |
-| GBN | fixed:1.2 | 5.17 Mbit/s | 3,035 (+358) | 2 | 3,742 |
-| GBN | fixed:1.5 | 4.32 Mbit/s | 60 | 2 | 5,282 |
-| GBN | fixed:3 | 2.62 Mbit/s | 16 | 0 | 5,314 |
-| GBN | adaptive | 4.63 Mbit/s | 690 (+55) | 2 | 4,974 |
+| S&W | adaptive | 261 kbit/s | 19 (+3) | 128 | 123 |
+| GBN | fixed:1.2 | 5.17 Mbit/s | 3,026 (+358) | 11 | 3,742 |
+| GBN | fixed:1.5 | 4.32 Mbit/s | 55 | 7 | 5,282 |
+| GBN | fixed:3 | 2.62 Mbit/s | 0 | 16 | 5,314 |
+| GBN | adaptive | 4.63 Mbit/s | 675 (+55) | 17 | 4,974 |
 | SR | fixed:1.2 | 5.21 Mbit/s | 1,440 (+336) | 132 | 123 |
 | SR | fixed:1.5 | 4.86 Mbit/s | 0 | 128 | 123 |
 | SR | fixed:3 | 3.24 Mbit/s | 0 | 128 | 123 |
 | SR | adaptive | 4.59 Mbit/s | 57 (+27) | 127 | 123 |
 
-The results partially confirmed the prediction that adaptive RTO would reduce unnecessary retransmissions. Compared with the aggressive `fixed:1.2` policy, adaptive RTO substantially reduced early-timer events: from 130 to 20 for S&W, 3,035 to 690 for GBN, and 1,440 to 57 for SR, excluding the separately reported after-ACK cases. However, adaptive RTO did not always outperform every fixed policy on this measure. The more conservative `fixed:1.5` and `fixed:3` policies produced few or no early-timer retransmissions, but at the cost of longer recovery delays which reduced goodput. Lost-ACK retransmissions were relatively stable across policies for S&W and SR (about 128 per run) because changing the timeout could not recover a missing acknowledgement without retransmission. GBN's much larger necessary-retransmission counts were due to its receiver discarding out-of-order packets, forcing later packets to be retransmitted even if their original copies had reached the receiver.
+The results partially confirmed the prediction that adaptive RTO would reduce unnecessary retransmissions. Compared with the aggressive `fixed:1.2` policy, adaptive RTO substantially reduced early-timer events: from 130 to 19 for S&W, 3,026 to 675 for GBN, and 1,440 to 57 for SR, excluding the separately reported after-ACK cases. However, adaptive RTO did not always outperform every fixed policy on this measure. The more conservative `fixed:1.5` and `fixed:3` policies produced few or no early-timer retransmissions, but at the cost of longer recovery delays which reduced goodput. Lost-ACK retransmissions were relatively stable across policies for S&W and SR (about 128 per run) because changing the timeout could not recover a missing acknowledgement without retransmission. GBN's much larger necessary-retransmission counts were due to its receiver discarding out-of-order packets, forcing later packets to be retransmitted even if their original copies had reached the receiver.
 
-The shortest timeout still delivered the highest goodput for all three protocols, for example 5.21 Mbit/s with SR's `fixed:1.2` compared with 4.86 Mbit/s at `fixed:1.5` and 3.24 Mbit/s at `fixed:3`. The longer timeout prevented premature retransmissions but delayed recovery from genuine losses, with about 33% lower goodput at `fixed:3` than at `fixed:1.5`. Adaptive RTO provided an intermediate trade-off with neither the highest goodput nor the fewest unnecessary retransmissions. The correction to the emulator had also materially changed these results: S&W at `fixed:1.2` produced 416 retransmissions with the corrected emulator, compared with 645 previously, and so approximately 230 of the earlier retransmissions were associated with emulator scheduling lateness. These results illustrate that preferred RTO policy depends on whether the goal is maximum useful-data rate or reduced retransmission overhead.
+The shortest timeout still delivered the highest goodput for all three protocols, for example 5.21 Mbit/s with SR's `fixed:1.2` compared with 4.86 Mbit/s at `fixed:1.5` and 3.24 Mbit/s at `fixed:3`. At `fixed:1.2`, the RTO was 48 ms, below the maximum unimpeded RTT of 50 ms, so legitimate exchanges could trigger premature timeouts that adaptive RTO could reduce. By contrast, the fixed policies from `fixed:1.5` to `fixed:3` used 60–120 ms timeouts, already above the maximum unimpeded RTT, leaving few early retransmissions for adaptive RTO to eliminate; their main cost was slower recovery from genuine losses. The longer timeout prevented premature retransmissions but delayed recovery from genuine losses, with about 33% lower goodput at `fixed:3` than at `fixed:1.5`. Adaptive RTO provided an intermediate trade-off with neither the highest goodput nor the fewest unnecessary retransmissions. The correction to the emulator had also materially changed these results: S&W at `fixed:1.2` produced 416 retransmissions with the corrected emulator, compared with 645 previously, and so approximately 230 of the earlier retransmissions were associated with emulator scheduling lateness. These results illustrate that preferred RTO policy depends on whether the goal is maximum useful-data rate or reduced retransmission overhead.
 
 ## 4.5 Validation against Linux netem
 
@@ -207,22 +207,22 @@ replay and records the preliminary timing diagnosis. The final comparison uses t
 
 ![Figure 5: Linux netem validation](../figures/fig5_emulator_vs_netem.png)
 
-*Figure 5. Mean Stop-and-Wait goodput versus packet loss, comparing the custom
+*Figure 5. Validation (Stop-and-Wait, delay 20 ms ± 5 ms, same loss levels as experiment 1). Mean Stop-and-Wait goodput versus packet loss, comparing the custom
 emulator with Linux `netem`. Error bars show 95% confidence intervals; the
 Linux `netem` data use five seeded repeats per loss level; the custom
 emulator uses ten seeds per loss level.*
 
-**Results and discussion.** As shown in Figure 5, the custom channel emulator was independently tested against Linux `netem` by comparing Stop-and-Wait goodput across eight packet-loss levels. The custom emulator used ten seeds per level, and netem used five repetitions. Each dataset was summarised with its mean and 95% Student's t confidence interval (critical values: 2.262 and 2.776 respectively). This tested if two separately implemented sources of impairment yielded similar trends of performance on equivalent nominal network conditions. The means between different implementations did not differ by more than approximately 1.3% over the entire loss range.
+**Results and discussion.** As shown in Figure 5, the custom channel emulator was independently tested against Linux `netem` by comparing Stop-and-Wait goodput across eight packet-loss levels, with a 20 ms delay and ±5 ms jitter in each direction. The custom emulator used ten seeds per level, and netem used five seeded repetitions. Each dataset was summarised with its mean and 95% Student's t confidence interval (critical values: 2.262 and 2.776 respectively). For each loss level, the relative gap was calculated as (emulator mean − netem mean) / netem mean using the Stop-and-Wait goodput values. This tested whether two separately implemented sources of impairment yielded similar performance trends under equivalent nominal network conditions. The mean goodput values differed by no more than 1.5% across the full loss range. The netem dataset was regenerated on the same build used for the other results after a review identified stale counters in the earlier validation run.
 
 | Loss | Custom emulator (kbit/s) | Linux netem (kbit/s) | Relative gap | 95% CIs overlap |
 |---|---:|---:|---:|---|
-| 0% | 276.3 ± 0.6 | 277.1 ± 1.2 | −0.3% | Yes |
-| 0.1% | 275.7 ± 0.3 | 276.5 ± 0.4 | −0.3% | No |
-| 0.5% | 272.1 ± 0.3 | 273.0 ± 1.0 | −0.3% | Yes |
-| 1% | 267.6 ± 0.5 | 268.2 ± 0.9 | −0.2% | Yes |
-| 2% | 259.7 ± 0.6 | 260.1 ± 1.3 | −0.1% | Yes |
-| 5% | 237.2 ± 1.0 | 238.8 ± 1.6 | −0.6% | Yes |
-| 10% | 201.8 ± 1.3 | 204.6 ± 1.1 | −1.3% | No |
-| 20% | 150.6 ± 0.9 | 150.5 ± 1.4 | +0.0% | Yes |
+| 0% | 276.3 ± 0.6 | 277.6 ± 0.5 | −0.5% | No |
+| 0.1% | 275.7 ± 0.3 | 276.7 ± 0.5 | −0.4% | No |
+| 0.5% | 272.1 ± 0.3 | 273.6 ± 0.8 | −0.5% | No |
+| 1% | 267.6 ± 0.5 | 269.7 ± 0.6 | −0.8% | No |
+| 2% | 259.7 ± 0.6 | 260.9 ± 1.2 | −0.4% | Yes |
+| 5% | 237.2 ± 1.0 | 238.7 ± 1.4 | −0.6% | Yes |
+| 10% | 201.8 ± 1.3 | 204.9 ± 1.3 | −1.5% | No |
+| 20% | 150.6 ± 0.9 | 150.8 ± 1.1 | −0.1% | Yes |
 
-The confidence intervals overlapped at six of the eight levels of loss, thus confirming general statistical consistency between the two implementations. At 0.1% loss the intervals did not overlap, but the means differed by only approximately 0.3%, because the narrow intervals highlighted the small systematic overhead of an extra process hop of the custom emulator. The wider intervals at 10% loss also did not overlap, and netem achieved around 1.3% higher goodput. We report this difference as observed, without claiming a cause we have not verified. Before the emulator timing correction the two implementations had differed by around 2-5% across loss levels; the corrected results were substantially closer. The close agreement of the goodput curves in Figure 5 therefore raised confidence in the custom emulator's measurements; but the two non-overlapping intervals showed that the implementations were not statistically identical under all conditions.
+The 95% confidence intervals overlapped at three of the eight loss levels, although the mean goodput values were within 0.1–1.5% of one another throughout. The custom emulator was systematically slower, typically by about 0.5%, consistent with the approximately 0.4 ms additional round-trip overhead of its separate process hop identified in Section 3.10. The narrow confidence intervals made this small absolute difference visible at several loss levels. However, the response to increasing packet loss followed nearly the same shape in both setups, and the curves in Figure 5 lie close together. This agreement in the loss-response pattern supports the custom emulator's loss model, even though the two implementations were not statistically identical in absolute goodput. Its slightly lower absolute values are conservative, while comparisons among S&W, GBN and SR remain on a common basis because each protocol was tested through the same emulator.
