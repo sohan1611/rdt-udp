@@ -249,7 +249,29 @@ and TimerWheel double-decrement. It did not produce the fixed implementation.
 **Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
 
 **Mine:** I updated `SelectiveRepeat.java` to limit adaptive RTO doubling to timeouts for the current base packet and to reset backoff when a fresh RTT sample is collected. I ran `./build.sh` and verified that all tests passed.
+### 2026-10-11 — M3 / Selective Repeat RTO fix (`53a60bd`)
 
+**What:** Used ChatGPT to review and debug the Selective Repeat retransmission timeout behavior, including timeout handling and retransmission of unacknowledged packets.
+
+**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
+
+**Mine:** I worked on the RTO fix in `SelectiveRepeat.java`, reviewed the changes, and tested the implementation. The fix was committed as `53a60bd`.
+
+### 2026-10-11 — M3 / Selective Repeat FIN fix (`d1c24c1`)
+
+**What:** Used ChatGPT to understand and troubleshoot the Selective Repeat FIN handling and retry behavior.
+
+**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
+
+**Mine:** I worked on the FIN handling changes in `SelectiveRepeat.java`, checked the implementation, and tested the changes. The fix was committed as `d1c24c1`.
+
+### 2026-10-26 — M3 / Window-bound tests (#40)
+
+**What:** Used ChatGPT to help rewrite `ReceiveBufferTest.java` and `SelectiveRepeatTest.java`, preserve the existing tests, and add tests for legal and illegal window sizes. AI helped with the test code and comments.
+
+**Permitted under:** Course AI-use policy for test development, explanation, debugging, and review assistance.
+
+**Mine:** I saved the test files, compiled and ran the tests, and checked the results. `ReceiveBufferTest` passed with 23 tests and 0 failures. `SelectiveRepeatTest` also passed. The full build still had two NetEm timing failures on Windows.
 
 ## M4 — Channel & Evidence · Sohan Mandal
 
