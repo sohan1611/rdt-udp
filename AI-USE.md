@@ -123,13 +123,13 @@ local Sender-to-Receiver transfer test and checked the resulting statistics.
 
 **Mine:** I implemented the Stop-and-Wait sequence-number changes in `StopAndWait.java`, added the Session reordering integration test, ran the project test suite, and verified the relevant tests passed. I committed and pushed the changes as `9dd92c6`.
 
-### 2026-10-26 — Packet.java rewrite verification
+### 2026-10-26 — Packet.java review and testing
 
-**What:** AI reviewed the current `Packet.java` implementation and helped check its behavior against the packet format and existing tests.
+**What:** AI reviewed `Packet.java` and helped check its behavior against the packet format and existing tests.
 
 **Permitted under:** explaining concepts; debugging; reviewing our code.
 
-**Mine:** I rewrote `Packet.java` and ran the existing tests to check the implementation. `PacketTest` passed all 13 tests, and `ChannelTest` passed all 21 tests. `NetEmSmokeTest` had two timing-related failures, which are being tracked separately.
+**Mine:** I worked on `Packet.java` and `CorruptPacketException.java` and ran the existing tests. `PacketTest` passed all 13 tests, and `ChannelTest` passed all 21 tests. `NetEmSmokeTest` had two timing-related failures, which are being tracked separately.
 
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
