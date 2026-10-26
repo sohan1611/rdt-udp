@@ -187,10 +187,12 @@ seeds per point.*
 | S&W | adaptive | 261 kbit/s | 20 (+3) | 128 | 123 |
 | GBN | fixed:1.2 | 5.17 Mbit/s | 3,035 (+358) | 2 | 3,742 |
 | GBN | fixed:1.5 | 4.32 Mbit/s | 60 | 2 | 5,282 |
+| GBN | fixed:2 | 3.55 Mbit/s | 29 | 0 | 5,316 |
 | GBN | fixed:3 | 2.62 Mbit/s | 16 | 0 | 5,314 |
 | GBN | adaptive | 4.63 Mbit/s | 690 (+55) | 2 | 4,974 |
 | SR | fixed:1.2 | 5.21 Mbit/s | 1,440 (+336) | 132 | 123 |
 | SR | fixed:1.5 | 4.86 Mbit/s | 0 | 128 | 123 |
+| SR | fixed:2 | 4.17 Mbit/s | 0 | 128 | 123 |
 | SR | fixed:3 | 3.24 Mbit/s | 0 | 128 | 123 |
 | SR | adaptive | 4.59 Mbit/s | 57 (+27) | 127 | 123 |
 
