@@ -433,6 +433,18 @@ checked that traces now end with the FIN/FINACK exchange.
 **Permitted under:** boilerplate and plotting scripts; generating tests.
 **Mine:** the NetEm shutdown hook that waits for `run()` so the trace is closed.
 
+### 2026-10-11 — spurious.py and figure 5
+**What:** At my request, Claude wrote `analysis/spurious.py`, which replays each emulator
+trace and classifies every retransmission as necessary, early timer, ACK lost or after ACK,
+with 16 tests on hand-made traces, and added figure 5 (our emulator against Linux netem) to
+`plots.py`, with a test. Before the code freeze it fixed the Makefile (`make all` now
+redraws every figure, `make experiments` runs all four configs) and gave figure 3 a log axis. After Sinjan's review it
+required evidence of a dropped ACK before labelling a retransmission "ACK lost".
+**Permitted under:** boilerplate and plotting scripts; generating tests.
+**Mine:** the decision to measure spurious retransmissions for the secondary claim, the
+choice to use early-timer retransmissions as the RTO metric, and the interpretation of the
+results.
+
 ---
 
 # Open items — must be cleared before submission
