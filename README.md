@@ -105,25 +105,27 @@ reported measurements.
 
 ## Status
 
-Updated 11 October 2026. Component states reflect merged work and PRs still awaiting merge.
-Test counts by suite will be inserted after PR #33 merges; placeholders below are deliberate.
+Updated 28 October 2026. All components are merged into `main`; `make all` builds, runs every
+test suite below and redraws Figures 1–5 from the committed results.
 
 | Component | Owner | State | Tests |
 |---|---|---|---|
-| `Packet` — wire format and checksum | M1 | Merged (AI-assisted draft); hand-written rewrite by M1 pending — see `AI-USE.md` open items | TBD |
-| `Session` — handshake and teardown; sender/receiver CLIs | M1 | Merged | TBD |
-| `StopAndWait` | M1 | Merged | TBD |
-| `TimerWheel` | M2 | Merged | TBD |
-| `RttEstimator` | M2 | Merged | TBD |
-| `GoBackN` | M2 | Open in PR #32 | TBD |
-| `SeqSpace` | M3 | Merged | TBD |
-| `ReceiveBuffer` | M3 | Merged | TBD |
-| `SelectiveRepeat` | M3 | Open in PR #31 | TBD |
-| `Channel`, `NetEm`, `TraceLog`, `ChannelConfig` — emulator | M4 | Merged; timing/ordering fixes open in PR #33 | TBD |
-| `Calibrate` — capacity calibration | M4 | Merged | TBD |
-| `RunStats`, experiment harness | M4 | Merged | TBD |
-| Plotting pipeline | M4 | Merged | TBD |
-| Linux `netem` validation | M4 | Merged | TBD |
+| `Packet` — wire format and checksum | M1 | Merged (AI-assisted draft); hand-written rewrite by M1 in PR #41 — see `AI-USE.md` open items | `PacketTest` 13 |
+| `Session` — handshake and teardown; sender/receiver CLIs | M1 | Merged | `HandshakeTest` 3, `SessionTest` 3 |
+| `StopAndWait` | M1 | Merged | covered by `SessionTest` and the experiment runs |
+| `TimerWheel` | M2 | Merged | `TimerWheelTest` 8 |
+| `RttEstimator` | M2 | Merged | `RttEstimatorTest` 6 |
+| `GoBackN` | M2 | Merged (#32) | `GoBackNTest` 4 |
+| `SeqSpace` | M3 | Merged | `SeqSpaceTest` 21 |
+| `ReceiveBuffer` | M3 | Merged | `ReceiveBufferTest` 23 |
+| `SelectiveRepeat` | M3 | Merged (#31 via #37) | `SelectiveRepeatTest` 7 |
+| `Channel`, `NetEm`, `TraceLog`, `ChannelConfig` — emulator | M4 | Merged (incl. #33 timing and ordering fixes) | `ChannelTest` 21, `NetEmSmokeTest` 8, `TraceLogTest` 9 |
+| `Calibrate` — capacity calibration | M4 | Merged | run, not unit-tested (`results/calibration.csv`) |
+| `RunStats`, experiment harness | M4 | Merged | `RunStatsTest` 12, `test_run_matrix.py` 21 |
+| Plotting and retransmission classification | M4 | Merged (#35) | in `test_run_matrix.py`; `test_spurious.py` 18 |
+| Linux `netem` validation | M4 | Merged (#30) | run (`results/netem_validation.csv`) |
+
+All experiments are complete: 890 runs, every one `ok` with a matching received file (see `report/`).
 
 ## A note on the wire format
 

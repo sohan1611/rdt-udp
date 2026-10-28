@@ -113,6 +113,10 @@ The sender cannot measure the emulator's delay, so it is told: `--base-rtt-ms N`
 `run_matrix.py` computes it as delay up + down (jitter excluded) and passes it on every
 run. The sender uses it only for `fixed:X`; `adaptive` ignores it.
 
+`adaptive` uses `RttEstimator` (RFC 6298 formula, Karn's rule) with the RTO clamped to
+5 ms – 5 s. Both limits are deliberate choices for a 40 ms test path and differ from RFC 6298
+(1 s minimum, at least 60 s maximum).
+
 ---
 
 ## 8. RESULT line
