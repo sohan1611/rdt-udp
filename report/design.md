@@ -71,3 +71,23 @@ Packets were timestamped on arrival by the receive thread. These would then be a
 ## 2.8 Experiment and Analysis
 
 The run_matrix.py script in Python was used to run each configuration. Fresh ports were used for each configuration and there was a limit on how long each would run for. Each result would be stored as a single row in the CSV. The script would then continue running, only considering rows with status ok as complete. Garbage collection was logged for the sender and receiver. The SHA-256 was also verified independently using the file_match function. Corrupt results would be excluded and re-run. For experiment 4 the traces would be saved for analysis using spurious.py. This would show what impairments were applied to each packet and categorise them into necessary recovery, early timeouts, lost ACKs and re-transmissions after ACK. The plots were generated using plots.py. The Makefile had a make all target which would compile and test the Java code. The harness tests would be run and the plots regenerated. This would not repeat the long experiment matrix. The experiment was repeatable and the statistical choices were documented (3.6-3.7).
+
+## 2.9 Deviations from the proposal
+
+There are four places where the final implementation has deviated from the original plan. However, these changes do not affect the controlled environment.
+
+Timers & I/O
+
+Whilst the original plan was to use a single NIO selector loop to interact with a timer heap, final implementations use blocking UDP sockets with setSoTimeout. Selective Repeat uses the TimerWheel to schedule each individual packet and then updates the socket timeout to when the next deadline is. Go-Back-N sets the timeout to the oldest unacknowledged packet. Stop-and-Wait sets its timeout to the lone outstanding packet. Both endpoints have one socket and one protocol thread, so using a selector would have added unnecessary complexity.
+
+Warm-up & Allocation
+
+In our original plan we were going to ignore warm up runs and provide a zero allocation hot path. However, there was no warm up transfer and each run of the measurements used new JVMs. There was a consistent start up overhead included. As the transfers were long, this overhead was low especially with Stop-and-Wait. We did not assume that no JVM activity would be occurring so we have recorded garbage collection within the harness. We saw no full GC in any of the 890 runs (see Sections 3.6 & 3.9).
+
+Selective Acknowledgements
+
+Our original plan stated that we would include selective acknowledgements. A stretch goal was to include SACK blocks. However, no SACK blocks have been included. Selective Repeat includes individual acknowledgements. Whilst our packet includes SACK type and sackCount fields, they are not used. As we wanted to ensure that our implementation was correct we focused on testing and fixing the emulator, so including SACK blocks has been left for later (see Section 5.5).
+
+Analysis
+
+Our original plan had stated that we would use Python with pandas and Matplotlib. However, we have used the csv and statistics modules from Python's standard library. As we just need to calculate means and confidence intervals there is no need for the pandas library. This reduces our dependencies and makes running make all easier.
