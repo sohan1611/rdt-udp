@@ -123,6 +123,15 @@ local Sender-to-Receiver transfer test and checked the resulting statistics.
 
 **Mine:** I implemented the Stop-and-Wait sequence-number changes in `StopAndWait.java`, added the Session reordering integration test, ran the project test suite, and verified the relevant tests passed. I committed and pushed the changes as `9dd92c6`.
 
+### 2026-10-13 — Stop-and-Wait data transmission statistics
+
+**What:** AI helped identify and review a missing statistics update for initial DATA transmissions in `StopAndWait.java`, which caused `data_sent` and `wire_bytes` to be undercounted.
+
+**Permitted under:** debugging; reviewing our code.
+
+**Mine:** I added `stats.onDataSent(data.length, false);` immediately after the initial DATA send, preserving the existing retransmission accounting. I ran `./build.sh`; the Packet and Channel tests passed, but two NetEmSmokeTest timing tests failed on this run.
+
+
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
 ### 2026-09-16 — TimerWheel.java 
@@ -175,6 +184,30 @@ and TimerWheel double-decrement. It did not produce the fixed implementation.
 
 **Mine:** I applied all five fixes to GoBackN.java and RttEstimator.java myself. I also added the backoffResets() test, verified 6/6 and 4/4 tests pass, and pushed the updated PR. I answered both viva questions (W <= 2^k-1, GBN vs SR tradeoff) in my own words from the RFC.
 
+### 2026-09-30 to 2026-10-08 — ARQ integration, reliability fixes, and experiment validation
+
+**What:** Used AI for explanations, debugging assistance, code review, and help interpreting build and experiment results during ARQ integration and reliability testing.
+
+**Permitted under:** Course AI-use policy for learning, debugging, review assistance, and testing support.
+
+**Mine:** I integrated and reviewed the ARQ changes, ran `./build.sh`, and validated the experiment configurations and results before committing the changes.
+
+### 2026-10-11 — GBN reliability fixes and packet-loss testing
+
+**What:** Used AI to review GBN timeout backoff behavior, examine RTO cap handling, troubleshoot packet-loss testing, and review test results and Git changes.
+
+**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
+
+**Mine:** I reviewed and applied the GBN timeout-handling changes, removed the SHA debug output, added the GBN packet-loss test, and ran `./build.sh`. I reviewed the changes before preparing the PR commit.
+
+### 2026-10-26 — Experiment 4 design note
+
+**What:** Used AI to help draft and organize `docs/exp4-design.md`, explaining trace-based retransmission classification and the interpretation of Experiment 4 results.
+
+**Permitted under:** Improving writing; explaining concepts.
+
+**Mine:** Reviewed the design note, added it to the repository, checked the formatting, committed it, and included it in PR #38.
+
 ## M3 — Selective Repeat · Sohini Pandit
 
 ### 2026-09-16 — M3 / SeqSpace
@@ -208,6 +241,23 @@ and TimerWheel double-decrement. It did not produce the fixed implementation.
 **Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
 
 **Mine:** I integrated TimerWheel with `SelectiveRepeat.java`, moved `TimerWheel.java` into `src/main/java/timer/` so it was included in the build, updated `build.sh` to run the Selective Repeat tests, and ran the tests. I committed and pushed the changes in commit `2720daa` (`Complete Selective Repeat timer integration`) to `m3/selective-repeat`.
+
+### 2026-10-06 — M3 / Selective Repeat file-transfer integration
+
+**What:** Used ChatGPT to help understand and debug the integration of Selective Repeat file transfer into the application's sender and receiver entry points.
+
+**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
+
+**Mine:** I integrated `SelectiveRepeat` with the application file-transfer interface in `Sender.java` and `Receiver.java`. The integration was committed as `be8e912` (`Integrate Selective Repeat file transfer`).
+
+### 2026-10-11 — M3 / Adaptive RTO backoff
+
+**What:** Used ChatGPT to review adaptive retransmission-timeout backoff in `SelectiveRepeat.java`, including when to double the RTO after a timeout and when to reset backoff after receiving a fresh RTT sample.
+
+**Permitted under:** Course AI-use policy for explanation, debugging, and review assistance.
+
+**Mine:** I updated `SelectiveRepeat.java` to limit adaptive RTO doubling to timeouts for the current base packet and to reset backoff when a fresh RTT sample is collected. I ran `./build.sh` and verified that all tests passed.
+
 
 ## M4 — Channel & Evidence · Sohan Mandal
 
@@ -363,6 +413,54 @@ queue when killed or when its terminal is closed, not only on Ctrl+C.
 **Permitted under:** boilerplate and plotting scripts.
 **Mine:** the decision to cross-validate against netem, which was in our plan from the start,
 and running the validation and interpreting the comparison.
+
+### 2026-10-11 — In-order jitter and release timing: tests
+**What:** Claude found, while testing #32, that per-packet jitter reordered back-to-back
+packets, which made GBN retransmit about 112,000 packets at 0% loss. It wrote four
+`ChannelTest` checks for the fix: back-to-back packets leave in arrival order, the recorded
+delay equals the applied delay, well-spaced packets keep their full jitter, and reordered
+packets still overtake. It also spaced the existing jitter tests' packets 1 s apart, so they
+still test the drawn delays. After the netem cross-check showed our emulator about 2 ms per
+round trip slower than Linux netem, it measured the cause (waits rounded up to whole
+milliseconds, about 1 ms late per direction) and wrote the `NetEmSmokeTest` check that
+single packets are released on time. After Shaili's and Sinjan's review it wrote the burst
+test (32-packet bursts every 2 ms), which showed the first fix made bursts worse, measured a
+two-thread design on a scratch copy before I wrote it, and tidied my step-label comments.
+**Permitted under:** generating tests; reviewing our code.
+**Mine:** the decisions to make jitter keep packets in order and to fix the release timing
+rather than only document it, and the changes to `Channel.java` and `NetEm.java`, including
+the two-thread rewrite (receive thread plus `DelayQueue` release thread).
+
+### 2026-10-11 — run_matrix.py: --trace and complete traces
+**What:** At my request, Claude added a `--trace` option to `run_matrix.py`, which keeps the
+emulator's JSONL trace of every run (needed to label spurious retransmissions in
+experiment 4), with four tests. It found that traces lost up to 255 final lines because the
+harness killed NetEm outright, changed the harness to stop it with SIGTERM first, and
+checked that traces now end with the FIN/FINACK exchange.
+**Permitted under:** boilerplate and plotting scripts; generating tests.
+**Mine:** the NetEm shutdown hook that waits for `run()` so the trace is closed.
+
+### 2026-10-11 — spurious.py and figure 5
+**What:** At my request, Claude wrote `analysis/spurious.py`, which replays each emulator
+trace and classifies every retransmission as necessary, early timer, ACK lost or after ACK,
+with 16 tests on hand-made traces, and added figure 5 (our emulator against Linux netem) to
+`plots.py`, with a test. Before the code freeze it fixed the Makefile (`make all` now
+redraws every figure, `make experiments` runs all four configs) and gave figure 3 a log axis. After Sinjan's review it
+required evidence of a dropped ACK before labelling a retransmission "ACK lost".
+**Permitted under:** boilerplate and plotting scripts; generating tests.
+**Mine:** the decision to measure spurious retransmissions for the secondary claim, the
+choice to use early-timer retransmissions as the RTO metric, and the interpretation of the
+results.
+
+### 2026-10-21 — Experiment runs, results and report checks
+**What:** At my request, Claude ran the final experiments (890 runs), the netem validation
+and `spurious.py`, drew the figures, and computed the summary tables and model checks used
+in the results chapter. It fact-checked `methodology.md` and `results.md` against the data
+(I fixed the errors it found) and repaired their formatting after an editor damaged them,
+restoring formulas and tables without changing my wording.
+**Permitted under:** boilerplate and plotting scripts; reviewing our code; improving our writing.
+**Mine:** the text of both chapters, the interpretation of the results, and the decisions on
+reruns and on reporting the secondary claim as only partly confirmed.
 
 ---
 

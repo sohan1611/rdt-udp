@@ -21,6 +21,10 @@ import java.util.List;
  */
 public final class ChannelTest {
 
+    // Packets offered this far apart never wait for each other, so each one's
+    // delay is exactly its own drawn delay. Tests about the drawn values use it.
+    private static final long APART = 1_000_000_000L;
+
     public static void main(String[] args) {
         Harness h = new Harness("ChannelTest");
 
@@ -145,7 +149,7 @@ public final class ChannelTest {
             double lo = Double.MAX_VALUE;
             double hi = -1;
             for (int i = 0; i < 5000; i++) {
-                double ms = c.offer(p, p.length, 0L).get(0).delayMs;
+                double ms = c.offer(p, p.length, i * APART).get(0).delayMs;
                 lo = Math.min(lo, ms);
                 hi = Math.max(hi, ms);
             }
@@ -159,7 +163,7 @@ public final class ChannelTest {
             byte[] p = payload(40);
             for (int i = 0; i < 2000; i++) {
                 assertTrue("delay must be clamped at zero",
-                        c.offer(p, p.length, 0L).get(0).delayMs >= 0.0);
+                        c.offer(p, p.length, i * APART).get(0).delayMs >= 0.0);
             }
         });
 
@@ -178,6 +182,78 @@ public final class ChannelTest {
             ChannelConfig withDelay = ChannelConfig.parse("delay=30,jitter=10");
             assertTrue("draw counts should be identical regardless of outcomes",
                     Channel.DRAWS_PER_PACKET == 10 && withDelay.delayMs == 30.0);
+        });
+
+        h.check("back-to-back packets leave in the order they arrived", () -> {
+            // Jitter varies the delay but does not reorder a single path:
+            // a packet is never released before the one offered ahead of it.
+            Channel c = channel(ChannelConfig.parse("delay=20,jitter=5"), 21);
+            byte[] p = payload(60);
+            long previous = Long.MIN_VALUE;
+            for (int i = 0; i < 2000; i++) {
+                long now = i * 10_000L;          // 10 microseconds apart
+                Channel.Delivery d = c.offer(p, p.length, now).get(0);
+                assertTrue("packet " + i + " released before its predecessor",
+                        d.releaseNanos >= previous);
+                assertTrue("packet " + i + " held longer than delay + jitter",
+                        d.releaseNanos - now <= 25_000_000L);
+                previous = d.releaseNanos;
+            }
+        });
+
+        h.check("the recorded delay is the delay actually applied", () -> {
+            Channel c = channel(ChannelConfig.parse("delay=20,jitter=5"), 22);
+            byte[] p = payload(60);
+            for (int i = 0; i < 500; i++) {
+                long now = i * 10_000L;
+                Channel.Delivery d = c.offer(p, p.length, now).get(0);
+                assertTrue("delayMs must match the release time",
+                        Math.abs(d.delayMs - (d.releaseNanos - now) / 1e6) < 1e-3);
+            }
+        });
+
+        h.check("well-spaced packets keep their own jitter", () -> {
+            // At Stop-and-Wait spacing nothing waits, so the delays are the
+            // drawn ones and still cover the whole band.
+            Channel c = channel(ChannelConfig.parse("delay=20,jitter=5"), 23);
+            byte[] p = payload(60);
+            double lo = Double.MAX_VALUE;
+            double hi = -1;
+            for (int i = 0; i < 2000; i++) {
+                double ms = c.offer(p, p.length, i * 50_000_000L).get(0).delayMs;
+                lo = Math.min(lo, ms);
+                hi = Math.max(hi, ms);
+            }
+            assertTrue("low end of the band should be reached", lo < 15.5);
+            assertTrue("high end of the band should be reached", hi > 24.5);
+        });
+
+        h.check("reordered packets still overtake later ones", () -> {
+            // Reordering comes only from the reorder parameter: a reordered
+            // packet is not held to the in-order sequence, and does not hold
+            // up the packets behind it.
+            Channel c = channel(
+                    ChannelConfig.parse("reorder=0.2,delay=20,jitter=5,reorderExtra=20"), 24);
+            byte[] p = payload(60);
+            List<Channel.Delivery> all = new ArrayList<>();
+            long lastInOrder = Long.MIN_VALUE;
+            for (int i = 0; i < 2000; i++) {
+                Channel.Delivery d = c.offer(p, p.length, i * 10_000L).get(0);
+                all.add(d);
+                if (!d.reordered) {
+                    assertTrue("in-order packets must stay in order",
+                            d.releaseNanos >= lastInOrder);
+                    lastInOrder = d.releaseNanos;
+                }
+            }
+            boolean overtaken = false;
+            for (int i = 0; i < all.size() - 1 && !overtaken; i++) {
+                if (all.get(i).reordered && !all.get(i + 1).reordered
+                        && all.get(i + 1).releaseNanos < all.get(i).releaseNanos) {
+                    overtaken = true;
+                }
+            }
+            assertTrue("some reordered packet should be overtaken by its successor", overtaken);
         });
 
         h.check("rejects an out-of-range probability", () -> {
@@ -236,7 +312,7 @@ public final class ChannelTest {
         byte[] p = payload(150);
         List<String> out = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
-            List<Channel.Delivery> d = c.offer(p, p.length, 0L);
+            List<Channel.Delivery> d = c.offer(p, p.length, i * APART);
             StringBuilder sb = new StringBuilder();
             sb.append(d.size());
             for (Channel.Delivery x : d) {
@@ -254,7 +330,7 @@ public final class ChannelTest {
         byte[] p = payload(150);
         List<Double> out = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
-            List<Channel.Delivery> d = c.offer(p, p.length, 0L);
+            List<Channel.Delivery> d = c.offer(p, p.length, i * APART);
             out.add(d.isEmpty() ? null : d.get(0).delayMs);
         }
         return out;

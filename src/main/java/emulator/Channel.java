@@ -32,6 +32,10 @@ public final class Channel {
     public long reordered;
     public long delivered;
 
+    // Jitter changes delivery time, but packets on one path cannot overtake each other.
+    // Only the reorder setting permits out-of-order delivery.
+    private long lastInOrderReleaseNanos = Long.MIN_VALUE;
+
     public static final class Delivery {
 
         public final byte[] data;
@@ -193,6 +197,18 @@ public final class Channel {
             reordered++;
         }
 
+        long releaseNanos =
+                nowNanos + (long) (delayMs * 1_000_000.0);
+
+        // Reordered packets must be able to overtake without holding up later packets.
+        if (!didReorder) {
+            if (releaseNanos < lastInOrderReleaseNanos) {
+                releaseNanos = lastInOrderReleaseNanos;
+            }
+            lastInOrderReleaseNanos = releaseNanos;
+            delayMs = (releaseNanos - nowNanos) / 1_000_000.0;
+        }
+
         /*
          * Trace action vocabulary:
          * pass, dup, corrupt, reorder, combinations joined with '+', and drop.
@@ -232,9 +248,6 @@ public final class Channel {
 
         // Counts datagrams released, so duplicates can make delivered exceed offered - dropped.
         delivered++;
-
-        long releaseNanos =
-                nowNanos + (long) (delayMs * 1_000_000.0);
 
         return new Delivery(
                 copy,

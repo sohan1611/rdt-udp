@@ -107,11 +107,41 @@ def files_match(input_path,output_path):
         return False
     return file_sha256(input_path)==file_sha256(output_path)
 
+def trace_name(run):
+    # One trace per run, named by everything that identifies the run, so a sweep's
+    # traces sit side by side. ':' is replaced because fixed:1.5 is not a safe
+    # file name on the Windows drives WSL2 mounts.
+    parts=[str(run["protocol"]),f"w{run['window']}",str(run["rto"]),f"k{run['seqbits']}"]
+    parts+=[f"{key}{run[key]}" for key in CHANNEL_FIELDS if key in run]
+    parts.append(f"seed{run['seed']}")
+    return "_".join(parts).replace(":","-")+".jsonl"
+
+def netem_command(run,cp,netem_port,receiver_port,trace_path=None):
+    cmd=[
+        "java","-cp",str(cp),
+        "emulator.NetEm",
+        "--listen",str(netem_port),
+        "--to",f"127.0.0.1:{receiver_port}",
+        "--seed",str(run["seed"]),
+        "--both",channel_spec(run)
+    ]
+    if trace_path is not None:
+        cmd+=["--trace",str(trace_path)]
+    return cmd
+
 def kill_process(proc):
+    # SIGTERM first, so the JVM runs its shutdown hooks: NetEm's hook waits for
+    # run() to close the trace, which flushes the trace's last lines. A process
+    # that does not exit within 3 s is then killed outright.
     if proc is None:
         return
     if proc.poll() is None:
-        proc.kill()
+        proc.terminate()
+        try:
+            proc.wait(timeout=3)
+            return
+        except subprocess.TimeoutExpired:
+            proc.kill()
     try:
         proc.wait(timeout=2)
     except subprocess.TimeoutExpired:
@@ -130,9 +160,16 @@ def base_row(run):
         row[key]=run.get(key,0)
     return row
 
-def run_one(run,cp,workdir):
+def run_one(run,cp,workdir,trace_dir=None):
     workdir=Path(workdir)
     workdir.mkdir(parents=True,exist_ok=True)
+    trace_path=None
+    if trace_dir is not None:
+        trace_dir=Path(trace_dir)
+        trace_dir.mkdir(parents=True,exist_ok=True)
+        trace_path=(trace_dir/trace_name(run)).resolve()
+        if trace_path.exists():
+            trace_path.unlink()
     input_path=(workdir/"input.bin").resolve()
     output_path=(workdir/"out.bin").resolve()
     if output_path.exists():
@@ -168,14 +205,7 @@ def run_one(run,cp,workdir):
             "--seqbits",str(run["seqbits"])
         ]
         receiver=subprocess.Popen(receiver_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-        netem_cmd=[
-            "java","-cp",str(cp),
-            "emulator.NetEm",
-            "--listen",str(netem_port),
-            "--to",f"127.0.0.1:{receiver_port}",
-            "--seed",str(run["seed"]),
-            "--both",channel_spec(run)
-        ]
+        netem_cmd=netem_command(run,cp,netem_port,receiver_port,trace_path)
         netem=subprocess.Popen(netem_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         time.sleep(0.5)
         sender_cmd=[
@@ -336,6 +366,8 @@ def main():
     parser.add_argument("--dry-run",action="store_true")
     parser.add_argument("--protocols",
         help="comma-separated subset of the config's protocols to run, e.g. stopwait")
+    parser.add_argument("--trace",action="store_true",
+        help="keep the emulator's JSONL trace of every run, in <out folder>/.work/<name>/traces/")
     args=parser.parse_args()
     cfg=load_config(args.config)
     runs=expand(cfg)
@@ -356,6 +388,7 @@ def main():
     out_path=Path(args.out) if args.out else Path("results")/f"{cfg['name']}.csv"
     workdir=out_path.parent/".work"/cfg["name"]
     make_input(workdir/"input.bin",cfg["file_bytes"])
+    trace_dir=workdir/"traces" if args.trace else None
     done=done_keys(out_path)
     sweep_keys=list(cfg["sweep"].keys())
     for i,run in enumerate(runs,1):
@@ -369,7 +402,7 @@ def main():
             print(f"{prefix} -> skipped")
             continue
         try:
-            row=run_one(run,args.cp,workdir)
+            row=run_one(run,args.cp,workdir,trace_dir=trace_dir)
         except Exception as exc:
             row=base_row(run)
             row["file_match"]=False
