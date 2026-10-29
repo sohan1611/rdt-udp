@@ -12,13 +12,22 @@ from pathlib import Path
 T95={1:12.706,2:4.303,3:3.182,4:2.776,5:2.571,6:2.447,7:2.365,8:2.306,9:2.262,10:2.228}
 
 # csv, x, y, out, x scale, log y, series
-# Figure 1 uses a log y axis because Stop-and-Wait sits about 30 times below
-# GBN and SR, and on a linear axis its line is flat against zero.
+# Figures 1 and 3 use a log y axis. In figure 1 Stop-and-Wait sits about 30
+# times below GBN and SR; in figure 3 GBN's retransmissions are about 30 times
+# SR's and Stop-and-Wait's. On a linear axis the lower lines are flat against zero.
 FIGURES=[
     ("results/exp1_loss.csv","loss","goodput_bps","figures/fig1_goodput_vs_loss.png","symlog",True,"protocol"),
     ("results/exp2_window.csv","window","goodput_bps","figures/fig2_goodput_vs_window.png","log2",False,"protocol,loss"),
-    ("results/exp3_reorder.csv","reorder","retransmissions","figures/fig3_retx_vs_reorder.png","symlog",False,"protocol"),
+    ("results/exp3_reorder.csv","reorder","retransmissions","figures/fig3_retx_vs_reorder.png","symlog",True,"protocol"),
     ("results/exp4_rto.csv","rto","retransmissions","figures/fig4_retx_vs_rto.png","linear",False,"protocol"),
+]
+
+# Figure 5 compares two sources on one plot: Stop-and-Wait through our emulator
+# (experiment 1, 10 seeds) and the same transfers through Linux netem (5 repeats).
+# mean_ci picks the t value from each sample size, so the two intervals are each right.
+VALIDATION=[
+    ("results/exp1_loss.csv","custom emulator (10 seeds)",{"protocol":"stopwait"}),
+    ("results/netem_validation.csv","Linux netem (5 repeats)",{"protocol":"stopwait"}),
 ]
 
 # column -> (axis label, factor applied to the value before plotting)
@@ -113,7 +122,9 @@ def plot(groups,x,y,out,xscale="linear",logy=False):
         for series in sorted(groups):
             xs=sorted(groups[series])
             stats=[mean_ci(groups[series][v]) for v in xs]
-            ax.errorbar(xs,[m for m,_ in stats],yerr=[h for _,h in stats],marker="o",capsize=3,label=series)
+            # Counts and rates cannot be negative, so the lower bar stops at zero.
+            lower=[min(h,m) if m>=0 else h for m,h in stats]
+            ax.errorbar(xs,[m for m,_ in stats],yerr=[lower,[h for _,h in stats]],marker="o",capsize=3,label=series)
 
         if xscale=="symlog":
             ax.set_xscale("symlog",linthresh=0.001)      # linear near 0, log beyond
@@ -124,7 +135,14 @@ def plot(groups,x,y,out,xscale="linear",logy=False):
             ax.set_xticklabels([f"{t:g}" for t in ticks])
 
     if logy:
-        ax.set_yscale("log",nonpositive="clip")
+        # A log axis cannot show zero (no retransmissions at 0% reordering), so
+        # use a symmetric log scale, linear below 1, when the data contains zeros.
+        values=[v for points in groups.values() for vs in points.values() for v in vs]
+        if min(values)<=0:
+            ax.set_yscale("symlog",linthresh=1)
+            ax.set_ylim(bottom=0)
+        else:
+            ax.set_yscale("log",nonpositive="clip")
 
     ax.set_xlabel(label(x))
     ax.set_ylabel(label(y))
@@ -137,6 +155,29 @@ def plot(groups,x,y,out,xscale="linear",logy=False):
     fig.savefig(out,dpi=150)
     plt.close(fig)
     print("wrote",out)
+
+
+def validation_groups(sources=None):
+    """{label: {loss: [goodput in Mbit/s, ...]}} for every source that exists."""
+    out={}
+    for path,label,match in sources or VALIDATION:
+        if not Path(path).exists():
+            continue
+        rows=[r for r in load_ok_rows(path) if all(r.get(k)==v for k,v in match.items())]
+        points={}
+        for r in rows:
+            points.setdefault(float(r["loss"]),[]).append(float(r["goodput_bps"])*factor("goodput_bps"))
+        if points:
+            out[label]=points
+    return out
+
+
+def make_validation_figure(out="figures/fig5_emulator_vs_netem.png"):
+    groups=validation_groups()
+    if len(groups)<2:
+        print("skip",out)
+        return
+    plot(groups,"loss","goodput_bps",out,"symlog",False)
 
 
 def make_figure(csv_path,x,y,out,xscale,logy,by):
@@ -174,6 +215,7 @@ def main():
 
     for csv_path,x,y,out,xscale,logy,by in FIGURES:
         make_figure(csv_path,x,y,out,xscale,logy,by)
+    make_validation_figure()
 
 
 if __name__=="__main__":

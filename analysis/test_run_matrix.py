@@ -298,5 +298,27 @@ class Plots(unittest.TestCase):
         self.assertTrue(all(r["status"] == "ok" for r in rows))
 
 
+class ValidationFigure(unittest.TestCase):
+
+    def test_both_sources_are_read_despite_different_columns(self):
+        # The netem CSV has "repeat" where the sweeps have "seed"; only protocol,
+        # loss, goodput and status matter, and only ok rows count.
+        with tempfile.TemporaryDirectory() as d:
+            emu = Path(d) / "emu.csv"
+            net = Path(d) / "net.csv"
+            emu.write_text("protocol,seed,loss,goodput_bps,status\n"
+                           "stopwait,1,0.0,264000,ok\nstopwait,2,0.0,262000,ok\n"
+                           "gbn,1,0.0,8000000,ok\nstopwait,3,0.0,1,timeout\n", encoding="utf-8")
+            net.write_text("protocol,repeat,loss,goodput_bps,status\n"
+                           "stopwait,1,0,277000,ok\nstopwait,2,0,276000,ok\n", encoding="utf-8")
+            groups = plots.validation_groups([(str(emu), "emulator", {"protocol": "stopwait"}),
+                                              (str(net), "netem", {"protocol": "stopwait"}),
+                                              (str(Path(d) / "missing.csv"), "absent", {})])
+        self.assertEqual(sorted(groups), ["emulator", "netem"])
+        for label, want in (("emulator", [0.264, 0.262]), ("netem", [0.277, 0.276])):
+            for got, expected in zip(groups[label][0.0], want, strict=True):
+                self.assertAlmostEqual(got, expected)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
