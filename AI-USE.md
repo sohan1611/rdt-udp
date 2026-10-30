@@ -131,6 +131,13 @@ local Sender-to-Receiver transfer test and checked the resulting statistics.
 
 **Mine:** I added `stats.onDataSent(data.length, false);` immediately after the initial DATA send, preserving the existing retransmission accounting. I ran `./build.sh`; the Packet and Channel tests passed, but two NetEmSmokeTest timing tests failed on this run.
 
+### 2026-10-26 — Packet.java review and testing
+
+**What:** AI reviewed `Packet.java` and helped check its behavior against the packet format and existing tests.
+
+**Permitted under:** explaining concepts; debugging; reviewing our code.
+
+**Mine:** I worked on `Packet.java` and `CorruptPacketException.java` and ran the existing tests. `PacketTest` passed all 13 tests, and `ChannelTest` passed all 21 tests. `NetEmSmokeTest` had two timing-related failures, which are being tracked separately.
 
 ## M2 — Timers & Go-Back-N · Sinjan Mishra
 
@@ -487,11 +494,7 @@ The brief bans generating our core protocol implementation. `Packet.java` is exa
 that. M1 rewrites it, using `PacketTest` as the specification and the draft as reference
 at most.
 
-**Status:** [ ] code merged 17 Sep (PR #6) and passing its 13 tests, but the rewrite is
-not done: the merged files are the AI draft with locals renamed and the formatting changed,
-so the logic is unchanged in substance. Measured against the draft, 95% of the code is
-character-identical once whitespace is normalised. M1 is rewriting it against `PacketTest`;
-this box stays unticked until that is done. — M1: sign and date here when complete
+**Status:** [x] Rewrite completed. `Packet.java` and `CorruptPacketException.java` have been rewritten and reviewed against `PacketTest`. All 13 `PacketTest` tests pass. — M1, Shaili Seth, 29 October 2026
 
 ### 2. `Channel.java`, `NetEm.java`, `ChannelConfig.java`, `TraceLog.java`, `Calibrate.java` — owner M4
 
