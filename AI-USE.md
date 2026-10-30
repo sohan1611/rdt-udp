@@ -425,7 +425,8 @@ round trip slower than Linux netem, it measured the cause (waits rounded up to w
 milliseconds, about 1 ms late per direction) and wrote the `NetEmSmokeTest` check that
 single packets are released on time. After Shaili's and Sinjan's review it wrote the burst
 test (32-packet bursts every 2 ms), which showed the first fix made bursts worse, measured a
-two-thread design on a scratch copy before I wrote it, and tidied my step-label comments.
+two-thread design on a scratch copy before I wrote it, and tidied my step-label comments. Later it made the two
+timing tests skip off Linux, where the Windows timer tick makes them fail regardless of NetEm.
 **Permitted under:** generating tests; reviewing our code.
 **Mine:** the decisions to make jitter keep packets in order and to fix the release timing
 rather than only document it, and the changes to `Channel.java` and `NetEm.java`, including

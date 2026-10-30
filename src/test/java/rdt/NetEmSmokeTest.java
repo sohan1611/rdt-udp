@@ -34,6 +34,13 @@ public final class NetEmSmokeTest {
 
     private static final InetAddress LOOPBACK = InetAddress.getLoopbackAddress();
 
+    // The two timing tests measure sub-millisecond lateness, which only Linux
+    // timers can deliver. Windows wakes threads on a ~15.6 ms tick, so there the
+    // tests would fail on the operating system, not on NetEm. Experiments run on
+    // Linux (WSL2) anyway, so the tests are skipped elsewhere and say so.
+    private static final boolean LINUX =
+            System.getProperty("os.name", "").toLowerCase().contains("linux");
+
     public static void main(String[] args) throws Exception {
         Harness h = new Harness("NetEmSmokeTest");
 
@@ -98,7 +105,9 @@ public final class NetEmSmokeTest {
             }
         });
 
-        h.check("releases delayed packets on time, not a millisecond late", () -> {
+        if (!LINUX) {
+            h.skip("releases delayed packets on time, not a millisecond late", "needs Linux timers (run ./build.sh in WSL2)");
+        } else h.check("releases delayed packets on time, not a millisecond late", () -> {
             // The netem cross-check (results/netem_validation.csv) found our
             // emulator about 2 ms slower per round trip than Linux netem. This
             // measures the emulator's own lateness: the time through a 20.5 ms
@@ -117,7 +126,9 @@ public final class NetEmSmokeTest {
                     lateMs), lateMs < 0.4);
         });
 
-        h.check("stays on time under bursts", () -> {
+        if (!LINUX) {
+            h.skip("stays on time under bursts", "needs Linux timers (run ./build.sh in WSL2)");
+        } else h.check("stays on time under bursts", () -> {
             // While NetEm waits out the last fraction of a millisecond before a
             // release, it is not reading new packets. Here bursts of 32
             // back-to-back packets (one GBN window) arrive every 2 ms while
