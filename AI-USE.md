@@ -462,6 +462,13 @@ restoring formulas and tables without changing my wording.
 **Mine:** the text of both chapters, the interpretation of the results, and the decisions on
 reruns and on reporting the secondary claim as only partly confirmed.
 
+### 2026-10-26 — Report chapters 1, 2 and 5, and assembly
+**What:** An AI tool drafted chapters 1, 2 and 5 from my outline and our results. I rewrote
+them in my own words, keeping the draft's structure. Claude fact-checked them, fixed the
+formatting and assembled `report.md`.
+**Permitted under:** improving our writing; reviewing our code.
+**Mine:** the wording, the interpretation of the results, and the corrections.
+
 ---
 
 # Open items — must be cleared before submission
