@@ -81,6 +81,10 @@ An 8 MiB file therefore contains 5,992 data packets plus the handshake.
     --seqbits k
     --verbose
 
+### Experiment harness
+
+    --trace   # keep each run's emulator trace in <out>/.work/<name>/traces/
+
 ---
 
 ## 6. Ports
@@ -98,7 +102,7 @@ The test harness uses fresh ports.
 
 `--rto fixed:1.5` means 1.5 times the base RTT.
 
-The base RTT is the emulator delay up + down.
+The base RTT is the emulator delay up + down (2 x delay for symmetric paths).
 
 With a 20 ms delay:
 
@@ -108,6 +112,10 @@ With a 20 ms delay:
 The sender cannot measure the emulator's delay, so it is told: `--base-rtt-ms N`.
 `run_matrix.py` computes it as delay up + down (jitter excluded) and passes it on every
 run. The sender uses it only for `fixed:X`; `adaptive` ignores it.
+
+`adaptive` uses `RttEstimator` (RFC 6298 formula, Karn's rule) with the RTO clamped to
+5 ms – 5 s. Both limits are deliberate choices for a 40 ms test path and differ from RFC 6298
+(1 s minimum, at least 60 s maximum).
 
 ---
 
@@ -168,3 +176,11 @@ The harness adds the run settings itself:
 - `jitter`
 
 The harness also compares the sent and received files itself and records `file_match`. A run that finishes but delivers different bytes gets status `corrupt`, so it is never plotted and is retried. `file_match`, not the sender's `sha256_match`, is the integrity evidence.
+
+---
+
+## 11. Emulator behaviour
+
+- Jitter is sampled uniformly from +/- the configured jitter value and keeps packets in order within each direction; only `reorder` deliberately changes their order.
+- Packet release timing is approximately 0.1 ms late on average for isolated packets, using separate receive and release threads with a `DelayQueue`.
+- The harness stops NetEm with SIGTERM; the shutdown hook waits for cleanup, so the trace closes and its final buffered records are retained.
